@@ -16,6 +16,7 @@ import argparse
 import os
 import shutil
 import signal
+import stat
 import shlex
 import subprocess
 import sys
@@ -51,6 +52,53 @@ def onServer(cmd, port=None):
     if r.returncode:
         say("  ssh to the test sshd failed (%d): %s" % (r.returncode, r.stderr.strip()[-200:]))
     return r.stdout
+
+
+def liveMasters(control):
+    """Control sockets under control that still answer ssh -O check."""
+    live = []
+    for d, _, names in os.walk(control):
+        for n in names:
+            path = os.path.join(d, n)
+            if stat.S_ISSOCK(os.lstat(path).st_mode) and subprocess.run(
+                    ["ssh", "-O", "check", "-S", path, "x"], capture_output=True).returncode == 0:
+                live.append(path)
+    return live
+
+
+def rightClickDisconnect(send, display, popups, control):
+    """A real right-click on the connected root offers Disconnect, and
+    choosing it in that menu closes the connection (#1221)."""
+    if not shutil.which("xdotool"):
+        say("  (no xdotool: the real right-click is not tested)")
+        return
+    xenv = dict(os.environ, DISPLAY=display.name)
+    pos = send("server rootpos Folder").split()
+    if not check(len(pos) == 2, "position of the Folder root: %s" % pos):
+        return
+    seen = len(open(popups).read()) if os.path.exists(popups) else 0
+    subprocess.run(["xdotool", "mousemove", pos[0], pos[1], "click", "3"], env=xenv)
+    offered, end = "", time.time() + 15
+    while time.time() < end and not offered:
+        time.sleep(0.3)
+        if os.path.exists(popups):
+            new = open(popups).read()[seen:].splitlines()
+            offered = new[-1] if new else ""
+    check(offered.startswith("Disconnect;Remove from list;-;"),
+          "a real right-click on the connected SSH root offers Disconnect, Remove, then the folder's items: %s" % offered)
+    if not offered.startswith("Disconnect"):
+        subprocess.run(["xdotool", "key", "Escape"], env=xenv)
+        return
+    time.sleep(0.5)
+    subprocess.run(["xdotool", "key", "Down", "Return"], env=xenv)
+    end = time.time() + 30
+    roots = ""
+    while time.time() < end and "Folder (SSH) (not connected)" not in roots:
+        time.sleep(0.5)
+        roots = send("server roots")
+    check("Folder (SSH) (not connected)" in roots, "Disconnect chosen in the real menu folds the root: %s" % roots)
+    live = liveMasters(control)
+    check(not live, "Disconnect closed ECCE's ssh master: %s" % live)
 
 
 def main():
@@ -115,7 +163,9 @@ def main():
                       "PATH": wrappers + os.pathsep + s.env()["PATH"],
                       "ECCE_NATIVE_DIALOGS": "explicit",
                       "ECCE_SSH_CONTROL_DIR": control,
-                      "ECCE_ASKPASS": "/bin/false"})
+                      "ECCE_ASKPASS": "/bin/false",
+                      "ECCE_SSH_TIMING": "1",
+                      "ECCE_TEST_POPUP_LOG": os.path.join(s.state, "popups.log")})
         if os.environ.get("ECCE_TEST_PRELOAD"):   # e.g. a crash-backtrace library
             genv["LD_PRELOAD"] = os.environ["ECCE_TEST_PRELOAD"]
         cmds = os.path.join(s.state, "organizer-commands")
@@ -169,7 +219,11 @@ def main():
         check(send("server rootchoose Folder Disconnect") == "ok", "root Disconnect action")
         check("[ ] Folder" in send("server menu"), "disconnect clears toolbar tick")
         check("Folder (SSH) (not connected)" in send("server roots"), "disconnect folds root")
+        t0 = time.time()
         check(send("server rootchoose Folder Connect") == "ok", "root Connect action")
+        say("  connecting the SSH folder took %.1f s" % (time.time() - t0))
+        rightClickDisconnect(send, display, os.path.join(s.state, "popups.log"), control)
+        check(send("server rootchoose Folder Connect") == "ok", "root Connect action again")
         check("[x] Folder" in send("server menu"), "connect sets toolbar tick")
         check(send("server choose Folder") == "ok", "toolbar toggles server off")
         check("[ ] Folder" in send("server menu"), "toolbar toggle clears tick")

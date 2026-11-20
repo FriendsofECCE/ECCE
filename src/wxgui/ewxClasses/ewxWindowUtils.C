@@ -99,12 +99,30 @@ wxRect ewxToolRect(wxToolBar *bar, int toolId)
 
 void ewxPopupMenu(wxWindow *win, wxMenu &menu)
 {
+  // A test reads what a real right-click offered (#1221).
+  if (const char *log = getenv("ECCE_TEST_POPUP_LOG")) {
+    if (FILE *f = fopen(log, "a")) {
+      wxString labels;
+      for (size_t i = 0; i < menu.GetMenuItemCount(); i++) {
+        wxMenuItem *it = menu.FindItemByPosition(i);
+        if (i) labels += ";";
+        labels += it->IsSeparator() ? wxString("-") : it->GetItemLabelText();
+      }
+      fprintf(f, "%s\n", (const char*)labels.utf8_str());
+      fclose(f);
+    }
+  }
   const int id = win->GetPopupMenuSelectionFromUser(menu);
   if (id == wxID_NONE) return;
   wxCommandEvent ev(wxEVT_MENU, id);
   ev.SetEventObject(&menu);
-  wxMenuItem *item = menu.FindItem(id);
+  wxMenu *owner = 0;
+  wxMenuItem *item = menu.FindItem(id, &owner);
   if (item && item->IsCheckable()) ev.SetInt(item->IsChecked() ? 1 : 0);
+  // Items Bind()-ed on the menu (the server root's Connect/Disconnect) are
+  // not in the window's tables; GetPopupMenuSelectionFromUser runs neither.
+  for (wxMenu *m = owner ? owner : &menu; m; m = m->GetParent())
+    if (m->ProcessEventLocally(ev)) return;
   win->GetEventHandler()->ProcessEvent(ev);
 }
 

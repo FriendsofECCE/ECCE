@@ -557,7 +557,9 @@ bool RCommand::useOpenssh(const string& machine, const string& userName,
 bool RCommand::sshConnect(const string& machine, const string& userName,
                           const string& password, const string& jumpHost)
 {
+  ecceSshTiming("sshConnect " + machine + ": choosing the backend");
   if (useOpenssh(machine, userName, jumpHost)) {
+    ecceSshTiming("sshConnect: OpenSSH");
     bool tryLibssh = false;
     if (sshConnectOpenssh(machine, userName, jumpHost, password, &tryLibssh))
       return true;
@@ -573,7 +575,9 @@ bool RCommand::sshConnect(const string& machine, const string& userName,
 #endif
   }
 #ifdef ECCE_HAVE_LIBSSH
+  ecceSshTiming("sshConnect: libssh");
   const bool ok = sshConnectLibssh(machine, userName, password, jumpHost);
+  ecceSshTiming(std::string("sshConnect: libssh ") + (ok ? "connected" : "failed"));
   if (ok) p_errMessage.clear();   // the OpenSSH attempt's message is stale
   return ok;
 #else

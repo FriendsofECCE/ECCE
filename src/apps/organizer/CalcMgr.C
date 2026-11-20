@@ -144,6 +144,7 @@ static std::vector<std::pair<std::string, std::string> > anotherCodeList();
 #include "comm/EcceShell.H"
 #include "comm/JobCatchUp.H"
 #include "comm/Launch.H"
+#include "comm/DirectTransport.H"
 #include "comm/RCommand.H"
 #include "comm/RunMgmt.H"
 
@@ -972,6 +973,22 @@ void CalcMgr::runTestCommand(const string& line)
             ref = list[i].address;
         outcome = ref.empty() ? "no such server"
                               : (connectServer(ref) ? "connected" : "not connected");
+      } else if (sub == "rootpos") {
+        // Screen centre of the root's label, for a real right-click (#1221).
+        outcome = "no such root";
+        wxTreeItemIdValue cookie;
+        for (wxTreeItemId id = p_treeCtrl->GetFirstChild(p_treeCtrl->GetRootItem(), cookie);
+             id.IsOk(); id = p_treeCtrl->GetNextChild(p_treeCtrl->GetRootItem(), cookie)) {
+          wxRect r;
+          if (string(p_treeCtrl->GetItemText(id).ToUTF8()).compare(0, a.size() + 1, a + " ") == 0 &&
+              p_treeCtrl->GetBoundingRect(id, r, true)) {
+            Raise();
+            for (int i = 0; i < 5; ++i) wxYield();
+            wxPoint c = p_treeCtrl->ClientToScreen(wxPoint(r.x + r.width / 2, r.y + r.height / 2));
+            outcome = std::to_string(c.x) + " " + std::to_string(c.y);
+            break;
+          }
+        }
       } else if (sub == "menu" || sub == "choose" || sub == "rootmenu" ||
                  sub == "rootchoose" || sub == "menushot") {
         // Names with spaces use underscores, as in the Preferences hooks.
@@ -4107,7 +4124,9 @@ bool CalcMgr::connectSsh(const string& address)
   for (size_t i = 0; i < list.size(); i++)
     if (list[i].type == "ssh" && list[i].address == address) name = list[i].name;
   if (!ServerList::parseSsh(address, user, host, folder)) return false;
+  ecceSshTiming("connectSsh " + address + ": probe");
   SftpEDSI::Probe p = SftpEDSI::probe(user, host, folder, false, message);
+  ecceSshTiming("connectSsh: probe done (" + std::to_string((int)p) + ")");
   if (p == SftpEDSI::PROBE_MISSING && !getenv("ECCE_TEST_ORGANIZER")) {
     ewxMessageDialog ask(this, ("The folder " + folder + " does not exist on " + host +
                                 ".  Create it?").c_str(), "Create folder",
@@ -4123,6 +4142,7 @@ bool CalcMgr::connectSsh(const string& address)
   }
   ServerList::setLogin(address, user);
   syncServerRoots();
+  ecceSshTiming("connectSsh: tree root made");
   return true;
 }
 
@@ -4560,19 +4580,26 @@ void CalcMgr::OnContextMenu( wxContextMenuEvent& event )
   {
     WxResourceTreeItemData *sel = dynamic_cast<WxResourceTreeItemData*>(
         p_treeCtrl->GetItemData(p_treeCtrl->GetSelection()));
-    // Only a server root (no resource) gets the server menu; a calculation
-    // under it keeps the normal calculation menu.
-    if (p_popupOnTree && sel && !sel->getResource() &&
-        rememberedServer(sel->serverRef())) {
+    // A server root (only roots carry serverRef) gets Connect/Disconnect
+    // first.  A connected one is also a folder with a resource, so its
+    // folder items follow; testing for no resource hid the server items
+    // on every connected root (#1221).
+    if (p_popupOnTree && sel && rememberedServer(sel->serverRef())) {
       serverRootMenu(menu, sel->serverRef());
-      p_uiBusy++; ewxPopupMenu(this, menu); p_uiBusy--;
-      p_popupOnTree = false;
-      return;
+      if (!sel->getResource()) {
+        p_uiBusy++; ewxPopupMenu(this, menu); p_uiBusy--;
+        p_popupOnTree = false;
+        return;
+      }
+      menu.AppendSeparator();
     }
   }
   menuSource(dynamic_cast<wxWindow*>(event.GetEventObject()));
   string error = guarded([&]() {
     getContextMenu(menu);
+    const size_t n = menu.GetMenuItemCount();
+    if (n && menu.FindItemByPosition(n - 1)->IsSeparator())
+      menu.Destroy(menu.FindItemByPosition(n - 1));
     p_uiBusy++; ewxPopupMenu(this, menu); p_uiBusy--;
   });
   p_popupOnTree = false;
