@@ -876,7 +876,12 @@ script...** and **Test submission...**. Allocation accounts and per-allocation
 run and scratch directories are profiles; once a machine has more than one,
 the Launcher shows a **Profile:** choice, and a calculation records
 `launch_profile` and `launch_account` in `.ecce-meta`. **Tools >
-Allocations...** shows what is left.
+Allocations...** shows what is left. Opening it never logs in; its
+**Refresh** logs in to a machine with no open connection (as Launch does).
+Hook (`ECCE_TEST_ORGANIZER`): `allocations` opens the window, waits for the
+answers and prints `ALLOC: machine|account|used|checked` per row;
+`allocations refresh` presses Refresh first. Test:
+`tests/launch/allocations_ssh_test.sh --build <tree>`.
 
 ### How ECCE logs in
 
