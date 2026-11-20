@@ -66,6 +66,8 @@ class IRCPanel : public VizPropertyPanel
       /** "Show MO while playing" as the check box does. For scripts and tests. */
       void setShowMo(bool on);
       bool showMo() const;
+      /** False when the calculation has no per-point orbitals to follow. */
+      bool showMoAvailable() const;
 
       /** The ORBENG index (0-based) of the orbital followed to the selected point, -1 if none. */
       int followedMo() const { return p_followMo; }

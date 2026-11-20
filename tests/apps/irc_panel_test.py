@@ -220,6 +220,26 @@ def exampleCase(s, display, env, wrappers, project, png):
                   "SN2 example point %d: the viewer holds the trajectory's structure" % idx)
 
 
+NO_ORBITALS = os.path.join(REPO, "data", "client", "examples", "organic",
+                           "substitution-vs-elimination", "ecceqm-f_etcl_sn2_irc",
+                           "stored", "f_etcl_sn2_irc")
+
+
+def noPointOrbitalsCase(s, display, env, wrappers, project, png):
+    """#1211: an IRC stored without per-point orbitals greys out "Show MO
+    while playing", and switching it on from a script leaves it off."""
+    calc = os.path.join(project, "calc-no-point-orbitals")
+    shutil.rmtree(calc, ignore_errors=True)
+    shutil.copytree(NO_ORBITALS, calc, symlinks=True)
+    out, _ = bo.runScript(
+        s, display, env, wrappers, ["-context", "file://" + calc + "/"],
+        ["wait 6000", "ircplayopt mo on", "quit"], png, "ircnoorbitals",
+        {"ECCE_PANEL_MODE": "detail", "ECCE_OPEN_PANEL": "IRC Path"})
+    got = re.findall(r"BUILDER: ircplayopt mobox enabled=(\d) on=(\d)", out)
+    check(got == [("0", "0")],
+          "f_etcl_sn2_irc: Show MO while playing is disabled and stays off (%s)" % got)
+
+
 QM_OUT = os.path.join(REPO, "tests", "parsers", "fixtures", "ecceqm", "hcn_irc.qmout")
 
 
@@ -527,6 +547,7 @@ def main():
         check(any(l.startswith("# calculation: ")
                   for l in open(kj).read().splitlines()), "calculation named")
         orcaCase(s, display, env, wrappers, project, png)
+        noPointOrbitalsCase(s, display, env, wrappers, project, png)
         exampleCase(s, display, env, wrappers, project, png)
         qmCase(s, display, env, wrappers, project, png)
         partialCase(s, display, env, wrappers, project, png)

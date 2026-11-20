@@ -22,6 +22,9 @@ class PlaybackExtras
       /** The "Show MO while playing" check box (IRC Path only; off by default). */
       void setShowMo(bool on);
       bool showMo() const;
+      /** Greys the box out, with <why> as its tooltip (no per-point orbitals). */
+      void disableMo(const std::string& why);
+      bool moEnabled() const;
 
       /** Milliseconds per step, 1 to 10000; false for anything else. */
       bool setSpeed(const std::string& name);

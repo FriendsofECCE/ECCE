@@ -216,6 +216,12 @@ void IRCPanel::fill()
   IPropCalculation *calc = getCalculation();
   PropVector *c = calc ? dynamic_cast<PropVector*>(ResultsFromCalc::property(calc, "IRCCOORD")) : 0;
   PropVector *e = calc ? dynamic_cast<PropVector*>(ResultsFromCalc::property(calc, "IRCENERGY")) : 0;
+  //  Only the final orbitals were stored: there is nothing to follow, and a
+  //  box that does nothing on Play reads as a bug (#1211).
+  if (calc && p_extras && !calc->hasPointOrbitals())
+    p_extras->disableMo("Not available: this calculation stored only the final "
+                        "orbitals. To follow an orbital along the path, run the IRC "
+                        "with Runtype Details: Store orbitals at every point.");
   if (!c || !e) return;
   const size_t n = std::min(c->values().size(), e->values().size());
   p_coord.assign(c->values().begin(), c->values().begin() + n);
@@ -565,6 +571,11 @@ void IRCPanel::setShowMo(bool on)
 bool IRCPanel::showMo() const
 {
   return p_extras && p_extras->showMo();
+}
+
+bool IRCPanel::showMoAvailable() const
+{
+  return p_extras && p_extras->moEnabled();
 }
 
 std::string IRCPanel::newCalcFromPoint(int index)

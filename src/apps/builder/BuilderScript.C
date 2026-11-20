@@ -2188,6 +2188,9 @@ void Builder::runBuilderScript(const std::string& file)
           fprintf(stderr, "BUILDER: %s %s speed=%s loop=%d order:%s\n", w[0].c_str(),
                   w[1].c_str(), (ip ? ip->playbackSpeed() : sp->playbackSpeed()).c_str(),
                   (ip ? ip->playbackLoop() : sp->playbackLoop()) ? 1 : 0, order.c_str());
+          if (ip)
+            fprintf(stderr, "BUILDER: ircplayopt mobox enabled=%d on=%d\n",
+                    ip->showMoAvailable() ? 1 : 0, ip->showMo() ? 1 : 0);
         }
       } else if (w[0] == "ircaxes" && w.size() >= 2) {
         //  ircaxes <i>: the IRC Path axis labels, table headers and hover text
