@@ -10,6 +10,8 @@
 #define ID_SOWXTIMER 1000000
 
 
+#include <vector>
+
 class SoWxEventHandler : public wxEvtHandler {
 public:
   SoWxEventHandler(wxWindow * topWin);
@@ -29,6 +31,7 @@ private:
   DECLARE_EVENT_TABLE()
 
   wxTimer * p_timer;
+  static std::vector<SoWxEventHandler*> s_live;
   wxWindow * p_topWin;
   SbTime p_currentDeadline;
 };

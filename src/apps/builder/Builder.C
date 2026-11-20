@@ -746,6 +746,9 @@ Builder::~Builder()
     RemoveEventHandler(p_viewerEvtHandler);
     delete p_viewerEvtHandler;
   }
+  //  SoWx::init pushed one on this frame; left there, ~ewxFrame's pop takes
+  //  it instead of the frame's help handler.
+  SoWx::release(this);
   
   if (p_copyBuffer)
     delete p_copyBuffer;
