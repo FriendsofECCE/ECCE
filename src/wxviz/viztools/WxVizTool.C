@@ -18,6 +18,10 @@ using namespace ecce;
 #include "wxviz/WxVizToolFW.H"
 #include "wxviz/WxVizTool.H"
 
+#include "inv/SoPath.H"
+// Releases a path from SGContainer::getSelectionPath.
+namespace { struct PathRef { SoPath *p; ~PathRef() { if (p) p->unref(); } }; }
+
 
 WxVizTool::WxVizTool()
 {
@@ -148,6 +152,7 @@ WxVizTool::setSelection(const vector<int>& atoms, const vector<int>& bonds)
    {
 
      SoPath * pathCD =  sg.getSelectionPath(esel, ds);
+     PathRef keepPath{pathCD};
       if (pathCD == NULL) { continue; }
       string name = names[ds];
 
@@ -179,6 +184,7 @@ WxVizTool::setSelection(const vector<int>& atoms, const vector<int>& bonds)
          cpt->ref();
          (void)cpt->setPath(pathCD, lAtoms , lBonds ,NULL ,NULL);
          esel->merge(cpt);
+         cpt->unref();
       }
 
       lAtoms->deleteValues(0,-1);
@@ -236,6 +242,7 @@ WxVizTool::setSelection(const vector<bool>& atoms, const vector<bool>& bonds)
      lAtoms->deleteValues(0,-1);
      lBonds->deleteValues(0,-1);
      SoPath * pathCD =  sg.getSelectionPath(esel, ds);
+     PathRef keepPath{pathCD};
 
      if (pathCD == NULL) { continue; }
      string name = names[ds];
@@ -265,6 +272,7 @@ WxVizTool::setSelection(const vector<bool>& atoms, const vector<bool>& bonds)
         (void)cpt->setPath(pathCD, lAtoms , lBonds ,NULL ,NULL);
         //esel->select(cpt);
         esel->merge(cpt);
+        cpt->unref();
      }
      */
   }

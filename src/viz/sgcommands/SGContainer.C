@@ -1675,14 +1675,16 @@ DisplayStyle::Style SGContainer::toOurStyle(ChemDisplayParam::DisplayBinding sty
  */
 SoPath *SGContainer::getSelectionPath(ChemSelection * esel, int index)
 {
-   SoSearchAction *getCD = new SoSearchAction;
-   getCD->setInterest(SoSearchAction::FIRST);
-   getCD->setNode(p_displays[index]);
-
-   getCD->setFind(SoSearchAction::NODE);
-   getCD->apply(esel);
-   SoPath * pathCD =   getCD->getPath();
-   return pathCD; 
+   // The caller owns one reference (unref when done).  A leaked action
+   // kept its path, and so the viewer's whole scene, alive (#1136).
+   SoSearchAction getCD;
+   getCD.setInterest(SoSearchAction::FIRST);
+   getCD.setNode(p_displays[index]);
+   getCD.setFind(SoSearchAction::NODE);
+   getCD.apply(esel);
+   SoPath *pathCD = getCD.getPath();
+   if (pathCD) pathCD->ref();
+   return pathCD;
 }
 
 
