@@ -495,13 +495,15 @@ def scenarioH(display, rounds=30):
                 ("CalculationEditor", urls["mopac"]), ("Builder", urls["methane"])]
         o.ask("inprocess")
         samples.append((0, o.sample()))
-        live0 = liveCounts(o)
+        live0 = live1 = liveCounts(o)
         for k in range(rounds):
             tool, url = plan[k % len(plan)]
             o.send("start %s %s" % (tool, url), 10)
             closeAll(o, 2)
             if o.proc.poll() is not None:
                 break
+            if k + 1 == len(plan):
+                live1 = liveCounts(o)
             if k + 1 in (1, 10, rounds):
                 o.ask("inprocess")
                 samples.append((k + 1, o.sample()))
@@ -531,9 +533,12 @@ def scenarioH(display, rounds=30):
                   "H fd count steady (%s -> %s)" % (first.get("fds"),
                                                    last.get("fds")))
         live = liveCounts(o)
-        kept = {c: n for c, n in live.items() if n > live0.get(c, 0)}
+        # Tool objects go back to the start; help handlers of windows made
+        # once per process (first-use dialogs) only must not grow per tab.
+        kept = {c: n for c, n in live.items()
+                if n > (live1 if c.startswith("ewx") else live0).get(c, 0)}
         check(not kept, "H closed tabs leave no live tool objects (#1136)",
-              "before %s after %s" % (live0, live))
+              "start %s first cycle %s end %s" % (live0, live1, live))
         quitAndCheck(o, "after the soak", [("close", 3), ("answer", 3),
                                            ("answer no", 2), ("answer no", 2)])
     finally:
