@@ -72,6 +72,14 @@ def run(display, label, importExamples, startDelay, parse=False):
                "ECCE_LOCAL_DATA": data, "ECCE_TEST_MESSAGES": "1"}
         if importExamples:
             env["ECCE_NO_EXAMPLE_IMPORT"] = ""
+            # The imported version is kept in the user's preferences, not
+            # the data directory: without this only the first round imports.
+            prefs = os.path.join(os.environ["ECCE_REALUSERHOME"], ".ECCE",
+                                 "Organizer")
+            if os.path.exists(prefs):
+                kept = [l for l in open(prefs)
+                        if not l.startswith("Organizer.ExampleSet:")]
+                open(prefs, "w").writelines(kept)
         if parse:
             env["ECCE_NO_PREPARSED"] = "1"
         result = apps.run(display, "organizer", windowTimeout=60, settle=5,
