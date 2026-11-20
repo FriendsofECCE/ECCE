@@ -173,7 +173,7 @@ its dialogs answered. At factor 2 or 4 the shown orbital/density is recomputed
 on a grid of 30 x factor points per axis (cap 160) for the render only, then
 redrawn as before (log line `MOPANEL: fine grid N`). Use it for documentation figures. The image is drawn from the viewer the
 scene script itself drives, so `viewall`, `zoom` and `rotate` before it show
-in the PNG with or without `ECCE_VIEWER_SCENE_HOLD` (#1090). `ortho on|off`
+in the PNG with or without `ECCE_VIEWER_SCENE_HOLD` (#1090). `depthcue on|off` runs the Depth cueing toggle's handler (#1214); `ortho on|off`
 switches the camera between orthographic and perspective (then frames the
 scene), so a `saveimage` after it is an orthographic figure; `zoom <f>` scales
 the height of an orthographic camera, and `camera` prints `type orthographic|perspective`.
@@ -876,7 +876,12 @@ script...** and **Test submission...**. Allocation accounts and per-allocation
 run and scratch directories are profiles; once a machine has more than one,
 the Launcher shows a **Profile:** choice, and a calculation records
 `launch_profile` and `launch_account` in `.ecce-meta`. **Tools >
-Allocations...** shows what is left.
+Allocations...** shows what is left. Opening it never logs in; its
+**Refresh** logs in to a machine with no open connection (as Launch does).
+Hook (`ECCE_TEST_ORGANIZER`): `allocations` opens the window, waits for the
+answers and prints `ALLOC: machine|account|used|checked` per row;
+`allocations refresh` presses Refresh first. Test:
+`tests/launch/allocations_ssh_test.sh --build <tree>`.
 
 ### How ECCE logs in
 

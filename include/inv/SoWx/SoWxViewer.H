@@ -441,6 +441,9 @@ protected:
 
   // camera original values, used to restore the camera
   SbBool p_createdCamera;
+  // The perspective angle before a switch to orthographic, given back on the
+  // way back so the view is the one the user left; < 0 when none.
+  float p_perspHeightAngle;
   SbVec3f p_origPosition;
   SbRotation p_origOrientation;
   float p_origNearDistance;

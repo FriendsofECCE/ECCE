@@ -2322,6 +2322,7 @@ void Builder::runBuilderScript(const std::string& file)
       } else if (w[0] == "background" && w.size() == 4) {
         getViewer().setBackgroundColor(SbColor(atof(w[1].c_str()),
             atof(w[2].c_str()), atof(w[3].c_str())));
+        getSG()->setDepthCueColor(atof(w[1].c_str()), atof(w[2].c_str()), atof(w[3].c_str()));
         SbColor fg = getViewer().calculateContrastingColor();
         ForegroundCmd fgCmd("Foreground", getSG());
         fgCmd.getParameter("red")->setDouble(fg[0]);
