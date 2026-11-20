@@ -736,4 +736,14 @@ int DirectTransport::closeStream(Stream& s, int graceMs)
   return st;
 }
 
+// RCommand and SftpEDSI call this on Windows too (#1220).
+void ecceSshTiming(const std::string& step)
+{
+  if (!getenv("ECCE_SSH_TIMING")) return;
+  static const DWORD t0 = GetTickCount();
+  fprintf(stderr, "ecce-ssh-timing %7lu ms [%lu] %s\n",
+          (unsigned long)(GetTickCount() - t0),
+          (unsigned long)GetCurrentThreadId(), step.c_str());
+}
+
 #endif  // _WIN32
