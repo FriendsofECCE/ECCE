@@ -4,6 +4,7 @@
  * Tools as tabs of the Organizer's window (#983 stage 2).  See ToolTabs.H
  * and docs/claude/services/tools-as-tabs.md.
  */
+#include <algorithm>
 #include <cstdio>
 #include <cstdlib>
 #include <map>
@@ -22,6 +23,7 @@
 #include "wx/dcclient.h"
 #include "wx/frame.h"
 #include "wx/menu.h"
+#include "wx/accel.h"
 #include "wx/panel.h"
 #include "wx/scrolwin.h"
 #include "wx/button.h"
@@ -42,6 +44,8 @@
 
 #include "util/MqttLink.H"
 #include "util/WindowLayout.H"
+#include "dsm/EDSIServerCentral.H"
+#include "wxgui/InProcessTools.H"
 #include "wxgui/ToolTabs.H"
 #include "wx/splitter.h"
 
@@ -53,6 +57,8 @@ namespace {
 const int ID_OPEN_IN_WINDOW = wxID_HIGHEST + 7301;
 const int ID_MOVE_TO_TABS = wxID_HIGHEST + 7302;
 const int ID_ALWAYS_WINDOW = wxID_HIGHEST + 7303;
+const int ID_NEXT_TAB = wxID_HIGHEST + 7304;
+const int ID_PREV_TAB = wxID_HIGHEST + 7305;
 
 struct Tab {
   wxFrame *tool;          // 0 for the Organizer's tab until it is adopted
@@ -109,6 +115,87 @@ Tab *activeTab()
 {
   if (!s_book || s_book->GetSelection() == wxNOT_FOUND) return 0;
   return findPage(s_book->GetPage(s_book->GetSelection()));
+}
+
+const wxString& dash()
+{
+  static const wxString d = wxString::FromUTF8(" \xe2\x80\x93 ");
+  return d;
+}
+
+// The calculation a tab's tool has open, as its status bar shows it
+// ("(HOME)/project/calc"); empty for the Organizer and tools without one.
+wxString tabPath(const Tab *t)
+{
+  if (!t || !t->tool || t->pinned) return "";
+  std::string ctx = InProcessTools::context(t->tool);
+  if (ctx.find("http") != 0 && ctx.find("file://") != 0) return "";
+  // Mapping reads the server's mount points: once per URL.
+  static auto *names = new std::map<std::string, wxString>;
+  auto it = names->find(ctx);
+  if (it == names->end())
+    it = names->emplace(ctx, wxString::FromUTF8(
+             EDSIServerCentral().mapURLtoName(ctx).c_str())).first;
+  return it->second;
+}
+
+// A long path loses its middle, never its last part: the calculation's
+// name is what tells two tabs apart.
+wxString shortPath(const wxString& path, size_t max = 60)
+{
+  if (path.length() <= max) return path;
+  size_t tail = std::max(path.AfterLast('/').length() + 1, max * 2 / 3);
+  if (tail + 4 >= path.length()) return path;
+  size_t head = max > tail + 1 ? max - tail - 1 : 0;
+  return path.Left(head) + wxString::FromUTF8("\xe2\x80\xa6") + path.Right(tail);
+}
+
+// Tab labels are the tool's name only; the tooltip says which calculation.
+void refreshTabTips()
+{
+  if (!s_book) return;
+  for (size_t i = 0; i < s_book->GetPageCount(); i++) {
+    wxString path = tabPath(findPage(s_book->GetPage(i)));
+    wxString tip = path.empty() ? wxString() : path + dash() + s_book->GetPageText(i);
+    if (s_book->GetPageToolTip(i) != tip) s_book->SetPageToolTip(i, tip);
+  }
+}
+
+// One step through the tabs, wrapping around.  A key may arrive both as the
+// menu accelerator and through the key hook: a second step in the same
+// event-loop pass is dropped.
+bool s_cycling = false;
+bool cycleTab(int step)
+{
+  if (!s_book || !s_hostFrame || s_book->GetPageCount() < 2) return false;
+  if (s_cycling) return true;
+  s_cycling = true;
+  s_hostFrame->CallAfter([]() { s_cycling = false; });
+  int n = (int)s_book->GetPageCount();
+  int sel = s_book->GetSelection();
+  int idx = ((sel < 0 ? 0 : sel) + step + n) % n;
+  Tab *t = findPage(s_book->GetPage(idx));
+  if (t && t->tool) ToolTabs::select(t->tool);
+  else s_book->SetSelection(idx);
+  return true;
+}
+
+// Ctrl+Tab / Ctrl+Shift+Tab, Ctrl+PgDn / Ctrl+PgUp; on macOS the Control
+// key for Tab (Cmd+Tab is the system's application switcher) and the
+// platform's Cmd+Shift+] / Cmd+Shift+[.
+int tabKeyStep(const wxKeyEvent& ev)
+{
+  int k = ev.GetKeyCode();
+  if (ev.AltDown()) return 0;
+  if (k == WXK_TAB && ev.RawControlDown()) return ev.ShiftDown() ? -1 : 1;
+  bool ctrl = ev.RawControlDown() || ev.ControlDown();
+  if (ctrl && !ev.ShiftDown() && (k == WXK_PAGEDOWN || k == WXK_NUMPAD_PAGEDOWN)) return 1;
+  if (ctrl && !ev.ShiftDown() && (k == WXK_PAGEUP || k == WXK_NUMPAD_PAGEUP)) return -1;
+#ifdef __WXOSX__
+  if (ev.CmdDown() && ev.ShiftDown() && (k == ']' || k == '}')) return 1;
+  if (ev.CmdDown() && ev.ShiftDown() && (k == '[' || k == '{')) return -1;
+#endif
+  return 0;
 }
 
 wxColour dotFor(const wxString& title)
@@ -287,9 +374,14 @@ void setMoveToTabsItem(wxFrame *tool, wxMenuBar *mb, bool present)
 // the tools find their menus by name.
 const int WINDOW_TABS_MAX = 32;
 int s_windowBase = 0;
-std::map<wxMenuBar*, std::pair<wxMenu*, bool> >& windowMenus()
+struct WindowMenu {
+  wxMenu *menu;
+  bool created;        // made by us, removed whole on detach
+  wxMenuItem *sep;     // below Next/Previous Tab, in a tool's own menu
+};
+std::map<wxMenuBar*, WindowMenu>& windowMenus()
 {
-  static auto *m = new std::map<wxMenuBar*, std::pair<wxMenu*, bool> >;
+  static auto *m = new std::map<wxMenuBar*, WindowMenu>;
   return *m;
 }
 
@@ -305,12 +397,14 @@ void fillWindowMenu(wxMenuBar *mb)
 {
   auto it = windowMenus().find(mb);
   if (it == windowMenus().end() || !s_book) return;
-  wxMenu *menu = it->second.first;
+  wxMenu *menu = it->second.menu;
   menuLog("fill", mb);
   for (int i = 0; i < WINDOW_TABS_MAX; i++)
     if (menu->FindItem(s_windowBase + i)) menu->Delete(s_windowBase + i);
   for (size_t i = 0; i < s_book->GetPageCount() && i < (size_t)WINDOW_TABS_MAX; i++) {
     wxString label = s_book->GetPageText(i);
+    wxString path = tabPath(findPage(s_book->GetPage(i)));
+    if (!path.empty()) label += dash() + shortPath(path);
     label.Replace("&", "&&");
     menu->AppendCheckItem(s_windowBase + (int)i, label);
     menu->Check(s_windowBase + (int)i, (int)i == s_book->GetSelection());
@@ -337,7 +431,20 @@ void attachWindowMenu(wxMenuBar *mb)
     menu->InsertSeparator(1);
   }
 #endif
-  windowMenus()[mb] = std::make_pair(menu, created);
+#ifdef __WXOSX__
+  menu->Append(ID_NEXT_TAB, _("Next Tab\tCtrl+Shift+]"));
+  menu->Append(ID_PREV_TAB, _("Previous Tab\tCtrl+Shift+["));
+#elif defined(__WXGTK__)
+  // GTK refuses Tab as a menu accelerator and wx then drops it: show the
+  // page keys; Ctrl+Tab still works through the key hook.
+  menu->Append(ID_NEXT_TAB, _("Next Tab\tCtrl+PgDn"));
+  menu->Append(ID_PREV_TAB, _("Previous Tab\tCtrl+PgUp"));
+#else
+  menu->Append(ID_NEXT_TAB, _("Next Tab\tCtrl+Tab"));
+  menu->Append(ID_PREV_TAB, _("Previous Tab\tCtrl+Shift+Tab"));
+#endif
+  wxMenuItem *sep = menu->AppendSeparator();
+  windowMenus()[mb] = WindowMenu{menu, created, sep};
   fillWindowMenu(mb);
 }
 
@@ -346,13 +453,16 @@ void detachWindowMenu(wxMenuBar *mb)
   menuLog("detach", mb);
   auto it = windowMenus().find(mb);
   if (it == windowMenus().end()) return;
-  wxMenu *menu = it->second.first;
-  if (it->second.second) {
+  wxMenu *menu = it->second.menu;
+  if (it->second.created) {
     int idx = mb->FindMenu(_("Window"));
     if (idx != wxNOT_FOUND && mb->GetMenu(idx) == menu) delete mb->Remove(idx);
   } else {
     for (int i = 0; i < WINDOW_TABS_MAX; i++)
       if (menu->FindItem(s_windowBase + i)) menu->Delete(s_windowBase + i);
+    if (menu->FindItem(ID_NEXT_TAB)) menu->Delete(ID_NEXT_TAB);
+    if (menu->FindItem(ID_PREV_TAB)) menu->Delete(ID_PREV_TAB);
+    if (it->second.sep) menu->Delete(it->second.sep);
     if (menu->FindItem(wxID_ICONIZE_FRAME)) {
       menu->Delete(wxID_ICONIZE_FRAME);
       if (menu->GetMenuItemCount() && menu->FindItemByPosition(0)->IsSeparator())
@@ -453,6 +563,10 @@ void routeMenus(wxFrame *host)
       if (n < (int)s_book->GetPageCount()) s_book->SetSelection(n);
       return;
     }
+    if (ev.GetId() == ID_NEXT_TAB || ev.GetId() == ID_PREV_TAB) {
+      cycleTab(ev.GetId() == ID_NEXT_TAB ? 1 : -1);
+      return;
+    }
     if (ev.GetId() == wxID_ICONIZE_FRAME && s_hostFrame) {
       s_hostFrame->Iconize(true);
       return;
@@ -463,6 +577,8 @@ void routeMenus(wxFrame *host)
   // GTK sends the key hook to the top-level window, not up from the focused
   // window, so the tool's frame never sees it from a tab.
   host->Bind(wxEVT_CHAR_HOOK, [](wxKeyEvent& ev) {
+    if (int step = tabKeyStep(ev))
+      if (cycleTab(step)) return;
     Tab *t = activeTab();
     if (t && t->tool && t->tool->GetEventHandler()->ProcessEvent(ev)) return;
     ev.Skip();
@@ -477,7 +593,7 @@ void routeMenus(wxFrame *host)
     if (s_hostFrame && ev.GetEventType() == wxEVT_MENU_OPEN) {
       wxMenuBar *mb = s_hostFrame->wxFrame::GetMenuBar();
       auto it = windowMenus().find(mb);
-      if (it != windowMenus().end() && ev.GetMenu() == it->second.first)
+      if (it != windowMenus().end() && ev.GetMenu() == it->second.menu)
         fillWindowMenu(mb);
     }
     Tab *t = activeTab();
@@ -626,6 +742,7 @@ void onPageChanged(wxAuiNotebookEvent& ev)
   Tab *t = activeTab();
   placeMenus(t);
   activateTool(t);
+  refreshTabTips();
   ev.Skip();
 }
 
@@ -877,6 +994,11 @@ bool ToolTabs::adoptMain(wxFrame *org)
   s_book->Bind(wxEVT_AUINOTEBOOK_PAGE_CHANGED, onPageChanged);
   s_book->Bind(wxEVT_AUINOTEBOOK_PAGE_CLOSE, onPageClose);
   s_book->Bind(wxEVT_AUINOTEBOOK_TAB_RIGHT_UP, onTabRightUp);
+  // The Window menu lists the tabs in strip order.
+  s_book->Bind(wxEVT_AUINOTEBOOK_DRAG_DONE, [](wxAuiNotebookEvent& ev) {
+    if (s_hostFrame) fillWindowMenu(s_hostFrame->wxFrame::GetMenuBar());
+    ev.Skip();
+  });
   // wxAuiNotebook selects the page of any window that takes the focus.  A
   // hidden page's window gets it only from code (the Organizer refocusing
   // its tree after an update a tool's Save or Launch caused), never from the
@@ -981,6 +1103,7 @@ bool ToolTabs::adopt(wxFrame *tool, wxAuiManager *mgr, const wxString& title)
   // AddPage selected it; make sure the menus follow even if it was the
   // only change.
   placeMenus(activeTab());
+  refreshTabTips();
   return true;
 }
 
@@ -1119,6 +1242,21 @@ void ToolTabs::setTitle(wxTopLevelWindow *tool, const wxString& title)
   int idx = s_book->GetPageIndex(t->page);
   if (idx != wxNOT_FOUND) s_book->SetPageText(idx, tabCaption(title));
   updateHostTitle();
+  refreshTabTips();
+  fillWindowMenu(s_hostFrame->wxFrame::GetMenuBar());
+}
+
+
+void ToolTabs::contextChanged()
+{
+  static bool pending = false;
+  if (!s_hostFrame || pending) return;
+  pending = true;
+  s_hostFrame->CallAfter([]() {
+    pending = false;
+    refreshTabTips();
+    if (s_hostFrame) fillWindowMenu(s_hostFrame->wxFrame::GetMenuBar());
+  });
 }
 
 
@@ -1407,7 +1545,7 @@ bool ToolTabs::testCommand(const wxString& cmd, const wxString& arg,
     auto it = windowMenus().find(mb);
     if (it == windowMenus().end()) { outcome = "no window menu"; return true; }
     for (int i = 0; i < WINDOW_TABS_MAX; i++)
-      if (wxMenuItem *item = it->second.first->FindItem(s_windowBase + i))
+      if (wxMenuItem *item = it->second.menu->FindItem(s_windowBase + i))
         outcome += wxString::Format("%d:%s%s ", i, item->GetItemLabelText(),
                                     item->IsChecked() ? "*" : "");
   } else if (cmd == "menu" || cmd == "hostclose") {
@@ -1521,6 +1659,49 @@ bool ToolTabs::testCommand(const wxString& cmd, const wxString& arg,
       return true;
     }
     outcome = "no such window";
+  } else if (cmd == "tabtips") {
+    // Each tab's tooltip, "<n>:<tip>|" (the Organizer's is empty).
+    if (!s_book) { outcome = "no tabs"; return true; }
+    refreshTabTips();
+    for (size_t i = 0; i < s_book->GetPageCount(); i++)
+      outcome += wxString::Format("%d:%s|", (int)i, s_book->GetPageToolTip(i));
+  } else if (cmd == "nexttab" || cmd == "prevtab") {
+    // Window > Next Tab / Previous Tab; answers the selected tab's index.
+    if (!s_hostFrame || !s_book) { outcome = "no host"; return true; }
+    wxCommandEvent ev(wxEVT_MENU, cmd == "nexttab" ? ID_NEXT_TAB : ID_PREV_TAB);
+    ev.SetEventObject(s_hostFrame);
+    s_hostFrame->GetEventHandler()->ProcessEvent(ev);
+    outcome = wxString::Format("%d", s_book->GetSelection());
+  } else if (cmd == "tabkey") {
+    // The key hook as GTK delivers Ctrl+Tab (next), Ctrl+Shift+Tab (prev),
+    // Ctrl+PgDn (pgdn) or Ctrl+PgUp (pgup); answers the selected index.
+    if (!s_hostFrame || !s_book) { outcome = "no host"; return true; }
+    wxKeyEvent ev(wxEVT_CHAR_HOOK);
+    ev.m_keyCode = arg == "pgdn" ? WXK_PAGEDOWN : arg == "pgup" ? WXK_PAGEUP : WXK_TAB;
+    ev.SetControlDown(true);
+    ev.SetRawControlDown(true);
+    ev.SetShiftDown(arg == "prev");
+    ev.SetEventObject(s_hostFrame);
+    s_hostFrame->GetEventHandler()->ProcessEvent(ev);
+    outcome = wxString::Format("%d", s_book->GetSelection());
+  } else if (cmd == "windowitems") {
+    // Every item of the active bar's Window menu in order, "-" for a
+    // separator, the shortcut in brackets, "*" when checked.
+    if (!s_hostFrame) { outcome = "no host"; return true; }
+    wxMenuBar *mb = s_hostFrame->wxFrame::GetMenuBar();
+    fillWindowMenu(mb);
+    auto it = windowMenus().find(mb);
+    if (it == windowMenus().end()) { outcome = "no window menu"; return true; }
+    for (wxMenuItem *item : it->second.menu->GetMenuItems()) {
+      if (item->IsSeparator()) { outcome += "-|"; continue; }
+      outcome += wxMenuItem::GetLabelText(item->GetItemLabel().BeforeFirst('\t'));
+      // GTK keeps the shortcut apart from the label text.
+      if (wxAcceleratorEntry *acc = item->GetAccel()) {
+        outcome += "[" + acc->ToString() + "]";
+        delete acc;
+      }
+      outcome += wxString(item->IsCheckable() && item->IsChecked() ? "*" : "") + "|";
+    }
   } else if (cmd == "charhook") {
     // What GTK does for a key press: the hook goes to the main window.
     long key = 0;

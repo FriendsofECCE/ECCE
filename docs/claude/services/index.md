@@ -130,3 +130,4 @@ what the deployment mode needs (GETTING_STARTED, "Deployment modes"):
 - [One program: one wx log target per process; a modal wxLogGui box from a tool stops queued events on macOS (#1123)](one-program-log-target-1123.md)
 - [Two tool starts within 100 ms left the second queued; Windows Quit lingered behind a separate tool (#1106)](start-queue-and-windows-quit-1106.md)
 - [An app test whose output pipe is not read freezes the app after 64 KiB of log](app-test-pipe-blocks-after-64k.md)
+- [Tab identity and cycling (#1256)](tab-identity-and-cycling.md) — tooltips/Window menu paths from the poll context; Ctrl+Tab via the key hook

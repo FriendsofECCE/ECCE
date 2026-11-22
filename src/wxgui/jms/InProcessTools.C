@@ -89,9 +89,13 @@ bool InProcessTools::open(JMSMessage& startMsg)
   bool made = false;
   if (!d) { d = openers()[app](); made = true; }
   if (!d) return false;
-  if (made)
-    for (Window& w : windows())
-      if (w.d == d) w.ctx = ctxNow;
+  for (Window& w : windows())
+    if (w.d == d) {
+      if (made) w.ctx = ctxNow;
+      // One tab per calculation and tool: the existing tab comes to the
+      // front even if the tool's invoke handler does not raise it.
+      else ToolTabs::select(w.frame);
+    }
 
   // The window gets the request as the gateway would send it, by the
   // local path, so its invoke handler raises and fills it as in its own
@@ -132,6 +136,17 @@ int InProcessTools::count(const string& app)
   for (const Window& w : windows())
     if (w.app == app) n++;
   return n;
+}
+
+
+string InProcessTools::context(const wxTopLevelWindow *frame)
+{
+  for (const Window& w : windows())
+    if (w.frame == frame) {
+      string c = w.d->getPollContext();
+      return c.empty() ? w.ctx : c;
+    }
+  return "";
 }
 
 

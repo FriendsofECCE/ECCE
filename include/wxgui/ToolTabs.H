@@ -95,6 +95,9 @@ public:
   // The tool's Show/Raise/SetTitle while hosted: select / retitle its tab.
   static void select(wxTopLevelWindow *tool);
   static void setTitle(wxTopLevelWindow *tool, const wxString& title);
+  // A tool's calculation changed: its tab's tooltip and Window menu entry
+  // show the new path.
+  static void contextChanged();
   // Open in Window: the tool's windows go back into its frame, which is
   // shown; showFrame false when the frame is about to be destroyed.
   static void release(wxTopLevelWindow *tool, bool showFrame = true);
