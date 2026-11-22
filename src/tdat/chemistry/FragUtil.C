@@ -81,7 +81,12 @@ TAtm *FragUtil::addAtLocation
   TAtm *atom = new TAtm(element,xyz);
   atom->shapeString(geom);
 
-  frag->addAtom(atom,parent);
+  try {
+    frag->addAtom(atom,parent);
+  } catch (...) {
+    delete atom;
+    throw;
+  }
 
   // Now can add the nubs
   // First we have to get the geometries...

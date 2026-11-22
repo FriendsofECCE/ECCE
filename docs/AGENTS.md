@@ -84,7 +84,10 @@ undo step (#1251). With nothing to fill it says `No hydrogens added`. Script com
 `ECCE_BUILDER_SCRIPT`: `import FILE` (File > Import of FILE), `resatoms`
 (atoms per residue name), `menu Build|Add Hydrogen`; see
 `tests/apps/builder_import_pdb_test.py` (also the XYZ and the 181L plus
-`add C Tetrahedral 40 40 40` cases).
+`add C Tetrahedral 40 40 40` cases). The script command `add ELEM SHAPE X Y Z`
+on a structure with residues and no residue being edited first inserts a new
+residue `UNK` at the end and edits it, as Insert in the GUI's residue prompt
+does; an atom with no residue to go into is refused with a message.
 
 Builder Edit menu: **Invert Selection** (Ctrl+R, formerly Reverse Selection).
 After a structure opens and after every Edit > Select command the 3-D view

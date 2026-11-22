@@ -216,10 +216,9 @@ def main():
         finally:
             apps.stopServices(display)
     if problems:
-        print("\n".join("      | " + l for l in out.splitlines()[-25:]))
-        print("FAIL  builder select within")
+        print("FAIL  builder import pdb: %s" % "; ".join(problems))
         return 1
-    print("PASS  builder select within")
+    print("PASS  builder import pdb")
     return 0
 
 
