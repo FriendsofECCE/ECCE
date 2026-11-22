@@ -3815,6 +3815,13 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_organizer_single_instance PROPERTIES TIMEOUT 600
                        SKIP_RETURN_CODE 77)
+  # The Launch button opens the editor's Launch panel (#1269).
+  add_test(NAME apps_launch_button
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/launch_button_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_launch_button PROPERTIES TIMEOUT 600
+                       SKIP_RETURN_CODE 77)
   # Busy cursor, status line and slow-start window while a tool starts (#1071).
   add_test(NAME apps_organizer_tool_start
            COMMAND ${PYTHON3_EXECUTABLE}
