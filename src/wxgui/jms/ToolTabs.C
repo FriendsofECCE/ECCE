@@ -471,7 +471,14 @@ void routeMenus(wxFrame *host)
     else ev.Skip();
   });
   auto menu = [](wxMenuEvent& ev) {
-    if (s_hostFrame) fillWindowMenu(s_hostFrame->wxFrame::GetMenuBar());
+    // Rebuild only as the menu opens: rebuilding on highlight/close deletes
+    // the check item GTK is about to select under the pointer (#1239).
+    if (s_hostFrame && ev.GetEventType() == wxEVT_MENU_OPEN) {
+      wxMenuBar *mb = s_hostFrame->wxFrame::GetMenuBar();
+      auto it = windowMenus().find(mb);
+      if (it != windowMenus().end() && ev.GetMenu() == it->second.first)
+        fillWindowMenu(mb);
+    }
     Tab *t = activeTab();
     if (t && t->tool) t->tool->GetEventHandler()->ProcessEvent(ev);
     else ev.Skip();
