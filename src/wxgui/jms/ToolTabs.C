@@ -1086,7 +1086,18 @@ void ToolTabs::setTitle(wxTopLevelWindow *tool, const wxString& title)
   // The Organizer's tab keeps its short caption; the window shows the title.
   if (t->pinned) { s_hostBaseTitle = title; updateHostTitle(); return; }
   int idx = s_book->GetPageIndex(t->page);
+  //  The dot follows the title: a Viewer starts out titled Builder (#1254).
+  t->dot = dotFor(title);
   if (idx != wxNOT_FOUND) s_book->SetPageText(idx, tabCaption(title));
+  //  A new caption moves the close button.  Set while the tool is still
+  //  being built, the strip is not drawn yet and its hit test keeps the old
+  //  button place, so the first click on the x missed (#1234): draw it
+  //  again once the loop is free.
+  s_book->CallAfter([]() {
+    if (!s_book) return;
+    s_book->Refresh();
+    s_book->Update();
+  });
   updateHostTitle();
 }
 
