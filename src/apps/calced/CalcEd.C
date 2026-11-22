@@ -4115,44 +4115,16 @@ bool CalcEd::theoryNeedsBasis() const
  */
 bool CalcEd::requiresMissingCell() const
 {
-  if (p_code == 0 || p_frag == 0) {
-    return false;
-  }
-
-  string flag;
-  if (!p_code->get_string("RequiresPeriodic", flag)) {
-    return false;
-  }
-  if (flag != "true" && flag != "TRUE" && flag != "yes" && flag != "1") {
-    return false;
-  }
-
-  return (p_frag->getLattice() == (LatticeDef*)0);
+  return DeckWriter::missingCell(p_code, p_frag);
 }
 
 
 bool CalcEd::isReady() const
 {
-  bool ret = false;
-
-  //  A plane-wave code with no cell can never produce a valid deck, so
-  //  it is not ready however complete the rest of the setup is.
-  if (requiresMissingCell()) {
-    return false;
-  }
-
-  if (p_iCalc->getState() < ResourceDescriptor::STATE_SUBMITTED
-          && isDetailsReady()) {
-    if (!theoryNeedsBasis()) {
-      ret = true;
-    } else {
-      TTheory theory = getTheory();
-      ret = p_basis && GBSRules::isConsistent(p_frag, p_basis, p_code, &theory)
-                    && GBSRules::isComplete(p_frag, p_basis, p_code, &theory);
-    }
-  }
-
-  return ret;
+  if (p_iCalc->getState() >= ResourceDescriptor::STATE_SUBMITTED) return false;
+  // One rule with the Organizer's Duplicate, which applies it to stored data.
+  TTheory theory = getTheory();
+  return DeckWriter::setupComplete(p_frag, p_basis, p_code, &theory);
 }
 
 

@@ -5757,6 +5757,14 @@ WxResourceTreeItemData* CalcMgr::duplicateForRerun(
   }
   // A GROMACS calculation's files are its whole setup.
   if (GromacsCalc::isRun(task)) task->setState(ResourceDescriptor::STATE_READY);
+  // An imported original (a stored example) gives a copy with no deck, so
+  // the reset leaves it created; complete settings make it ready, as in the
+  // editor.
+  else if (task->getState() == ResourceDescriptor::STATE_CREATED)
+    if (ICalculation *calc = dynamic_cast<ICalculation*>(task)) {
+      string incomplete;
+      DeckWriter::makeReadyIfComplete(calc, incomplete);
+    }
   return copy;
 }
 

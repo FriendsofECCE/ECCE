@@ -9,6 +9,8 @@
 
 #include "comm/RCommand.H"
 #include "dsm/DeckWriter.H"
+#include "dsm/EDSI.H"
+#include "dsm/EDSIFactory.H"
 #include "dsm/EDSIGaussianBasisSetLibrary.H"
 #include "dsm/EDSIServerCentral.H"
 #include "dsm/ESPConstraintModelXMLizer.H"
@@ -26,6 +28,7 @@
 #include "tdat/GUIValues.H"
 #include "tdat/GeomConstraintModel.H"
 #include "tdat/GeomConstraintRules.H"
+#include "tdat/LatticeDef.H"
 #include "tdat/TTheory.H"
 #include "util/Ecce.H"
 #include "util/EcceMap.H"
@@ -608,4 +611,52 @@ bool DeckWriter::rebuildBasis(ICalculation *calc, const string& name,
   GBSRules::autoOptimize(cfg, code, theory);
   if (!calc->gbsConfig(cfg)) { why = "the basis set could not be stored"; delete cfg; return false; }
   return true;
+}
+
+
+bool DeckWriter::missingCell(const JCode *code, const Fragment *frag)
+{
+  string flag;
+  if (!code || !frag || !code->get_string("RequiresPeriodic", flag))
+    return false;
+  if (flag != "true" && flag != "TRUE" && flag != "yes" && flag != "1")
+    return false;
+  return frag->getLattice() == (LatticeDef*)0;
+}
+
+
+bool DeckWriter::setupComplete(Fragment *frag, TGBSConfig *basis,
+                               const JCode *code, const TTheory *theory)
+{
+  if (!frag || frag->containsNubs() || missingCell(code, frag)) return false;
+  // Without a code the editor assumes the theory needs a basis.
+  if (code && theory && !code->theoryNeedsBasis(*theory)) return true;
+  return basis && GBSRules::isConsistent(frag, basis, code, theory) &&
+         GBSRules::isComplete(frag, basis, code, theory);
+}
+
+
+bool DeckWriter::makeReadyIfComplete(ICalculation *calc, string& why)
+{
+  TaskJob *job = dynamic_cast<TaskJob*>(calc);
+  if (!job) { why = "not a calculation"; return false; }
+  {
+    std::unique_ptr<Fragment> frag(calc->fragment());
+    std::unique_ptr<TGBSConfig> basis(calc->gbsConfig());
+    std::unique_ptr<TTheory> theory(calc->theory());
+    if (!theory || !setupComplete(frag.get(), basis.get(),
+                                  calc->application(), theory.get())) {
+      why = "its settings are not complete";
+      return false;
+    }
+  }
+  // A stored example ships no Inputs folder, and the deck is put there.
+  const EcceURL inputs = job->getURL().getChild("Inputs");
+  if (!EDSIFactory::getResource(inputs)) {
+    std::unique_ptr<EDSI> edsi(EDSIFactory::getEDSI(job->getURL()));
+    std::unique_ptr<EcceURL> made(edsi ? edsi->makeCollection("Inputs") : 0);
+  }
+  Result r = generate(calc);
+  if (!r.ok) { why = r.message; return false; }
+  return job->setState(ResourceDescriptor::STATE_READY);
 }

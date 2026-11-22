@@ -1284,7 +1284,11 @@ filled in or dropped (for example no stored queue).
 Uses the Organizer's **New from This > Duplicate**: copies the full setup
 (structure, code, theory, basis, run type and launch settings) into the same
 folder, removes the copy's results and makes a finished, killed or failed
-calculation Ready. The original stays untouched. Names are `<name>_r2`,
+calculation Ready. A copy of an imported or Created calculation (a stored
+example, say) gets its input deck written and is Ready when its settings are
+complete as the Calculation Editor judges them (structure without open bonds,
+a cell where the code needs one, a basis covering every element); otherwise
+it is Created. The original stays untouched. Names are `<name>_r2`,
 `_r3`, and so on, taking the first free name. Submitted, Running and Waiting
 for Login calculations and non-calculations are refused with their reason.
 
