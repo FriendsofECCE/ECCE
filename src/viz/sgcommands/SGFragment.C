@@ -1145,7 +1145,8 @@ SGFragment::ResidueClass SGFragment::residueClass(const string& residueName)
   static const std::set<std::string> additives = {"GOL", "EDO", "SO4", "PO4", "ACT",
       "DMS", "DMSO", "PEG", "PGE", "PG4", "P6G", "1PE", "PE4", "MPD", "BME",
       "FMT", "NO3", "TRS", "EPE", "MES", "IPA", "EOH", "ACY", "SO3", "CIT",
-      "TAR"};
+      "TAR", "HED", "MRD", "IMD", "BU3", "PGO", "1BO", "DTT", "DTV", "BTB",
+      "BCT", "CO3", "SCN", "AZI", "OXL", "MLI", "SUC", "GLC", "PGR", "TLA"};
   // Called per atom: TResTab reads ResidueList from disk when constructed.
   static std::map<std::string, ResidueClass> known;
   std::map<std::string, ResidueClass>::const_iterator hit = known.find(key);

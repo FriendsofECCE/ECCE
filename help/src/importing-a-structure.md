@@ -111,8 +111,9 @@ Add Hydrogen** and **Build > Clean**, as in the first calculation.
 A structure from a PDB file has no free sites, so **Build > Add Hydrogen**
 adds hydrogens to its amino-acid and nucleotide residues from the residue
 templates. The status line gives the number of hydrogens added and names the
-residues that have no template (ligands, water); those keep the hydrogens the
-file gave them, or none.
+residues that got none (water). A ligand without a template, such as benzene,
+gets its hydrogens from its geometry (aromatic rings are recognised by their
+bond lengths).
 
 ## Select parts of a system
 

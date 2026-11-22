@@ -61,11 +61,17 @@ them. Script command in `ECCE_BUILDER_SCRIPT`: `select_hetero`.
 
 ## Add Hydrogen on a PDB structure (#1244)
 
+Ligand choice skips crystallisation additives by residue name
+(`SGFragment::residueClass`: GOL, EDO, HED, MPD, SO4, ...), so 181L's ligand is
+BNZ and not the larger HED.
+
 Builder `Build > Add Hydrogen` (and the toolbar button) only turned nubs into
 hydrogens, so a structure imported from a PDB file (no nubs) got nothing. With
 residues and no nubs it now runs the residue-template path (the Residue table's
 Add Hydrogens) and the status line says `Added N hydrogens to M of K residues`,
-naming the residues without a template (ligands, waters). With neither nubs nor
+naming the residues that got none (waters). Residues without a template
+(ligands) get hydrogens from their geometry: bond orders from lengths
+(aromatic ring C-C 1.32-1.46 A), then hydrogens in the ideal directions for C, N, O, S. With neither nubs nor
 templates it says `No hydrogens added`. Script commands in
 `ECCE_BUILDER_SCRIPT`: `import FILE` (File > Import of FILE), `resatoms`
 (atoms per residue name), `menu Build|Add Hydrogen`; see
