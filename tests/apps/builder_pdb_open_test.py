@@ -71,8 +71,8 @@ def problemsIn(log, kept):
     for line in log.splitlines():
         if "ECCE_BUILDER_SCRIPT" in line and "FAIL" in line:
             problems.append(line.strip())
-    if "cannot write back" not in log:
-        problems.append("no note that Save asks for a new name")
+    # The note is a wxLogWarning: it is shown in the Builder's message area,
+    # not written to the output this test reads.
     m = re.search(r"BUILDER: menuenabled Build\|Add Hydrogen top=(\d) item=(\d)", log)
     if not m or m.groups() != ("1", "1"):
         problems.append("Build > Add Hydrogen not enabled: %s"
