@@ -8240,6 +8240,19 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
         string text = string("Importing example calculations: ") +
             std::to_string(step) + " of " + std::to_string(nExamples) + " - " +
             label + detail;
+        // Test hook "<step> <url>": a Viewer request queued as a message
+        // would be, so it runs inside the next Update(), mid-import (#1249).
+        static const char *during = getenv("ECCE_TEST_START_DURING_IMPORT");
+        static bool fired = false;
+        if (during && !fired && detail.empty() && atoi(during) == step) {
+          fired = true;
+          string url = strchr(during, ' ') ? strchr(during, ' ') + 1 : "";
+          cerr << "Organizer: test start during import at step " << step
+               << endl;
+          wxTheApp->CallAfter([this, url]() {
+            startApp("CalculationViewer", 0, url);
+          });
+        }
         progress.Update(step - 1, wxString::FromUTF8(text.c_str()));
         cerr << "Organizer: example progress: " << step << " of "
              << nExamples << " - " << label << detail << endl;

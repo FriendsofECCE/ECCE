@@ -14,6 +14,10 @@ on the imported organic SN2 IRC and on the workflow's sn2_irc.  Clicks are
 swallowed while the import runs (InputBlock), so the "start" hook, which
 runs at the first timer tick outside an example set's import, reaches
 the same moments a real click can.
+
+During-import rounds: the Viewer request is queued at an example step, as
+a message arriving then would be, so it runs inside the progress dialog's
+Update() while the set (and the calculation it names) is being imported.
 """
 import os
 import shutil
@@ -75,7 +79,7 @@ def check(ok, what, detail=""):
 
 
 def run(display, label, importExamples, startDelay, parse=False,
-        upgrade=None):
+        upgrade=None, during=None):
     data = tempfile.mkdtemp(prefix="ecce-firstopen-data-")
     work = tempfile.mkdtemp(prefix="ecce-firstopen-")
     try:
@@ -105,9 +109,12 @@ def run(display, label, importExamples, startDelay, parse=False,
             time.sleep(startDelay)
             # Parsing every example takes minutes; the commands wait for the
             # import, so the start window is checked once it has run.
-            append("start CalculationViewer " + url,
-                   (420 if upgrade else 300) if parse
-                   else (120 if upgrade else 40))
+            wait = ((420 if upgrade else 300) if parse
+                    else (120 if upgrade else 40))
+            if during:
+                time.sleep(wait)
+            else:
+                append("start CalculationViewer " + url, wait)
             append("toolstate", 2)
             append("inprocess", 2)
             append("tabs", 2)
@@ -134,6 +141,8 @@ def run(display, label, importExamples, startDelay, parse=False,
             open(prefs, "w").writelines(kept)
         if parse:
             env["ECCE_NO_PREPARSED"] = "1"
+        if during:
+            env["ECCE_TEST_START_DURING_IMPORT"] = "%d %s" % (during, url)
         result = apps.run(display, "organizer", windowTimeout=60, settle=5,
                           env=env, inspect=inspect)
         log = result.log or ""
@@ -146,7 +155,12 @@ def run(display, label, importExamples, startDelay, parse=False,
                                  if "imported in" in l or "example copy" in l
                                  or "examples import" in l][:12])
         print(label, "startApp:", [l for l in log.splitlines()
-                                   if "startApp" in l or "ecce_tool_up" in l][:6])
+                                   if "startApp" in l or "ecce_tool_up" in l
+                                   or "ecce_invoke " in l
+                                   or "during import" in l][:8])
+        print(label, "errors:", [l for l in log.splitlines()
+                                 if "error parsing" in l or "recursive" in l
+                                 or "Error" in l or "assert" in l][:8])
         check(os.path.isdir(calc), label + ": the calculation is there", calc)
         check(not result.crashed, label + ": no crash",
               result.signalName or log[-1500:])
@@ -179,6 +193,9 @@ def main():
             which = "organic" if i % 2 == 0 else "workflow"
             run(display, "parsed upgrade round %d (%s)" % (i + 1, which),
                 True, 0, parse=True, upgrade=which)
+        for step in (1, 3, 12):
+            run(display, "upgrade round, start at import step %d" % step,
+                True, 0, upgrade="organic", during=step)
         run(display, "no import", False, 0)
         if failures:
             results.fail("viewer-first-open", "; ".join(failures))
