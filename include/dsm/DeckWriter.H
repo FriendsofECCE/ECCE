@@ -11,6 +11,10 @@
 
 class ICalculation;
 class GUIValues;
+class Fragment;
+class JCode;
+class TGBSConfig;
+class TTheory;
 
 /**
  * Makes a calculation's input deck from what it stores: the .frag/.basis/
@@ -85,6 +89,21 @@ namespace DeckWriter {
   /// False with why set when the name or an element is not in the library.
   bool rebuildBasis(ICalculation *calc, const std::string& name,
                     std::string& why);
+
+  /// The code needs a periodic unit cell (<RequiresPeriodic> in its .edml)
+  /// and the structure has none.
+  bool missingCell(const JCode *code, const Fragment *frag);
+
+  /// The Calculation Editor's "ready" rule (Launch enabled): a structure
+  /// without open bonds, a cell when the code needs one, and a consistent,
+  /// complete basis set when the theory needs one.  The editor passes its
+  /// unsaved choices, makeReadyIfComplete what a calculation stores.
+  bool setupComplete(Fragment *frag, TGBSConfig *basis,
+                     const JCode *code, const TTheory *theory);
+
+  /// When the stored settings pass setupComplete, writes the deck and makes
+  /// the calculation ready; otherwise leaves it as it is, with why set.
+  bool makeReadyIfComplete(ICalculation *calc, std::string& why);
 }
 
 #endif

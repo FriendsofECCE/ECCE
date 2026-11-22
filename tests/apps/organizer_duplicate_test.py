@@ -9,6 +9,10 @@ the selection fell to the root) and then select the copy.  The Organizer's
 ECCE_TEST_ORGANIZER "duplicate" command runs the menu item and reports the
 tree's selection and collapse events and the tree afterwards.
 
+A copy's state (#1264): a stored example (imported, state Loaded) and a
+completed calculation give a ready copy with an input deck; one whose
+settings are incomplete (no basis set) stays created.
+
 Same installed tree and isolation as run_tests.py (ECCE_TEST_HOME,
 ECCE_TEST_WRAPPERS).  Exit 77 (skip) without an install or Xvfb.
 """
@@ -31,6 +35,11 @@ SKIP = 77
 PROJECT_META = os.path.join(ROOT, "tools", "screenshots", "data",
                             "project.ecce-meta")
 CALC = os.path.join(HERE, "fixtures", "calc-water-opt")
+EXAMPLE = os.path.join(ROOT, "data", "client", "examples", "genchem",
+                       "molecular-orbitals-of-diatomics", "ecceqm-LiF",
+                       "stored", "LiF")
+# original in project gamma -> the state its Duplicate must have
+EXPECTED = {"lif": "Ready", "h2o": "Ready", "incomplete": "Created"}
 
 failures = []
 
@@ -48,11 +57,20 @@ def run(display, data, work):
         os.makedirs(project)
         shutil.copy(PROJECT_META, os.path.join(project, ".ecce-meta"))
         shutil.copytree(CALC, os.path.join(project, "water"), symlinks=True)
+    gamma = os.path.join(root, "gamma")
+    os.makedirs(gamma)
+    shutil.copy(PROJECT_META, os.path.join(gamma, ".ecce-meta"))
+    shutil.copytree(CALC, os.path.join(gamma, "h2o"), symlinks=True)
+    shutil.copytree(EXAMPLE, os.path.join(gamma, "lif"), symlinks=True)
+    shutil.copytree(EXAMPLE, os.path.join(gamma, "incomplete"), symlinks=True)
+    os.remove(os.path.join(gamma, "incomplete", "Parameters",
+                           "BasisSet.ecce_basisset"))
     url = "file://" + root
     # beta is opened (expanded) first; duplicating in alpha must not close it.
     commands = ["summary %s/beta/water" % url,
                 "duplicate %s/alpha/water" % url,
                 "duplicate %s/alpha/water last" % url]
+    commands += ["duplicate %s/gamma/%s" % (url, n) for n in sorted(EXPECTED)]
     script = os.path.join(work, "commands")
     with open(script, "w") as handle:
         handle.write("\n".join(commands) + "\n")
@@ -63,8 +81,9 @@ def run(display, data, work):
     what = "Organizer duplicate"
     if result.crashed:
         return fail(what, "CRASHED (%s)" % result.signalName, log)
-    got = re.findall(r"ECCE_TEST_ORGANIZER: (duplicate .+?): (ok.*)$", log,
-                     re.M)
+    check_states(gamma, log)
+    got = re.findall(r"ECCE_TEST_ORGANIZER: (duplicate \S+/alpha/.+?): (ok.*)$",
+                     log, re.M)
     if len(got) < 2:
         return fail(what, "%d of 2 commands answered" % len(got), log)
     for n, (command, outcome) in enumerate(got):
@@ -87,6 +106,38 @@ def run(display, data, work):
             fail(what + " " + command, "; ".join(problems), log)
         else:
             print("ok    %s: %s" % (command, events.strip() or "no events"))
+
+
+def state_of(calc):
+    try:
+        with open(os.path.join(calc, ".ecce-meta"), errors="replace") as handle:
+            found = re.search(r"ecce:state\t+([^\t\n]+)", handle.read())
+    except OSError:
+        return "no .ecce-meta"
+    return found.group(1).strip() if found else "no state"
+
+
+def check_states(gamma, log):
+    copies = sorted(set(os.listdir(gamma)) - set(EXPECTED) - {".ecce-meta"})
+    for original, want in sorted(EXPECTED.items()):
+        mine = [c for c in copies if c.startswith(original)]
+        what = "copy of %s" % original
+        if len(mine) != 1:
+            fail(what, "expected one copy, found %s" % (mine or "none"), log)
+            continue
+        copy = os.path.join(gamma, mine[0])
+        state = state_of(copy)
+        inputs = os.path.join(copy, "Inputs")
+        deck = os.path.isdir(inputs) and any(
+            os.path.getsize(os.path.join(inputs, f)) > 0
+            for f in os.listdir(inputs))
+        if state != want:
+            fail(what + " is %s, not %s" % (state, want), "wrong state", log)
+        elif want == "Ready" and not deck:
+            fail(what + " is Ready with no input deck", "no deck", log)
+        else:
+            print("ok    %s: %s%s" % (what, state,
+                                      ", with a deck" if deck else ""))
 
 
 def main():
