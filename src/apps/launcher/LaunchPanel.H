@@ -397,6 +397,7 @@ class LaunchPanel : public WxLauncherGUI,
         Launch              *p_launchData;
         bool runLaunchStep();
         int                  p_stepPumps = 0;   // event passes in the last step
+        int                  p_launchGreyed = 0; // times the window was greyed in the last launch
         string               p_launchError;     // last step's failure, for the hook
  };
 

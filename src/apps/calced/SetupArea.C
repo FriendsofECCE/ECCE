@@ -269,8 +269,10 @@ bool SetupArea::showLaunch()
       [this](const string& text, int sev) {
         WxFeedback *fb = p_ed->getFeedback();
         if (!fb) return;
+        //  No flush: it is wxSafeYield, which greys the whole window for
+        //  each launch log line (#1266); the launch loop's yield draws it.
         if (text.empty()) fb->clearMessage();
-        else fb->setMessage(text, (WxFeedback::Severity)sev, false, true);
+        else fb->setMessage(text, (WxFeedback::Severity)sev, false, false);
       }));
   wxWindow *w = p_launch->window();
   p_body->GetSizer()->Add(w, 1, wxEXPAND);
