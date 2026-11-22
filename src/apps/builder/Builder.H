@@ -477,6 +477,8 @@ class Builder: public BuilderGUI,
       virtual void OnSelectIonsClick( wxCommandEvent& event );
       virtual void OnSelectProteinClick( wxCommandEvent& event );
       virtual void OnSelectLigandClick( wxCommandEvent& event );
+      virtual void OnSelectHeteroClick( wxCommandEvent& event );
+      bool selectHeteroatoms();
       virtual void OnUpdateSelectResidueItem( wxUpdateUIEvent& event );
       bool selectResidueClass(bool ligand);
       virtual void OnDistortBondsClick( wxCommandEvent& event );

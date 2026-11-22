@@ -193,6 +193,10 @@ SoINTERNAL public:
     /// The largest residue that is a ligand candidate (RES_OTHER, more than
     /// one atom); selects it and describes the choice, and any others, in
     /// message.  Returns false, selecting nothing, when there is none.
+    /// Everything outside standard polymer residues except the ligand
+    /// getLigand would pick; with no ligand, water is left out as well.
+    void getHeteroatoms(vector<bool>& atombits, vector<bool>& bondbits,
+                        string& message);
     bool getLigand(vector<bool>& atombits, vector<bool>& bondbits,
                    string& message);
     void getFullResidue(TAtm *atm, vector<bool>& atombits, vector<bool>& bondbits);

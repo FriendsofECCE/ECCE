@@ -1217,6 +1217,28 @@ bool SGFragment::getLigand(vector<bool>& atombits, vector<bool>& bondbits,
   return true;
 }
 
+void SGFragment::getHeteroatoms(vector<bool>& atombits, vector<bool>& bondbits,
+                                string& message)
+{
+  message.clear();
+  if (numResidues() == 0) return;
+  vector<bool> la(atombits.size(), false), lb(bondbits.size(), false);
+  string lmsg;
+  const bool haveLigand = getLigand(la, lb, lmsg);
+  int n = 0;
+  for (int i = 0; i < numAtoms(); i++) {
+    const Residue *res = atomRef(i)->getResidue();
+    if (!res) continue;
+    const ResidueClass c = residueClass(res->name());
+    if (c == RES_POLYMER || la[i]) continue;
+    if (!haveLigand && c == RES_WATER) continue;
+    selectAtomAndBonds(atomRef(i), atombits, bondbits);
+    n++;
+  }
+  message = "Selected " + to_string(n) + " heteroatoms outside the protein" +
+            (haveLigand ? "; the ligand was left out." : ".");
+}
+
 void SGFragment::getSolute(vector<bool>& atombits, vector<bool>& bondbits)
 {
   vector<AtomRole> roles = atomRoles();

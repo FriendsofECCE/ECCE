@@ -51,6 +51,14 @@ Builder and Viewer runs the script when it opens, so a test can rewrite the
 file between `start` commands and give each tab its own steps (the
 Viewer-tab close test in `tests/apps/one_process_test.py --panels-only`).
 
+## Select heteroatoms (#1244)
+
+Builder `Edit > Select Heteroatoms (not protein)` selects every atom outside
+standard amino-acid/nucleotide residues except the ligand `Select Ligand`
+would pick (the largest non-water, non-ion, non-additive residue); with no
+ligand it selects everything non-protein except water. Delete then removes
+them. Script command in `ECCE_BUILDER_SCRIPT`: `select_hetero`.
+
 ## Scripted total charge and multiplicity
 
 `ECCE_CALCED_SCRIPT` and `ECCE_BUILDER_SCRIPT` accept `charge INTEGER` and

@@ -48,6 +48,7 @@ const wxWindowID BuilderGUI::ID_SELECT_SOLVENT = wxNewId();
 const wxWindowID BuilderGUI::ID_SELECT_IONS = wxNewId();
 const wxWindowID BuilderGUI::ID_SELECT_PROTEIN = wxNewId();
 const wxWindowID BuilderGUI::ID_SELECT_LIGAND = wxNewId();
+const wxWindowID BuilderGUI::ID_SELECT_HETERO = wxNewId();
 const wxWindowID BuilderGUI::ID_DISTORT_BONDS = wxNewId();
 const wxWindowID BuilderGUI::ID_TAKE_COORDS = wxNewId();
 const wxWindowID BuilderGUI::ID_SAVE_THUMB = wxNewId();
@@ -117,6 +118,8 @@ BEGIN_EVENT_TABLE( BuilderGUI, ewxTool )
     EVT_MENU( ID_SELECT_IONS, BuilderGUI::OnSelectIonsClick )
     EVT_MENU( ID_SELECT_PROTEIN, BuilderGUI::OnSelectProteinClick )
     EVT_MENU( ID_SELECT_LIGAND, BuilderGUI::OnSelectLigandClick )
+    EVT_MENU( ID_SELECT_HETERO, BuilderGUI::OnSelectHeteroClick )
+    EVT_UPDATE_UI( ID_SELECT_HETERO, BuilderGUI::OnUpdateSelectResidueItem )
     EVT_UPDATE_UI( ID_SELECT_PROTEIN, BuilderGUI::OnUpdateSelectResidueItem )
     EVT_UPDATE_UI( ID_SELECT_LIGAND, BuilderGUI::OnUpdateSelectResidueItem )
     EVT_MENU( ID_DISTORT_BONDS, BuilderGUI::OnDistortBondsClick )
@@ -221,6 +224,7 @@ void BuilderGUI::CreateControls()
     itemMenu16->Append(ID_SELECT_IONS, _("Select Ions"), _T(""), wxITEM_NORMAL);
     itemMenu16->Append(ID_SELECT_PROTEIN, _("Select Protein"), _T(""), wxITEM_NORMAL);
     itemMenu16->Append(ID_SELECT_LIGAND, _("Select Ligand"), _T(""), wxITEM_NORMAL);
+    itemMenu16->Append(ID_SELECT_HETERO, _("Select Heteroatoms (not protein)"), _T(""), wxITEM_NORMAL);
     itemMenu16->Append(ID_SELECT_BACKBONE, _("Select Backbone"), _T(""), wxITEM_NORMAL);
     itemMenu16->Append(ID_SELECT_SIDECHAINS, _("Select Side Chains"), _T(""), wxITEM_NORMAL);
     itemMenu16->Append(ID_SELECT_REVERSE, _("Reverse Selection\tCtrl+r"), _T(""), wxITEM_NORMAL);

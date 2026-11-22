@@ -43,6 +43,7 @@
 //                                of the result as `BUILDER: clusteratom EL X Y Z`
 //    select_protein              Edit > Select Protein (replaces the selection)
 //    select_ligand               Edit > Select Ligand: the largest ligand (replaces the selection)
+//    select_hetero               Edit > Select Heteroatoms (not protein): all but protein and the ligand (#1244)
 //    selectelem A                select the first atom of element A
 //    addelem A                   add the last atom of element A to the selection
 //    bondkind covalent|metal     the kind of bond Bond mode makes
@@ -920,6 +921,8 @@ void Builder::runBuilderScript(const std::string& file)
                  w.size() == 1 && frag) {
         if (!selectResidueClass(w[0] == "select_ligand"))
           outcome = "FAIL: nothing selected";
+      } else if (w[0] == "select_hetero" && w.size() == 1 && frag) {
+        if (!selectHeteroatoms()) outcome = "FAIL: nothing selected";
       } else if (w[0] == "selectelem" && w.size() == 2 && frag) {
         //  The first atom of element A, as a click on it selects it.
         outcome = "FAIL: no such atom";
@@ -2586,6 +2589,29 @@ void Builder::OnSelectProteinClick(wxCommandEvent&)
 void Builder::OnSelectLigandClick(wxCommandEvent&)
 {
   selectResidueClass(true);
+}
+
+//  Edit > Select Heteroatoms (not protein) (#1244): then Delete leaves the
+//  protein and the ligand.
+bool Builder::selectHeteroatoms()
+{
+  SGFragment *frag = getSG()->getFragment();
+  if (!frag || frag->numResidues() == 0) {
+    showMessage("Select Heteroatoms: this structure has no residue "
+                "information.");
+    return false;
+  }
+  SelectCmd *cmd = new SelectCmd("Select Heteroatoms", getSG());
+  cmd->getParameter("clear")->setBoolean(true);
+  cmd->getParameter("heteroatoms")->setBoolean(true);
+  execute(cmd);
+  showMessage(cmd->message());
+  return !frag->m_atomHighLight.empty();
+}
+
+void Builder::OnSelectHeteroClick(wxCommandEvent&)
+{
+  selectHeteroatoms();
 }
 
 //  Greyed, with the reason in the label, while there are no residues; the
