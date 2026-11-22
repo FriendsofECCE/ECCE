@@ -97,6 +97,12 @@ Use **Show in viewer** to hide them. This uses final stress and geometry;
 per-step vc-relax stress, CP2K ingestion and directional surfaces are not
 implemented. See [Viewer panels](../help/src/viewer-panels.md).
 
+With one atom selected the Builder/Viewer shows `El N  (x, y, z) Å  RES` at the
+bottom left of the 3-D view; with two atoms the distance `El N - El M  d Å`
+(#1236). Builder script `selectoverlay [N [M]]` (from 1) selects those atoms and
+prints `SELOVERLAY: <count> [<overlay text>]`; test
+`tests/apps/atom_numbers_test.py`.
+
 Build > Cut Cluster (#1033) turns a periodic structure into a non-periodic
 cluster around the selected atoms. Builder script:
 `cutcluster R [center N] [whole none|molecules|units] [cap none|H|OH]` (R in
