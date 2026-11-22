@@ -25,6 +25,8 @@
 //                                and press the key; prints the cell and
 //                                whether its editor is still open
 //    residues                    the residue names of the structure, on stderr
+//    resatoms                    atoms per residue name (NAME=N,...), on stderr
+//    import FILE                 File > Import of FILE, as the dialog does (#1244)
 //    menustate NAME              whether Tools > NAME is enabled, on stderr
 //    save                        File > Save
 //    charge INTEGER | mult INTEGER   total charge / spin multiplicity
@@ -770,6 +772,21 @@ void Builder::runBuilderScript(const std::string& file)
         for (int i = 0; i < frag->numResidues(); i++)
           names += (i ? "," : "") + frag->residue(i)->name();
         fprintf(stderr, "BUILDER: residues=%s\n", names.c_str());
+      } else if (w[0] == "resatoms") {
+        std::map<std::string,int> counts;
+        for (int i = 0; i < (int)frag->numAtoms(); i++) {
+          const Residue *r = frag->atomRef(i)->getResidue();
+          counts[r ? r->name() : std::string("(none)")]++;
+        }
+        std::string out;
+        for (auto &kv : counts)
+          out += (out.empty() ? "" : ",") + kv.first + "=" + std::to_string(kv.second);
+        fprintf(stderr, "BUILDER: resatoms %s\n", out.c_str());
+      } else if (w[0] == "import" && w.size() == 2) {
+        SFile file(w[1]);
+        wxString ext = wxString(file.extension()).Upper();
+        if (!readFragmentFromFile(&file, ext, ext)) outcome = "import cancelled";
+        getViewer().viewAll();
       } else if (w[0] == "save") {
         doSave();
       } else if (w[0] == "context" && w.size() == 2) {

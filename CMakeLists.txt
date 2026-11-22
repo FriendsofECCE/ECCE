@@ -5445,6 +5445,12 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_builder_select_within PROPERTIES TIMEOUT 600
                        SKIP_RETURN_CODE 77)
+  add_test(NAME apps_builder_import_pdb
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/builder_import_pdb_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_builder_import_pdb PROPERTIES TIMEOUT 600
+                       SKIP_RETURN_CODE 77)
   add_test(NAME apps_builder_select_protein_ligand
            COMMAND ${PYTHON3_EXECUTABLE}
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/builder_select_protein_ligand_test.py
