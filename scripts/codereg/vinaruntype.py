@@ -156,8 +156,11 @@ class VinaRunTypePanel(EccePanel):
             self.chooser.Set([m[0] for m in mols] + ["Other (atom numbers)"])
             self.chooserRow.ShowItems(bool(mols))
             self.Layout()
-        # An empty key means the first candidate; a stored one is kept.
-        if mols and not self.defaulted and not self.ligand.GetValue().strip():
+        # An empty key means the first candidate; a stored one is kept.  Not
+        # before the stored values are restored and the editor has been told
+        # the dialog is initialized (the timer applies it on its first tick),
+        # and not before the widgets OnChanges depends on exist.
+        if mols and EcceGlobals.EventLoopStarted and not self.defaulted and not self.ligand.GetValue().strip():
             self.defaulted = True
             self.SetLigandAtoms(mols[0][1])
         self.SyncChooser()
