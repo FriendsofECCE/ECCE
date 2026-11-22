@@ -49,6 +49,10 @@ void FragCloneCmd::cloneFragment(SGFragment *frag)
    // Don't do undo stuff if we've already executed
    if (p_undoFrag == 0) {
       p_undoFrag = new SGFragment(*frag);
+      p_undoStyles.clear();
+      if (SGContainer *sg = dynamic_cast<SGContainer*>(getReceiver()))
+         for (const string& name : sg->getDisplayStyleNames())
+            p_undoStyles.push_back(sg->getDisplayDescriptor(name));
    }
 }
 
@@ -111,6 +115,8 @@ void FragCloneCmd::restoreFrag(SGFragment *frag, DisplayStyle ds)
    SGContainer *sg = dynamic_cast<SGContainer*>(getReceiver());
 
    sg->cleanAtomDeletes();
+   for (const DisplayDescriptor& dd : p_undoStyles)
+      if (!sg->styleExists(dd.getName())) sg->createStyle(dd);
 
    sg->getCSTop()->removeAllChildren();
    SGFragment *sgfrag = new SGFragment(*frag);
