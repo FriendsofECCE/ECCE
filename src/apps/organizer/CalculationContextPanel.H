@@ -44,6 +44,10 @@ class CalculationContextPanel : public ewxScrolledWindow,
 
     void refresh();
 
+    /** The last refresh's timing line, and a pane field's text (hook, #1237). */
+    static std::string lastRefreshTimings();
+    std::string fieldText(const std::string &name);
+
     /** The calculation shown, for routing progress messages to it. */
     EcceURL getUrl() const;
 
@@ -73,6 +77,7 @@ class CalculationContextPanel : public ewxScrolledWindow,
     // Internal helper functions
     void            createControls();
     void            refreshLaunchInfo();
+    void            refreshThumbnail(const std::string &url, const std::string &formula);
     EcceTool*       createToolButton(ResourceTool* resTool);
     wxBoxSizer*     createPropLabel(ResourceProperty* resProp);
     wxBoxSizer*     createPropHolder(ResourceProperty* resProp);
