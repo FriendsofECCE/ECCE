@@ -105,6 +105,10 @@ has the keyboard focus, so Delete and Ctrl+Z act at once. Script commands
 focused window); see `tests/apps/builder_delete_undo_test.py`. `menuenabled
 <Menu>|<item>` logs `BUILDER: menuenabled ... top=0|1 item=0|1`, whether a
 click could reach a menu-bar item (`menu` sends the item even when greyed).
+`delkey` sends a Delete key press through the frame's key hook with the 3-D
+view focused; `undolabel` logs `BUILDER: undolabel [<Edit > Undo label>]
+enabled=0|1`; `drawn` logs `BUILDER: drawn N of M`, the atoms whose display
+style the 3-D view still has (an undone atom outside it is not drawn).
 
 A PDB opened directly (`ecce-builder FILE.pdb`, as the file manager's Open
 With does) is editable. If it holds records ECCE does not write, File > Save

@@ -823,6 +823,29 @@ void Builder::runBuilderScript(const std::string& file)
         ev.SetControlDown(true);
         ev.SetEventObject(this);
         GetEventHandler()->ProcessEvent(ev);
+      } else if (w[0] == "delkey" && w.size() == 1) {
+        //  A Delete key press as GTK delivers it: the char hook of the
+        //  frame, with the 3-D view focused, not the accelerator's menu id.
+        if (SoWxRenderArea *area = findViewerArea(p_viewer)) area->SetFocus();
+        for (int i = 0; i < 3; i++) wxTheApp->Yield(true);
+        wxKeyEvent ev(wxEVT_CHAR_HOOK);
+        ev.m_keyCode = WXK_DELETE;
+        ev.SetEventObject(this);
+        GetEventHandler()->ProcessEvent(ev);
+      } else if (w[0] == "undolabel" && w.size() == 1) {
+        wxMenuItem *item = GetMenuBar() ? GetMenuBar()->FindItem(wxID_UNDO) : 0;
+        fprintf(stderr, "BUILDER: undolabel [%s] enabled=%d\n",
+                item ? (const char*)item->GetItemLabelText().utf8_str() : "none",
+                item && item->IsEnabled() ? 1 : 0);
+      } else if (w[0] == "drawn" && w.size() == 1) {
+        //  Atoms whose display style has a node in the scene graph; an atom
+        //  with a style the graph no longer has exists but is not drawn.
+        int drawn = 0;
+        for (int i = 0; i < (int)frag->numAtoms(); i++) {
+          const DisplayStyle &ds = frag->atomRef(i)->displayStyle();
+          if (ds.isDisplayed() && getSG()->styleExists(ds.getName())) drawn++;
+        }
+        fprintf(stderr, "BUILDER: drawn %d of %d\n", drawn, (int)frag->numAtoms());
       } else if (w[0] == "focus" && w.size() == 1) {
         wxWindow *f = wxWindow::FindFocus();
         fprintf(stderr, "BUILDER: focus %s\n",
