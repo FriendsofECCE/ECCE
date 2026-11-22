@@ -1254,7 +1254,7 @@ static wxString columnOverlaps(wxWindow *root)
 }
 
 
-//  setup [info] | theory | runtype | basis [filter T|pick N|all|assign N [@ E,E]|ecp [N] [@ E,E]|fit N [@ E,E]] | input | fold | unfold | save | preview
+//  setup [info] | text | theory | runtype | basis [filter T|pick N|all|assign N [@ E,E]|ecp [N] [@ E,E]|fit N [@ E,E]] | input | fold | unfold | save | preview
 wxString CalcEd::setupCommand(const wxString& arg)
 {
   if (!p_setupArea) return "no set-up area";
@@ -1396,6 +1396,12 @@ wxString CalcEd::setupCommand(const wxString& arg)
     if (p_setupArea->current() != SetupArea::INPUT) return "not the input";
     return "shown=" + wxString(fnvOf(p_setupArea->previewShown())) +
            " file=" + wxString(fnvOf(p_setupArea->previewText()));
+  } else if (arg == "text") {
+    // the note and the preview as shown, on one line
+    wxString t = p_setupArea->note() + " || " +
+                 wxString::FromUTF8(p_setupArea->previewShown().c_str());
+    t.Replace("\n", "|");
+    return t;
   } else if (!arg.empty() && arg != "info") {
     return "unknown: " + arg;
   }
@@ -6189,6 +6195,7 @@ void CalcEd::closeTheoryApp(const bool& sendTerm)
     (void)kill((p_theoryPid), SIGTERM);
   }
   if (sendTerm && p_setupArea) p_setupArea->closeDetails(SetupArea::THEORY);
+  if (p_setupArea) p_setupArea->externalClosed(SetupArea::THEORY);
 
   if (p_theoryInPort != 0) {
     p_theoryInSocket->Notify(false);
@@ -6207,6 +6214,7 @@ void CalcEd::closeRuntypeApp(const bool& sendTerm)
     (void)kill((p_runtypePid), SIGTERM);
   }
   if (sendTerm && p_setupArea) p_setupArea->closeDetails(SetupArea::RUNTYPE);
+  if (p_setupArea) p_setupArea->externalClosed(SetupArea::RUNTYPE);
 
   if (!p_runtypeNotePath.empty()) {
     remove(p_runtypeNotePath.c_str());

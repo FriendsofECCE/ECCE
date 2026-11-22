@@ -4,7 +4,9 @@
 A structure with a ligand, a smaller ligand-like residue, an additive and an
 ion is stored as a Vina calculation.  The Calculation Editor writes the
 dialog's <out>.molecules side file (label TAB atom range, likely ligand
-first) and the dialog fills Ligand atoms with the first one.
+first) and the dialog fills Ligand atoms with the first one.  Before any
+Save the preview shows Vina's config, and pressing Runtype Details changes
+the editor's controls and note once each (#1261).
 
     tests/apps/vina_molecules_test.py [--build build-cmake] [--keep]
 
@@ -38,6 +40,39 @@ def check(ok, what):
     if not ok:
         failures.append(what)
     return ok
+
+
+def check_preview(cmdfile, logpath, proc, asked):
+    """The unsaved Vina calculation's preview is its config (#1261)."""
+    ask(cmdfile, logpath, proc, "setup input", asked, 30)
+    text = ""
+    end = time.time() + 90
+    while time.time() < end and "center_x" not in text and "could not" not in text:
+        text = ask(cmdfile, logpath, proc, "setup text", asked, 30) or ""
+        time.sleep(2)
+    check("no theory" not in text, "the preview does not say 'no theory': %r" % text[:300])
+    check("receptor = receptor.pdbqt" in text and "center_x" in text,
+          "the preview shows Vina's config: %r" % text[:300])
+
+
+def check_details_open(cmdfile, logpath, proc, asked):
+    """One press of Runtype Details changes the editor once (#1261)."""
+    ask(cmdfile, logpath, proc, "watch start", asked, 30)
+    ask(cmdfile, logpath, proc, "details runtype", asked, 30)
+    time.sleep(10)
+    got = ask(cmdfile, logpath, proc, "watch", asked, 30) or ""
+    say("  watch: " + got[:600])
+    for name in ("theory", "runtype", "theory-details", "runtype-details"):
+        part = [p for p in got.split() if p.startswith(name + "=")]
+        if not check(part != [], "watch reports %s" % name):
+            continue
+        off, on = part[0].split("=")[1].split("/")
+        check(int(off[3:]) <= 1 and int(on[2:]) <= 1,
+              "%s goes off and on at most once each: %s" % (name, part[0]))
+    notes = [n.strip() for n in got.split(" |")[1:]]
+    back = [n for i, n in enumerate(notes) if n in notes[:i]]
+    check(not back, "the preview note does not swing back: %r" % notes)
+    ask(cmdfile, logpath, proc, "close-details", asked, 30)
 
 
 def main():
@@ -138,6 +173,8 @@ def main():
                         for line in open(logpath, errors="replace"):
                             if "VINADLG" in line or "Traceback" in line or "Error" in line:
                                 say("    " + line.rstrip())
+                    check_preview(cmdfile, logpath, proc, asked)
+                    check_details_open(cmdfile, logpath, proc, asked)
                     ask(cmdfile, logpath, proc, "quit", asked, 60)
                 finally:
                     if proc.poll() is None:

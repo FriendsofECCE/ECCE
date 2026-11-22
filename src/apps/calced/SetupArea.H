@@ -65,6 +65,10 @@ public:
   bool setValue(const std::string& name, const std::string& value);
   // The details have no .dlg and opened as the Python dialog's window.
   void external(Kind kind);
+  // Those details' window closed: the note no longer says it is open.
+  void externalClosed(Kind kind);
+  // The note above the preview, as shown ("" when hidden; test hook).
+  wxString note() const;
   std::string previewShown() const;
   // The editor dropped or restarted these details (code or theory change).
   void closeDetails(Kind kind);
@@ -80,6 +84,8 @@ private:
   CalcEd *p_ed;
   wxStaticText *p_title;
   wxStaticText *p_note;
+  // Details open in their own window (INPUT when none).
+  Kind p_external = INPUT;
   wxButton *p_fold;
   wxTextCtrl *p_input;
   wxWindow *p_body;
