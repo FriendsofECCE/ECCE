@@ -7727,6 +7727,8 @@ void Builder::updatePropertyMenus()
             //  Show core orbitals on (1) or off (0), then the levels drawn below the break.
             md->setShowCore(n != 0);
             out << md->coreText();
+          } else if (w[2] == "hits") {
+            out << md->hitsText();
           } else if (w[2] == "corehits") {
             //  The core band's click targets: one per bar, with its tip.
             out << md->coreHitsText();

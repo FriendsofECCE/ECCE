@@ -91,8 +91,10 @@ so a level can appear less connected than it is.
 ## Electrons
 
 Arrows on a level show its electrons. Degenerate levels, which have the same
-energy, are drawn as one level with the number of orbitals it holds. For an
-open-shell molecule alpha and beta electrons are drawn separately.
+energy, are drawn as one level with the number of orbitals it holds. When the
+calculation gives no symmetry labels, levels within 0.5 mEh of each other are
+drawn as one degenerate level. For an open-shell molecule alpha and beta
+electrons are drawn separately.
 
 ## Under the diagram
 

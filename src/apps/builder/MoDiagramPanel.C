@@ -260,6 +260,12 @@ string MoDiagramPanel::coreText() const
 }
 
 
+string MoDiagramPanel::hitsText()
+{
+  return p_canvas ? p_canvas->hitsText() : string();
+}
+
+
 string MoDiagramPanel::coreHitsText()
 {
   return p_canvas ? p_canvas->coreHitsText() : string();
