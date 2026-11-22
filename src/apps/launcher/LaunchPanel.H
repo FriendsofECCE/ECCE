@@ -277,6 +277,7 @@ class LaunchPanel : public WxLauncherGUI,
                  const bool& clear = false, const bool& flush = false);
         void sayClear();
         void compactLayout();
+        void fitLabelColumn();
         void launchCancelled();
         void runLaunch();
 
