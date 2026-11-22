@@ -796,6 +796,18 @@ void Builder::runBuilderScript(const std::string& file)
         fprintf(stderr, "BUILDER: atoms=%d lattice=%s nubs=%d\n",
                 frag ? (int)frag->numAtoms() : -1, lat ? "yes" : "no", nubs);
         fprintf(stderr, "BUILDER: cell_images=%d\n", getSG()->numCellImages());
+        if (frag && frag->numAtoms() > 0) {
+          double alo[3], ahi[3];
+          for (size_t i = 0; i < frag->numAtoms(); i++) {
+            const double *xyz = frag->atomRef(i)->coordinates();
+            for (int k = 0; k < 3; k++) {
+              if (i == 0 || xyz[k] < alo[k]) alo[k] = xyz[k];
+              if (i == 0 || xyz[k] > ahi[k]) ahi[k] = xyz[k];
+            }
+          }
+          fprintf(stderr, "BUILDER: atom_bounds=%.3f %.3f %.3f %.3f %.3f %.3f\n",
+                  alo[0], alo[1], alo[2], ahi[0], ahi[1], ahi[2]);
+        }
         if (lat) {
           MPoint cc = lat->getLatticeCorner();
           fprintf(stderr, "BUILDER: lattice_centered=%d corner=%.3f %.3f %.3f\n",

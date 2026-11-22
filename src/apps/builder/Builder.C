@@ -629,6 +629,19 @@ bool Builder::Create( wxWindow* parent, bool standalone, wxWindowID id,
     if (key == WXK_SPACE && dynamic_cast<SoWxRenderArea*>(wxWindow::FindFocus())
         && pauseVibrationKey())
       return;
+    //  Delete reaches the frame here whatever has the focus; the accelerator
+    //  alone is missed when the focused child consumes the key (#1240, #603).
+    //  Editable text keeps it for editing.
+    if ((key == WXK_DELETE || key == WXK_NUMPAD_DELETE) && !ev.HasModifiers()) {
+      wxWindow *f = wxWindow::FindFocus();
+      wxTextEntry *te = dynamic_cast<wxTextEntry*>(f);
+      bool editing = f && f->IsEnabled() &&
+        ((te && te->IsEditable()) || dynamic_cast<wxSpinCtrl*>(f) ||
+         dynamic_cast<wxSpinCtrlDouble*>(f));
+      if (!editing) { deleteSelection(); return; }
+      ev.Skip();
+      return;
+    }
     if (key != WXK_ESCAPE || !escapeKey()) ev.Skip();
   });
   //  Key events go to the focused child (the 3-D canvas), never the frame,
