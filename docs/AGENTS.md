@@ -89,6 +89,15 @@ on a structure with residues and no residue being edited first inserts a new
 residue `UNK` at the end and edits it, as Insert in the GUI's residue prompt
 does; an atom with no residue to go into is refused with a message.
 
+A click in the 3-D view (selecting an atom, clearing the selection on empty
+space, Edit > Select All) leaves the camera where it is, also with Auto
+Center on; an import, an edit that puts atoms outside the view and View All
+still fit the structure (#1260). Script commands in `ECCE_BUILDER_SCRIPT`:
+`zoom F` (camera angle or height times F), `inview` (`BUILDER: inview
+outside=0|1`), `camerastate` (position, focal distance, angle or height),
+`pickatom N` and `emptyclick` (what a click on atom N, or on empty space in
+Select mode, runs), `viewall`. Test: `tests/apps/builder_click_camera_test.py`.
+
 Builder Edit menu: **Invert Selection** (Ctrl+R, formerly Reverse Selection).
 After a structure opens and after every Edit > Select command the 3-D view
 has the keyboard focus, so Delete and Ctrl+Z act at once. Script commands

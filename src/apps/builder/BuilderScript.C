@@ -169,6 +169,7 @@
 #include "viz/SGLattice.H"
 #include "viz/SGFragment.H"
 #include "viz/SelectCmd.H"
+#include "viz/UnselectCmd.H"
 #include "viz/AtomMeasureDist.H"
 #include "viz/AtomMeasureAngle.H"
 #include "viz/AtomMeasureTorsion.H"
@@ -1714,6 +1715,24 @@ void Builder::runBuilderScript(const std::string& file)
         else if (SoOrthographicCamera *oc = dynamic_cast<SoOrthographicCamera*>(cam))
           oc->height = oc->height.getValue() * f;
         p_viewer->refreshRenderArea();
+      } else if (w[0] == "camerastate") {
+        SoCamera *cam = p_viewer->getCamera();
+        const SbVec3f p = cam->position.getValue();
+        float h = 0.f;
+        if (SoPerspectiveCamera *pc = dynamic_cast<SoPerspectiveCamera*>(cam))
+          h = pc->heightAngle.getValue();
+        else if (SoOrthographicCamera *oc = dynamic_cast<SoOrthographicCamera*>(cam))
+          h = oc->height.getValue();
+        fprintf(stderr, "BUILDER: camerastate %.5g %.5g %.5g focal=%.5g "
+                "height=%.5g\n", p[0], p[1], p[2],
+                cam->focalDistance.getValue(), h);
+      } else if (w[0] == "emptyclick") {
+        //  What a click on empty space in Select mode runs.
+        execute(new UnselectCmd("UnselectCmd", getSG()));
+      } else if (w[0] == "pickatom" && w.size() == 2 && frag) {
+        //  What a click on atom N (from 1) in the current mode runs.
+        frag->m_atomHighLight.assign(1, atoi(w[1].c_str()) - 1);
+        pickedInMode(false, -1);
       } else if (w[0] == "inview") {
         //  inview: whether any atom is outside the 3-D view (#409).
         fprintf(stderr, "BUILDER: inview outside=%d\n",
