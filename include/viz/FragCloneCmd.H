@@ -8,6 +8,8 @@
 
 #include "util/Command.H"
 #include "tdat/DisplayStyle.H"
+#include "tdat/DisplayDescriptor.H"
+#include <vector>
 
 class SGFragment;
 
@@ -38,6 +40,9 @@ class FragCloneCmd : public Command
 
 
       SGFragment *p_undoFrag;
+      //  The scene graph drops a style once no atom uses it; undo brings
+      //  those atoms back and needs the style again to draw them (#1248).
+      std::vector<DisplayDescriptor> p_undoStyles;
 
 
 };

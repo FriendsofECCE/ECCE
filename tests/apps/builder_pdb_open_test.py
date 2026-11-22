@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Builder on a PDB opened as its file argument, as the file manager's Open
-With does: the Build menu is enabled, Add Hydrogen adds atoms, deleting the
-solvent undoes and redoes, and File > Save leaves the original file alone
+With does: the Build menu is enabled, Add Hydrogen adds atoms, the Delete key
+on the solvent is recorded (Edit > Undo names it), Ctrl+Z and Undo bring the
+water back drawn, and File > Save leaves the original file alone
 (#1259, #1248).  181L has HEADER/REMARK records, which ECCE cannot write."""
 import hashlib
 import os
@@ -17,13 +18,14 @@ import fixture    # noqa: E402
 
 STRUCTURE = os.path.join(HERE, "..", "fragreaders", "data", "181L.pdb")
 SCRIPT = [
-    "wait 2500", "info", "resatoms",
+    "wait 2500", "info", "resatoms", "drawn",
     "menuenabled Build|Add Hydrogen",
     "menu Edit|Select Solvent", "wait 500",
-    "menu Edit|Delete Selection", "wait 500", "info", "resatoms",
-    "undo", "wait 500", "info", "resatoms",
+    #  The Delete key as a hand test presses it: the frame's key hook.
+    "delkey", "wait 500", "info", "resatoms", "undolabel",
+    "ctrlz", "wait 500", "info", "resatoms", "drawn",
     "redo", "wait 500", "info",
-    "ctrlz", "wait 500", "info",
+    "undo", "wait 500", "info", "drawn",
     "menu Build|Add Hydrogen", "wait 3000", "info",
     "savemenu", "wait 500", "savestate",
     "quit",
@@ -79,18 +81,27 @@ def problemsIn(log, kept):
                         % (m.group(0) if m else "no line"))
     atoms = [int(n) for n in re.findall(r"BUILDER: atoms=(\d+)", log)]
     res = re.findall(r"BUILDER: resatoms (\S+)", log)
-    if len(atoms) != 6 or len(res) != 3:
-        problems.append("atoms %s resatoms %s: want 6 and 3 lines" % (atoms, res))
+    drawn = [int(n) for n in re.findall(r"BUILDER: drawn (\d+) of", log)]
+    labels = re.findall(r"BUILDER: undolabel \[(.*)\] enabled=(\d)", log)
+    if len(labels) != 1 or "Delete" not in labels[0][0] or labels[0][1] != "1":
+        problems.append("the Delete key was not recorded: Edit > Undo is %s"
+                        % (labels or "not logged"))
+    if len(atoms) != 6 or len(res) != 3 or len(drawn) != 3:
+        problems.append("atoms %s resatoms %s drawn %s: want 6, 3 and 3 lines"
+                        % (atoms, res, drawn))
     else:
         if not atoms[1] < atoms[0] or "HOH=" in res[1]:
-            problems.append("Delete of the solvent: atoms %s, %s" % (atoms[:2], res[1]))
+            problems.append("Delete key on the solvent: atoms %s, %s" % (atoms[:2], res[1]))
         if atoms[2] != atoms[0] or res[2] != res[0]:
-            problems.append("Undo of the solvent delete: atoms %s residues %s -> %s"
+            problems.append("Ctrl+Z after the solvent delete: atoms %s residues %s -> %s"
                             % (atoms[:3], res[0], res[2]))
+        if drawn[1] != drawn[0]:
+            problems.append("Ctrl+Z restored the water undrawn: drawn %s of %s"
+                            % (drawn[:2], atoms[0]))
         if atoms[3] != atoms[1]:
             problems.append("Redo of the solvent delete: atoms %s" % atoms[:4])
-        if atoms[4] != atoms[0]:
-            problems.append("Ctrl+Z after redo: atoms %s" % atoms)
+        if atoms[4] != atoms[0] or drawn[2] != drawn[0]:
+            problems.append("Undo after redo: atoms %s drawn %s" % (atoms, drawn))
         if not atoms[5] > atoms[4]:
             problems.append("Add Hydrogen added nothing: atoms %s" % atoms[4:])
     if "BUILDER: save goes to Save As" not in log:
