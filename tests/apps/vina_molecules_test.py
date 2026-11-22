@@ -111,9 +111,16 @@ def main():
                                 if f.endswith(".molecules"):
                                     mol = os.path.join(root, f)
                         time.sleep(1)
+                    # The editor flushes line by line, so the file can be
+                    # seen empty or half written; wait for the full list.
                     lines = []
-                    if mol:
-                        lines = open(mol, encoding="utf-8").read().splitlines()
+                    end = time.time() + 30
+                    while mol and time.time() < end and lines != WANT:
+                        try:
+                            lines = open(mol, encoding="utf-8").read().splitlines()
+                        except OSError:
+                            lines = []
+                        time.sleep(0.5)
                     check(lines == WANT, "side file lists the candidates: %r" % lines)
                     # The dialog fills the key from the first line (it
                     # reports back over the editor's socket).
