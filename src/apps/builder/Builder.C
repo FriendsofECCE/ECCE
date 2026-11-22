@@ -2488,8 +2488,9 @@ void Builder::toggleModeButton(int modeId)
 
   // Restore tool menu status based on layout info
   for (int i=0; i<p_toolCount; ++i) {
-    wxString label = p_toolMenu->GetLabel(ID_TOOLMENU_ITEM+i);
-    p_toolMenu->Check(ID_TOOLMENU_ITEM+i, p_mgr.GetPane(label).IsShown());
+    wxString label = p_toolNames[i];
+    if (p_toolMenu->FindItem(ID_TOOLMENU_ITEM+i))
+      p_toolMenu->Check(ID_TOOLMENU_ITEM+i, p_mgr.GetPane(label).IsShown());
   }
   // Restore toolbar menu status based on layout info
   for (int i = 0; i < p_toolbarCount; ++i) {
@@ -2519,7 +2520,7 @@ void Builder::saveSettings()
    ewxConfig * config = ewxConfig::getConfig("wxbuilder.ini");
 
    for (int i=0; i<p_toolCount; ++i) {
-     wxString label = p_toolMenu->GetLabel(ID_TOOLMENU_ITEM+i);
+     wxString label = p_toolNames[i];
      WxVizTool* viztool =dynamic_cast<WxVizTool*>(p_mgr.GetPane(label).window);
      if (viztool) {
        viztool->saveSettings(config);
@@ -2688,7 +2689,7 @@ void Builder::restoreSettings()
    
    int i;
    for (i=0; i<p_toolCount; ++i) {
-     wxString label = p_toolMenu->GetLabel(ID_TOOLMENU_ITEM+i);
+     wxString label = p_toolNames[i];
      WxVizTool* viztool =dynamic_cast<WxVizTool*>(p_mgr.GetPane(label).window);
      if (viztool) {
        viztool->restoreSettings(config);
@@ -6482,7 +6483,6 @@ void Builder::loadDefaultPaneLayout(const wxString& layoutName,
   names.clear();
   if (layoutName == NAME_LAYOUT_READONLY) {
     // All tools are hidden except Atom Table, Selection and Log
-    names.insert(NAME_TOOL_CONTEXT);
     names.insert(NAME_TOOL_ATOM_TABLE);
     names.insert(NAME_TOOL_SELECTION);
     names.insert(NAME_TOOL_LOG);
@@ -6527,7 +6527,7 @@ void Builder::loadDefaultPaneLayout(const wxString& layoutName,
     names.insert(NAME_TOOL_STRUCTLIB);
   }
   for (int i=0; i<p_toolCount; ++i) {
-    name = p_toolMenu->GetLabel(ID_TOOLMENU_ITEM+i);
+    name = p_toolNames[i];
     show = names.find(name) != names.end();
     p_mgr.GetPane(name).Show(show).Show(show);
   }
@@ -7877,6 +7877,20 @@ void Builder::updateReadOnly(const bool& loadPaneFlag)
 {
   bool isReadOnly = this->isReadOnly();
 
+  //  A viewed calculation has one structure, so the Open structures item
+  //  has nothing to offer there (#1242).  The item is looked up by id
+  //  everywhere, so it is taken out and put back, not hidden.
+  {
+    const int id = ID_TOOLMENU_ITEM + p_toolIndex[NAME_TOOL_CONTEXT];
+    wxMenuItem *item = p_toolMenu->FindItem(id);
+    if (isReadOnly && item) {
+      p_mgr.GetPane(NAME_TOOL_CONTEXT).Show(false);
+      p_toolMenu->Delete(id);
+    } else if (!isReadOnly && !item) {
+      p_toolMenu->InsertCheckItem(p_contextMenuPos, id, NAME_TOOL_CONTEXT);
+    }
+  }
+
   if (loadPaneFlag) {
     // before layouts are save/restored
     if (isReadOnly) {
@@ -7935,8 +7949,9 @@ void Builder::updateReadOnly(const bool& loadPaneFlag)
 
   // Restore tool menu status based on layout info
   for (int i=0; i<p_toolCount; ++i) {
-    wxString label = p_toolMenu->GetLabel(ID_TOOLMENU_ITEM+i);
-    p_toolMenu->Check(ID_TOOLMENU_ITEM+i, p_mgr.GetPane(label).IsShown());
+    wxString label = p_toolNames[i];
+    if (p_toolMenu->FindItem(ID_TOOLMENU_ITEM+i))
+      p_toolMenu->Check(ID_TOOLMENU_ITEM+i, p_mgr.GetPane(label).IsShown());
   }
   // Restore toolbar menu status based on layout info
   for (int i = 0; i < p_toolbarCount; ++i) {
@@ -8349,6 +8364,8 @@ void Builder::addToolPanel(wxWindow *panel, const string& name,
     vizTool->connectToolKitFW(this);
 
   p_toolIndex[name] = p_toolCount;
+  p_toolNames.push_back(name);
+  if (name == NAME_TOOL_CONTEXT) p_contextMenuPos = p_toolMenu->GetMenuItemCount();
   if (name != NAME_TOOL_LOG) {
     p_structureNames.insert(name);
   }
