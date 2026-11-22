@@ -138,3 +138,4 @@ Read this before changing any dialog, panel, sizer, grid, ewx control or the Ope
 - [A new tool tab is painted empty for about a dozen frames before its tool draws; freezing the main window in adopt() does not help (#1210)](tool-tab-drawn-empty-before-the-tool-1210.md)
 - [Depth cueing hazes into the background colour; perspective keeps its own angle; SyncToggle names its Builder (#1214)](depthcue-perspective-toggles-1214.md)
 - [A wxStaticText rewrapped from its own size events loops forever and hangs the tool (#1246)](statictext-rewrapped-from-its-own-size-event-loops-1246.md)
+- [Auto Center re-fits the camera after every Builder command not on its exempt list: a selection click zoomed out (#1260)](auto-center-refits-after-every-command-1260.md)
