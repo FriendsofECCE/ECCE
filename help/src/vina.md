@@ -31,7 +31,13 @@ The Runtype Details dialog holds these options.
 **Receptor and Ligand.** The receptor and the ligand are told apart by atom
 numbers.
 
-- *Ligand atoms* are the atoms of the ligand, by their number in the Builder,
+- *Ligand molecule* is a list of the molecules of the structure that can be
+  the ligand: the residues that are not protein and not water, the most likely
+  ligand first, then crystallisation additives, then single atoms and ions.
+  Choosing one fills *Other (atom numbers)* with its atoms. A structure with a
+  ligand starts with the first entry chosen. The list is not shown for
+  a structure without residues.
+- *Other (atom numbers)* holds the atoms of the ligand, by their number in the Builder,
   written as a list such as `1-5,9`. Every other atom belongs to the receptor.
   Empty means the smallest of the separate molecules in the system, which is
   the guest in a host-guest pair. When the whole system is one molecule you

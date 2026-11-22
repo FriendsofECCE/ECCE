@@ -132,7 +132,10 @@ apptests() {
       if [ -n "$t" ]; then
         echo "== $t ${a[*]}"
         r=0; python3 "$t" "${a[@]}" || r=$?
-        [ $r -eq 0 ] || [ $r -eq 77 ] || { echo "FAILED $t rc=$r"; failed=1; }
+        #  A skip here is nearly always a wrong --build (default build-cmake
+        #  does not exist in the offload tree), so it fails the job.
+        if [ $r -eq 77 ]; then echo "SKIPPED $t: counts as a failure (pass --build \$BLD/bi?)"; failed=1
+        elif [ $r -ne 0 ]; then echo "FAILED $t rc=$r"; failed=1; fi
       fi
       t=$x; a=()
     else

@@ -178,6 +178,16 @@ int MainFrame::raiseCount()
 }
 
 
+int MainFrame::loopLevel()
+{
+#ifdef __WXGTK__
+  return (int)gtk_main_level();
+#else
+  return -1;
+#endif
+}
+
+
 void MainFrame::bringToFront()
 {
   if (p_shutdown) return;

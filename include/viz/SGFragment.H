@@ -17,6 +17,7 @@
 
 #include "tdat/Fragment.H"
 #include "tdat/DisplayStyle.H"
+#include "tdat/LigandSelect.H"
 
 #include "inv/ChemKit/ChemData.H"
 
@@ -185,16 +186,28 @@ SoINTERNAL public:
 
     /// Residue classes by name; the one rule for Select Protein/Ligand and
     /// the docking ligand choice.  POLYMER is amino acid or nucleic acid.
-    enum ResidueClass { RES_POLYMER, RES_WATER, RES_ION, RES_ADDITIVE,
-                        RES_OTHER };
+    typedef LigandSelect::ResidueClass ResidueClass;
+    static constexpr ResidueClass RES_POLYMER = LigandSelect::RES_POLYMER;
+    static constexpr ResidueClass RES_WATER = LigandSelect::RES_WATER;
+    static constexpr ResidueClass RES_ION = LigandSelect::RES_ION;
+    static constexpr ResidueClass RES_ADDITIVE = LigandSelect::RES_ADDITIVE;
+    static constexpr ResidueClass RES_OTHER = LigandSelect::RES_OTHER;
     static ResidueClass residueClass(const string& residueName);
     /// Residues that are polymer, as joined chains.
     void getProtein(vector<bool>& atombits, vector<bool>& bondbits);
     /// The largest residue that is a ligand candidate (RES_OTHER, more than
     /// one atom); selects it and describes the choice, and any others, in
     /// message.  Returns false, selecting nothing, when there is none.
+    /// Everything outside standard polymer residues except the ligand
+    /// getLigand would pick; with no ligand, water is left out as well.
+    void getHeteroatoms(vector<bool>& atombits, vector<bool>& bondbits,
+                        string& message);
     bool getLigand(vector<bool>& atombits, vector<bool>& bondbits,
                    string& message);
+    /// Non-polymer, non-water residues, the likely ligand first: bigger
+    /// non-additive residues, then additives, then single atoms and ions.
+    typedef LigandSelect::Candidate LigandCandidate;
+    vector<LigandCandidate> ligandCandidates();
     void getFullResidue(TAtm *atm, vector<bool>& atombits, vector<bool>& bondbits);
 
     // Methods to get parameters using NWChem string selections

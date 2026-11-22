@@ -316,9 +316,9 @@ OptResult optimize_geometry(const Molecule& start, const OptOptions& opt,
     st.mol = mol;
     st.energy = cur.energy;
     st.grad = cur.grad;
-    // With constraints the part of the gradient the constraints absorb is no
-    // sign of a missed minimum.
-    const Vec gc = constrained ? Vec(Q * (Q.transpose() * g)) : g;
+    // The net force and torque (grid noise in the gradient) and the part the
+    // constraints absorb cannot be relaxed by any step, so they do not count.
+    const Vec gc = Q * (Q.transpose() * g);
     st.max_grad = gc.cwiseAbs().maxCoeff();
     st.rms_grad = std::sqrt(gc.squaredNorm() / n);
     st.max_step = s.cwiseAbs().maxCoeff();
@@ -466,8 +466,9 @@ OptResult optimize_ts(const Molecule& start, const OptOptions& opt,
       st.mol = mol;
       st.energy = cur.energy;
       st.grad = cur.grad;
-      st.max_grad = g.cwiseAbs().maxCoeff();
-      st.rms_grad = std::sqrt(g.squaredNorm() / n);
+      const Vec gc = Q * (Q.transpose() * g);   // no net force or torque
+      st.max_grad = gc.cwiseAbs().maxCoeff();
+      st.rms_grad = std::sqrt(gc.squaredNorm() / n);
       st.max_step = s.cwiseAbs().maxCoeff();
       st.rms_step = std::sqrt(s.squaredNorm() / n);
       st.d_energy = have_prev ? cur.energy - last_energy : 0.0;

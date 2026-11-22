@@ -1157,6 +1157,41 @@ bool ModelDiagram::build(const Input& in,
          real.push_back(l);
       }
    }
+   //  Without symmetry labels the levels were grouped at the print precision,
+   //  so a slightly distorted geometry (a relaxed scan point) splits each
+   //  degenerate pair in two: the model's pair then matched one member and
+   //  the other was unreachable from the diagram (#1212).
+   {
+      const double NEAR = 5.0e-4;   // Hartree; closer levels are one line on the axis
+      bool ordinals = true;
+      for (const MoLevel& l : real)
+         if (!l.irrep.empty() || l.label.empty() ||
+             l.label.find_first_not_of("0123456789") != string::npos) ordinals = false;
+      vector<MoLevel> merged;
+      for (const MoLevel& l : real) {
+         if (ordinals && !merged.empty() &&
+             fabs(l.energy - merged.back().energy) <= NEAR &&
+             (l.occupancy > 0.0) == (merged.back().occupancy > 0.0) &&
+             (l.occupancyBeta > 0.0) == (merged.back().occupancyBeta > 0.0) &&
+             (l.occupancyBeta < 0.0) == (merged.back().occupancyBeta < 0.0)) {
+            MoLevel& m = merged.back();
+            const int nm = (int)m.orbitals.size(), nl = (int)l.orbitals.size();
+            m.energy = (m.energy*nm + l.energy*nl)/(nm + nl);
+            m.occupancy += l.occupancy;
+            if (m.occupancyBeta >= 0.0) m.occupancyBeta += l.occupancyBeta;
+            m.orbitals.insert(m.orbitals.end(), l.orbitals.begin(), l.orbitals.end());
+            m.energies.insert(m.energies.end(), l.energies.begin(), l.energies.end());
+            m.degeneracy = (int)m.orbitals.size();
+            m.nearMerged = true;
+         } else {
+            merged.push_back(l);
+         }
+      }
+      if (merged.size() != real.size()) {
+         for (size_t k = 0; k < merged.size(); k++) merged[k].label = std::to_string(k + 1);
+         real = merged;
+      }
+   }
    vector< vector<double> > O(nf, vector<double>(nMO, 0.0));
    {
       vector< vector<double> > X(nf, vector<double>(nP));
@@ -1464,6 +1499,7 @@ bool ModelDiagram::build(const Input& in,
          lv.calcOccupancy = R.occupancy;
          lv.calcOccupancyBeta = R.occupancyBeta;
          lv.calcDegeneracy = R.degeneracy > 0 ? R.degeneracy : (int)R.orbitals.size();
+         lv.nearMerged = R.nearMerged;
       }
       lv.symLabel = lower(L.base);
       string constructSplit, slopeText;
@@ -1514,6 +1550,7 @@ bool ModelDiagram::build(const Input& in,
          }
          text += " (E = " + signedNumber(R.energy*HARTREE, 2) + " eV, overlap " + fmt("%.2f", L.overlap) + ").";
          if (L.overlap < POOR_OVERLAP) text += "  Overlap below " + fmt("%.2f", POOR_OVERLAP) + ".";
+         if (R.nearMerged) text += "  These MOs are degenerate within 0.5 mEh (no symmetry found).";
       }
       lv.detail = text;
       centreIndex[order[oi]] = (int)out.centre.levels.size();
@@ -1745,6 +1782,7 @@ bool ModelDiagram::build(const Input& in,
          lv.degeneracy = lv.calcDegeneracy = real[R].degeneracy > 0 ? real[R].degeneracy : (int)real[R].orbitals.size();
          lv.hasCalc = true;
          lv.calcEnergy = real[R].energy;
+         lv.nearMerged = real[R].nearMerged;
          lv.detail = pass == 0 ? "HOMO: no model partner." : "LUMO: no model partner.";
          out.centre.calcOnly.push_back(lv);
       }

@@ -1015,6 +1015,11 @@ void Builder::selectDetail(const string& name)
     return;
   }
   BuilderRedrawHold hold(this);
+  //  MOs and Surfaces are one panel in two modes, and showing it selects
+  //  its list row by its current mode: switch the mode first, or the list
+  //  jumps between the two rows (#965).
+  if (surface) mo->setSurfaceMode(true);
+  else if (mo && name == "MOs") mo->selectFieldType("MO");
   if (p_panelMode == PANELS_DETAIL && paneGroup(pane) == GROUP_PROPERTIES) {
     setDetail(pane.window);
   }
@@ -1028,8 +1033,6 @@ void Builder::selectDetail(const string& name)
   sizeIndexPane();
   updatePanes(true);
   focusShownPanel(pane.window);
-  if (surface) mo->setSurfaceMode(true);
-  else if (mo && name == "MOs") mo->selectFieldType("MO");
   if (p_index) p_index->setSelected(name);
 }
 

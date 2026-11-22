@@ -2,6 +2,7 @@
 //  atoms, drawn as a wireframe in the viewer, redrawn when the editor's
 //  numbers change.  The box values live in the calculation's run type
 //  details (ES.Runtype.Vina.*), which ai.vina turns into the config.
+#include "tdat/LigandSelect.H"
 #include "tdat/Residue.H"
 #include <algorithm>
 #include <cmath>
@@ -321,16 +322,7 @@ string Builder::vinaBoxFromSelection(double margin)
     }
     if (one && only && SGFragment::residueClass(only->name()) == SGFragment::RES_OTHER) {
       vector<int> idx(frag->m_atomHighLight.begin(), frag->m_atomHighLight.end());
-      std::sort(idx.begin(), idx.end());
-      string ranges;
-      for (size_t i = 0; i < idx.size(); ) {
-        size_t j = i;
-        while (j + 1 < idx.size() && idx[j + 1] == idx[j] + 1) j++;
-        if (!ranges.empty()) ranges += ",";
-        ranges += std::to_string(idx[i] + 1);
-        if (j > i) ranges += "-" + std::to_string(idx[j] + 1);
-        i = j + 1;
-      }
+      string ranges = LigandSelect::atomRangeString(idx);
       store(g, "ES.Runtype.Docking.LigandAtoms", ranges, "text_input", "");
     }
   }

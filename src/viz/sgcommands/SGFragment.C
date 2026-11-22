@@ -43,6 +43,7 @@
 #include "tdat/TBond.H"
 #include "tdat/TPerTab.H"
 #include "tdat/TAtm.H"
+#include "tdat/LigandSelect.H"
 #include "tdat/TResTab.H"
 #include "tdat/TResItem.H"
 #include "tdat/LinkCellList.H"
@@ -1016,29 +1017,9 @@ void SGFragment::getSelectionFromResidueName(string name, vector<bool>& atombits
 
 namespace {
 
-string residueKey(const Residue *res)
-{
-  string name = res->name();
-  STLUtil::stripLeadingAndTrailingWhiteSpace(name);
-  for (char& c : name) c = toupper((unsigned char)c);
-  return name;
-}
-
-bool isWaterName(const string& name)
-{
-  static const set<string> names = {"SOL", "HOH", "WAT", "TIP3", "TIP4",
-      "TIP5", "SPC", "SPCE", "H2O", "T3P", "T4P", "DOD"};
-  return names.count(name) > 0;
-}
-
-bool isIonName(const string& name)
-{
-  static const set<string> names = {"NA", "CL", "K", "MG", "CA", "ZN",
-      "LI", "RB", "CS", "F", "BR", "I", "BA", "SR", "CD", "MN", "FE", "CO",
-      "NI", "CU", "NA+", "CL-", "K+", "LI+", "RB+", "CS+", "F-", "BR-", "I-",
-      "MG2+", "CA2+", "ZN2+", "SOD", "CLA", "POT", "CAL", "CES", "IOD"};
-  return names.count(name) > 0;
-}
+using LigandSelect::residueKey;
+using LigandSelect::isWaterName;
+using LigandSelect::isIonName;
 
 bool isIonElement(const string& sym)
 {
@@ -1133,41 +1114,9 @@ void SGFragment::getIons(vector<bool>& atombits, vector<bool>& bondbits)
     if (roles[i] == ION) selectAtomAndBonds(atomRef(i), atombits, bondbits);
 }
 
-// Names only: what a PDB or mmCIF file gives.  Terminal forms are AMBER's
-// four-character NALA/CALA; ACE/NME cap a chain and belong to it.
 SGFragment::ResidueClass SGFragment::residueClass(const string& residueName)
 {
-  string key = residueName;
-  STLUtil::stripLeadingAndTrailingWhiteSpace(key);
-  for (char& c : key) c = toupper((unsigned char)c);
-  static const std::set<std::string> extraPolymer = {"ACE", "NME", "NMA", "MSE", "HSD",
-      "HSE", "HSP", "CYM", "ASH", "GLH", "LYN"};
-  static const std::set<std::string> additives = {"GOL", "EDO", "SO4", "PO4", "ACT",
-      "DMS", "DMSO", "PEG", "PGE", "PG4", "P6G", "1PE", "PE4", "MPD", "BME",
-      "FMT", "NO3", "TRS", "EPE", "MES", "IPA", "EOH", "ACY", "SO3", "CIT",
-      "TAR"};
-  // Called per atom: TResTab reads ResidueList from disk when constructed.
-  static std::map<std::string, ResidueClass> known;
-  std::map<std::string, ResidueClass>::const_iterator hit = known.find(key);
-  if (hit != known.end()) return hit->second;
-  static TResTab restab;
-  // TResTab holds names in PDB column form ("ALA "), as TResItem pads them.
-  auto verify = [](const string& name) {
-    // TResItem writes past a 4-character buffer for longer names.
-    if (name.empty() || name.size() > 4) return TResItem::Other;
-    return restab.verify(TResItem(name.c_str(), TResItem::Other).name().c_str());
-  };
-  ResidueClass c = RES_OTHER;
-  if (verify(key) != TResItem::Other || extraPolymer.count(key) > 0)
-    c = RES_POLYMER;
-  else if (key.size() == 4 && (key[0] == 'N' || key[0] == 'C') &&
-           verify(key.substr(1)) == TResItem::AminoAcid)
-    c = RES_POLYMER;
-  else if (isWaterName(key)) c = RES_WATER;
-  else if (isIonName(key)) c = RES_ION;
-  else if (additives.count(key) > 0) c = RES_ADDITIVE;
-  known[key] = c;
-  return c;
+  return LigandSelect::residueClass(residueName);
 }
 
 void SGFragment::getProtein(vector<bool>& atombits, vector<bool>& bondbits)
@@ -1180,34 +1129,29 @@ void SGFragment::getProtein(vector<bool>& atombits, vector<bool>& bondbits)
   }
 }
 
+vector<SGFragment::LigandCandidate> SGFragment::ligandCandidates()
+{
+  return LigandSelect::ligandCandidates(*this);
+}
+
 bool SGFragment::getLigand(vector<bool>& atombits, vector<bool>& bondbits,
                            string& message)
 {
   message.clear();
-  if (numResidues() == 0) return false;
-  map<const Residue*, int> size;
-  vector<const Residue*> order;
-  for (int i = 0; i < numAtoms(); i++) {
-    const Residue *res = atomRef(i)->getResidue();
-    if (!res || residueClass(res->name()) != RES_OTHER) continue;
-    if (size[res]++ == 0) order.push_back(res);
-  }
-  const Residue *best = 0;
+  vector<LigandCandidate> cands = ligandCandidates();
+  if (cands.empty() || cands[0].cls != RES_OTHER || cands[0].atoms < 2)
+    return false;
   int others = 0;
-  for (size_t k = 0; k < order.size(); k++) {
-    if (size[order[k]] < 2) continue;       // a lone atom is an ion, not a ligand
-    if (!best || size[order[k]] > size[best]) best = order[k];
-    others++;
-  }
-  if (!best) return false;
-  others--;
+  for (size_t k = 1; k < cands.size(); k++)
+    if (cands[k].cls == RES_OTHER && cands[k].atoms >= 2) others++;
+  const LigandCandidate& best = cands[0];
+  const Residue *bestRes = atomRef(best.firstAtom)->getResidue();
   for (int i = 0; i < numAtoms(); i++)
-    if (atomRef(i)->getResidue() == best)
+    if (atomRef(i)->getResidue() == bestRes)
       selectAtomAndBonds(atomRef(i), atombits, bondbits);
   char buf[160];
-  string name = residueKey(best);
-  snprintf(buf, sizeof buf, "Selected ligand %s %d (%d atoms).", name.c_str(),
-           best->number(), size[best]);
+  snprintf(buf, sizeof buf, "Selected ligand %s %d (%d atoms).",
+           best.name.c_str(), best.number, best.atoms);
   message = buf;
   if (others > 0) {
     snprintf(buf, sizeof buf, " %d other non-polymer residue%s found; the "
@@ -1215,6 +1159,28 @@ bool SGFragment::getLigand(vector<bool>& atombits, vector<bool>& bondbits,
     message += buf;
   }
   return true;
+}
+
+void SGFragment::getHeteroatoms(vector<bool>& atombits, vector<bool>& bondbits,
+                                string& message)
+{
+  message.clear();
+  if (numResidues() == 0) return;
+  vector<bool> la(atombits.size(), false), lb(bondbits.size(), false);
+  string lmsg;
+  const bool haveLigand = getLigand(la, lb, lmsg);
+  int n = 0;
+  for (int i = 0; i < numAtoms(); i++) {
+    const Residue *res = atomRef(i)->getResidue();
+    if (!res) continue;
+    const ResidueClass c = residueClass(res->name());
+    if (c == RES_POLYMER || la[i]) continue;
+    if (!haveLigand && c == RES_WATER) continue;
+    selectAtomAndBonds(atomRef(i), atombits, bondbits);
+    n++;
+  }
+  message = "Selected " + std::to_string(n) + " heteroatoms outside the protein" +
+            (haveLigand ? "; the ligand was left out." : ".");
 }
 
 void SGFragment::getSolute(vector<bool>& atombits, vector<bool>& bondbits)

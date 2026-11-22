@@ -32,7 +32,16 @@ import shutil
 import select
 import signal
 import subprocess
+import sys
+import threading
 import time
+
+# Line-buffered so a run killed by a timeout keeps its last lines in the log;
+# block buffering lost up to 8 KB and pointed at the wrong case.
+try:
+    sys.stdout.reconfigure(line_buffering=True)
+except (AttributeError, ValueError):
+    pass
 
 # Where the installed ECCE being tested lives.  Overridable so a developer
 # can test a build installed somewhere writable instead of /opt/ecce -- see
@@ -228,6 +237,15 @@ def run(display, name, args=(), windowTimeout=40, settle=8, env=None,
     proc = subprocess.Popen(command, env=environment, stdout=logFile,
                             stderr=subprocess.STDOUT,
                             start_new_session=True)
+    # Read while the app runs: a pipe nobody reads holds 64 KiB, after
+    # which the app blocks in its next write to stderr and stops answering.
+    chunks = []
+    reader = threading.Thread(target=_drain, args=(proc, chunks), daemon=True)
+    reader.start()
+
+    def collected():
+        reader.join(15)
+        return b"".join(chunks).decode("utf-8", "replace")
 
     started = time.time()
     deadline = started + windowTimeout
@@ -235,7 +253,7 @@ def run(display, name, args=(), windowTimeout=40, settle=8, env=None,
         if proc.poll() is not None:
             # Exited before ever showing a window.
             result.returncode = proc.returncode
-            result.log = _drain(proc)
+            result.log = collected()
             result.crashed = proc.returncode is not None and proc.returncode < 0
             return result
         new = [(wid, title) for wid, title in display.windows()
@@ -253,7 +271,7 @@ def run(display, name, args=(), windowTimeout=40, settle=8, env=None,
     while time.time() < endSettle:
         if proc.poll() is not None:
             result.returncode = proc.returncode
-            result.log = _drain(proc)
+            result.log = collected()
             #  A CRASH is dying on a signal.  Exiting of its own accord
             #  after showing a window is a different thing and belongs in
             #  a different sentence -- for a helper (msgdialog, run with
@@ -276,7 +294,7 @@ def run(display, name, args=(), windowTimeout=40, settle=8, env=None,
         result.inspected = inspect(display)
     _terminate(proc)
     result.returncode = proc.returncode
-    result.log = _drain(proc)
+    result.log = collected()
     return result
 
 
@@ -298,7 +316,7 @@ def _terminate(proc):
             pass
 
 
-def _drain(proc, timeout=15):
+def _drain(proc, chunks=None):
     """Read whatever the app wrote, WITHOUT waiting forever for EOF.
 
     This used to be a bare proc.stdout.read(), which blocks until every
@@ -316,18 +334,21 @@ def _drain(proc, timeout=15):
     A bounded read means a stuck app costs its own timeout and is
     reported, instead of taking the run with it.
     """
+    #  Without a list (callers outside run()), return what was read.
+    if chunks is None:
+        got = []
+        _drain(proc, got)
+        return b"".join(got).decode("utf-8", "replace")
     if proc.stdout is None:
-        return ""
+        return
     fd = proc.stdout.fileno()
     try:
         flags = fcntl.fcntl(fd, fcntl.F_GETFL)
         fcntl.fcntl(fd, fcntl.F_SETFL, flags | os.O_NONBLOCK)
     except OSError:
-        return ""
+        return
 
-    chunks = []
-    deadline = time.time() + timeout
-    while time.time() < deadline:
+    while True:
         try:
             ready, _, _ = select.select([fd], [], [], 0.5)
         except (OSError, ValueError):
@@ -347,4 +368,3 @@ def _drain(proc, timeout=15):
         if data == b"":           # real EOF
             break
         chunks.append(data)
-    return b"".join(chunks).decode("utf-8", "replace")

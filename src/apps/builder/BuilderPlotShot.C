@@ -373,6 +373,24 @@ bool Builder::densityMapCommand(SceneScript& s, const vector<string>& w,
 }
 
 
+bool Builder::selectOverlayCommand(SceneScript& s, const vector<string>& w)
+{
+  SGFragment *frag = getSG() ? getSG()->getFragment() : 0;
+  if (!frag) return s.fail("selectoverlay: no structure");
+  frag->m_bondHighLight.clear();
+  frag->m_atomHighLight.clear();
+  for (size_t i = 1; i < w.size(); i++) {
+    const int n = atoi(w[i].c_str());
+    if (n < 1 || n > (int)frag->numAtoms()) return s.fail("selectoverlay: no such atom");
+    frag->m_atomHighLight.push_back(n - 1);
+  }
+  updateSelectionText();
+  fprintf(stderr, "SELOVERLAY: %zu [%s]\n", frag->m_atomHighLight.size(),
+          p_viewer->getLLeftText().c_str());
+  return true;
+}
+
+
 //  atomnumbers N [panel name]: atom N (from 1) selected, every atom labelled
 //  with element and number; reports the status line, N's label and, with a
 //  panel, the rows of its first table that start with N.
@@ -384,7 +402,7 @@ bool Builder::atomNumbersCommand(SceneScript& s, const vector<string>& w)
   frag->m_bondHighLight.clear();
   frag->m_atomHighLight.assign(1, n - 1);
   updateSelectionText();
-  const string status = p_viewer->getLRightText();
+  const string status = p_viewer->getLLeftText();
   frag->m_atomHighLight.clear();
   AtomLabelsCmd labels("AtomLabel", getSG());
   labels.getParameter("type")->setInteger(AtomLabelsCmd::ELEMENT);

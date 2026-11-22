@@ -103,7 +103,6 @@ public:
               wxFULL_REPAINT_ON_RESIZE | wxWANTS_CHARS), p_d(d)
   {
     SetBackgroundStyle(wxBG_STYLE_PAINT);
-    SetToolTip("Wheel: zoom at pointer; drag: zoom rectangle; middle/right or Shift+drag: pan; Home or double click empty space: fit");
     Bind(wxEVT_PAINT, &DiffractionPanel::onPaint, this);
     Bind(wxEVT_MOTION, &DiffractionPanel::onMove, this);
     for (auto type : {wxEVT_LEFT_DOWN, wxEVT_MIDDLE_DOWN, wxEVT_RIGHT_DOWN})

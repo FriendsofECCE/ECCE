@@ -51,6 +51,43 @@ Builder and Viewer runs the script when it opens, so a test can rewrite the
 file between `start` commands and give each tab its own steps (the
 Viewer-tab close test in `tests/apps/one_process_test.py --panels-only`).
 
+## Select heteroatoms (#1244)
+
+Builder `Edit > Select Heteroatoms (not protein)` selects every atom outside
+standard amino-acid/nucleotide residues except the ligand `Select Ligand`
+would pick (the largest non-water, non-ion, non-additive residue); with no
+ligand it selects everything non-protein except water. Delete then removes
+them. Script command in `ECCE_BUILDER_SCRIPT`: `select_hetero`.
+
+## Add Hydrogen on a PDB structure (#1244)
+
+`Edit > Select Ligand` is a submenu of the ligand candidates (non-polymer,
+non-water residues, `BNZ 400 (6 atoms)`), the likely ligand first, additives
+after it, single atoms and ions last; it is refilled when Edit opens. Script
+commands: `ligands` (prints the entries), `ligand N` (select the Nth),
+`select_ligand` (the first). The Vina box's Ligand atoms use the same rule.
+Ligand choice skips crystallisation additives by residue name
+(`SGFragment::residueClass`: GOL, EDO, HED, MPD, SO4, ...), so 181L's ligand is
+BNZ and not the larger HED.
+
+Builder `Build > Add Hydrogen` (and the toolbar button) only turned nubs into
+hydrogens, so a structure imported from a PDB file (no nubs) got nothing. With
+residues and no nubs it now runs the residue-template path (the Residue table's
+Add Hydrogens) and the status line says `Added N hydrogens to M of K residues`,
+naming the residues that got none (waters). Residues without a template
+(ligands) get hydrogens from their geometry: bond orders from lengths
+(aromatic ring C-C 1.32-1.46 A), then hydrogens in the ideal directions for C, N, O, S. With neither nubs nor
+templates it says `No hydrogens added`. Script commands in
+`ECCE_BUILDER_SCRIPT`: `import FILE` (File > Import of FILE), `resatoms`
+(atoms per residue name), `menu Build|Add Hydrogen`; see
+`tests/apps/builder_import_pdb_test.py`.
+
+Builder Edit menu: **Invert Selection** (Ctrl+R, formerly Reverse Selection).
+After a structure opens and after every Edit > Select command the 3-D view
+has the keyboard focus, so Delete and Ctrl+Z act at once. Script commands
+`undo`, `ctrlz` (the Ctrl+Z key hook) and `focus` (class of the focused
+window); see `tests/apps/builder_delete_undo_test.py`.
+
 ## Scripted total charge and multiplicity
 
 `ECCE_CALCED_SCRIPT` and `ECCE_BUILDER_SCRIPT` accept `charge INTEGER` and
@@ -96,6 +133,12 @@ the face crossed by each principal axis, with one common magnitude scale.
 Use **Show in viewer** to hide them. This uses final stress and geometry;
 per-step vc-relax stress, CP2K ingestion and directional surfaces are not
 implemented. See [Viewer panels](../help/src/viewer-panels.md).
+
+With one atom selected the Builder/Viewer shows `El N  (x, y, z) Å  RES` at the
+bottom left of the 3-D view; with two atoms the distance `El N - El M  d Å`
+(#1236). Builder script `selectoverlay [N [M]]` (from 1) selects those atoms and
+prints `SELOVERLAY: <count> [<overlay text>]`; test
+`tests/apps/atom_numbers_test.py`.
 
 Build > Cut Cluster (#1033) turns a periodic structure into a non-periodic
 cluster around the selected atoms. Builder script:
@@ -258,6 +301,13 @@ mult 1`. A rejected command leaves the existing state intact.
 them. These fragment/export hooks only write inputs. The Counterpoise Energy
 option and Relaxed Scan action below run calculations and collect energies. See [Scripting help](../help/src/scripting-and-ai.md#fragments-and-orca-counterpoise-inputs).
 
+## Properties list click diagnostics (#965)
+
+`ECCE_DEBUG_PANELS=1` makes the Properties list print, on each mouse-down,
+`[PANELS] list click y=.. hit=<row> rowh=.. scrollpos=.. viewstart_y=..` on
+stderr (event y, the row HitTest gives, row height, vertical scroll). One
+real click that selects the wrong row gives the numbers to compare.
+
 ## Isolated GUI tests
 
 Builder hook `key text cut|copy|paste|undo|selectall` fills an editable
@@ -332,6 +382,14 @@ Binary files show size and extension. **Open in editor** downloads a separate
 that copy. Text viewing currently refuses sizes above the signed-int EDSI
 range limit (2 GiB); the editor download is still available.
 
+Organizer details pane timing (#1237): selecting a calculation fills the
+pane and lays it out first; the progress backfill and the thumbnail follow
+from the event loop. `ECCE_TIMING=1` prints one stderr line per refresh,
+`ORGANIZER: refresh <name> total=… props=… launch=… backfill=… thumb=…` (ms);
+a refresh over 1 s prints it without the variable. The `ECCE_TEST_ORGANIZER`
+hook `refreshtimes` answers the last such line plus `formula=[<pane text>]`
+(`tests/apps/refresh_timing_test.py`).
+
 Isolated `ECCE_TEST_ORGANIZER` hooks: `view <url>` opens a window;
 `view-status`, `view-more`, `view-follow on|off`, `view-find <text>`,
 `view-text <output path>` (displayed text in UTF-8), and `view-close` operate on that
@@ -368,6 +426,12 @@ answers `Builder=N CalcEd=N CommandManager=N PropertyPanel=N SGContainer=N
 SGContainerManager=N SGViewer=N WxLauncher=N` (classes never made are left out).
 After every tool tab is closed the counts return to their values before the
 first tab; `tests/apps/monolith_campaign_test.py H` checks that and the RSS.
+
+Paints (#1210, `ECCE_TEST_ORGANIZER`, one-program mode): `paintlog on` starts a
+fresh log of every paint of a window in the main window; `paintlog` answers
+`paints=N seq=Class@WxH*count,...` in order (repeats merged), or `off`. Use it
+to see what reaches the screen while a tab opens or closes;
+`tests/apps/one_process_test.py --1210-only` runs it for a Viewer tab.
 
 **Second start and file types (#1069)**, one-program mode only: a second `ecce`
 for the same user, data folder and server (`ECCE_REALUSERHOME`,
@@ -754,6 +818,14 @@ contains `presentation.tsv`, `selection.tsv`, `hover.txt` and
 `presentation-check.txt` for script assertions. The check file also records
 painted axis labels as `plot-x`, `plot-y` and `scree-y`; all use enclosing
 1–2–5 tick ranges, with equal ranges on the observed/predicted axes.
+
+**Vina ligand.** A script sets the ligand by sending the detail
+`ES.Runtype.Docking.LigandAtoms` (1-based atom range such as `10-15`); in
+Runtype Details the *Ligand molecule* list fills that key from the structure's
+residues (the editor writes them to `<dialog out file>.molecules`, one
+`label<TAB>range` per line, likely ligand first) and an empty key defaults to
+the first. The key can still be typed. The same ranking and range formatter
+are `LigandSelect::ligandCandidates`/`atomRangeString` (`include/tdat/LigandSelect.H`).
 
 **Docking.** Vina calculations (`vina`); `ecce-pdbqt` prepares PDBQT files;
 CREST/xTB docking is a run type of xTB.

@@ -48,6 +48,8 @@ public:
   void openFiles(const std::vector<wxString>& paths);
   // Test hook "raised": how many second starts or open requests asked.
   static int raiseCount();
+  // Test hook: GTK main-loop nesting (1 = the main loop only), -1 elsewhere.
+  static int loopLevel();
 
 private:
   void onClose(wxCloseEvent& ev);

@@ -82,6 +82,7 @@ public:
   void setLRightText(const string& text);
   void setULeftText(const string& text);
   void setURightText(const string& text);
+  string getLLeftText() const { return p_cornerText[0]; }
   string getLRightText() const { return p_cornerText[1]; }
   string getURightText() const { return p_cornerText[3]; }
 

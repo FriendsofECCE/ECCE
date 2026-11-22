@@ -477,6 +477,13 @@ class Builder: public BuilderGUI,
       virtual void OnSelectIonsClick( wxCommandEvent& event );
       virtual void OnSelectProteinClick( wxCommandEvent& event );
       virtual void OnSelectLigandClick( wxCommandEvent& event );
+      virtual void OnSelectLigandItem( wxCommandEvent& event );
+      virtual void OnMenuOpen( wxMenuEvent& event );
+      void fillLigandMenu();
+      bool selectLigandCandidate(int n);
+      vector<int> p_ligandFirstAtoms;
+      virtual void OnSelectHeteroClick( wxCommandEvent& event );
+      bool selectHeteroatoms();
       virtual void OnUpdateSelectResidueItem( wxUpdateUIEvent& event );
       bool selectResidueClass(bool ligand);
       virtual void OnDistortBondsClick( wxCommandEvent& event );
@@ -532,6 +539,8 @@ class Builder: public BuilderGUI,
       /// Ctrl+X/C/V/Z: edit the focused text field, else the structure.
       void editShortcut(int accelId);
       void deleteKey();
+      /// Give the 3-D view the keyboard (after a structure opens or a Select).
+      void focusView();
       virtual void OnModeShapeClick( wxCommandEvent& event );
       virtual void OnModeBondClick( wxCommandEvent& event );
       void syncLassoType(int modeId);
@@ -727,6 +736,8 @@ class Builder: public BuilderGUI,
                            const string& outdir);
       bool densityMapCommand(SceneScript& s, const vector<string>& w,
                              const string& outdir);
+      bool selectOverlayCommand(SceneScript& s, const vector<string>& w);
+      string selectionDetailText();
       bool atomNumbersCommand(SceneScript& s, const vector<string>& w);
       bool clipCommand(SceneScript& s, const vector<string>& w,
                        const string& outdir);

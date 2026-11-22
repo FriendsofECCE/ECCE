@@ -108,7 +108,9 @@ point, so it is followed by its character, not by its number; an open
 **Density Map** or **Density Profile** follows it too. Clicking a point, and
 playback with the box unticked, only change the geometry. If the surface of a
 point takes longer to draw than the delay between points, the points in
-between are skipped and the newest surface is drawn.
+between are skipped and the newest surface is drawn. The box is greyed out
+when the calculation kept only the final orbitals (see **Store orbitals at
+every point** below): there is then no orbital to follow from point to point.
 **Runtype Details** has **Store orbitals at every point** for Geometry
 (relaxed scan) and IRC runs. It is ticked by default. Unticked, the output
 keeps the energies and structures of the points and the orbitals of the final

@@ -3678,6 +3678,13 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_another_code PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
+  # Details pane fills before the slow parts (hook refreshtimes, #1237).
+  add_test(NAME apps_refresh_timing
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/refresh_timing_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_refresh_timing PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
   # ecce-series: one setup, several structures (ORCA, G16, ECCE-QM; #621).
   add_test(NAME series_cli
            COMMAND ${PYTHON3_EXECUTABLE}
@@ -5452,6 +5459,18 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_builder_select_within PROPERTIES TIMEOUT 600
                        SKIP_RETURN_CODE 77)
+  add_test(NAME apps_builder_import_pdb
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/builder_import_pdb_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_builder_import_pdb PROPERTIES TIMEOUT 600
+                       SKIP_RETURN_CODE 77)
+  add_test(NAME apps_builder_delete_undo
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/builder_delete_undo_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_builder_delete_undo PROPERTIES TIMEOUT 600
+                       SKIP_RETURN_CODE 77)
   add_test(NAME apps_builder_select_protein_ligand
            COMMAND ${PYTHON3_EXECUTABLE}
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/builder_select_protein_ligand_test.py
@@ -6088,6 +6107,14 @@ if(PYTHON3_EXECUTABLE)
                    --build ${CMAKE_BINARY_DIR}
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_vina_viewer PROPERTIES TIMEOUT 3600 SKIP_RETURN_CODE 77)
+
+  # #1244: the Runtype Details list of ligand candidates.
+  add_test(NAME apps_vina_molecules
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/vina_molecules_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_vina_molecules PROPERTIES TIMEOUT 600 SKIP_RETURN_CODE 77)
 
   # #964: a Save of the 4710-atom 1IEP structure, timed per step.
   add_test(NAME apps_vina_save_timing

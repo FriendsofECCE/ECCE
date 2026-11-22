@@ -158,6 +158,7 @@ unit is produced in `ai.<code>`/the `.tpl`, closest to the input deck.
 - [A Gaussian basis keyword is selectable only if the library has an entry; tools/basissets/g16_basis_dump.py makes one from the keyword](a-gaussian-basis-keyword-needs-a-library-entry.md)
 - [A stored basis set can be missing part of an aggregate; it is repaired when read, and copying a calculation copies the damage (#265)](a-stored-basis-can-be-missing-an-aggregate-part.md)
 - [A combo whose default is a bare integer opens BLANK when the list is built conditionally](a-combo-whose-default-is-a-bare.md)
+- [A details dialog also runs without a window (NO_GUIValues): no event loop, no timers](details-dialog-values-only-run.md)
 - [NWChem aborts on three offered functionals and rejects its documented dispersion spellings](verify-a-codes-keyword-list-by-running.md)
 - [CP2K 2025.1: a trajectory to the output is FILENAME __STD_OUT__ (not =__STD_OUT__), an unconverged SCF aborts the run, OT line-search rows have no energy change, and three more](cp2k-output-and-input-facts.md)
 - [Retired codes are not maintained, and the suite no longer checks them](retired-codes-are-not-maintained-and-the.md)

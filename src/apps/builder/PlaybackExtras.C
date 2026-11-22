@@ -64,4 +64,14 @@ bool PlaybackExtras::loop() const { return p_loop->GetValue(); }
 
 void PlaybackExtras::setShowMo(bool on) { if (p_mo) p_mo->SetValue(on); }
 
-bool PlaybackExtras::showMo() const { return p_mo && p_mo->GetValue(); }
+bool PlaybackExtras::showMo() const { return moEnabled() && p_mo->GetValue(); }
+
+void PlaybackExtras::disableMo(const std::string& why)
+{
+  if (!p_mo) return;
+  p_mo->SetValue(false);
+  p_mo->Enable(false);
+  p_mo->SetToolTip(wxString::FromUTF8(why.c_str()));
+}
+
+bool PlaybackExtras::moEnabled() const { return p_mo && p_mo->IsEnabled(); }

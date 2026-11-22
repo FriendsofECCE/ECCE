@@ -2827,6 +2827,23 @@ class MoDiagramCanvas : public wxPanel
       return out.str();
     }
 
+    /** Every click target: the MO it opens, its box and the level it belongs to. */
+    string hitsText()
+    {
+      wxSize size = GetClientSize();
+      if (size.x < 200 || size.y < 200) size = wxSize(900, 700);
+      wxBitmap bmp(size.x, size.y);
+      wxMemoryDC dc(bmp);
+      paintOnto(dc, size);
+      dc.SelectObject(wxNullBitmap);
+      ostringstream out;
+      for (const Hit& h : p_hits)
+        out << "hit MO " << h.orbital + 1 << " key " << h.level << " box "
+            << h.box.x << " " << h.box.y << " " << h.box.width << " "
+            << h.box.height << " | " << describeLevel(h.level) << "\n";
+      return out.str();
+    }
+
     string describeLevel(int key)
     {
       if (key >= 0 && (key & CORE_BIT) != 0) {
@@ -2884,6 +2901,7 @@ class MoDiagramCanvas : public wxPanel
       const double ob = calc ? l.calcOccupancyBeta : l.occupancyBeta;
       if (ob >= 0.0) out << ", occupancy " << oa << " alpha, " << ob << " beta";
       else out << ", occupancy " << oa;
+      if (l.nearMerged) out << ", degenerate within 0.5 mEh (no symmetry found)";
       if (p_owner != 0 && !l.orbitals.empty()) {
         const string comp = p_owner->orbitalComposition(l.orbitals);
         if (!comp.empty()) out << "\n" << comp;

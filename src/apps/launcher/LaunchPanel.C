@@ -12,6 +12,8 @@
 #include <ios>
     using std::ios;
 #include <algorithm>
+#include <functional>
+#include <vector>
 #include <atomic>
 #include <future>
 #include <thread>
@@ -226,6 +228,7 @@ void LaunchPanel::createControls()
     p_machSettingsButton    =       (ewxButton *)(FindWindow(ID_BUTTON_WXLAUNCHER_MACHSETTINGS));
     this->buildAdvanced();
     this->buildProfileRow();
+    this->fitLabelColumn();
 
     p_messagesFeedback = (WxFeedback *)(FindWindow(ID_FEEDBACK_WXLAUNCHER_MESSAGES));
     p_messagesFeedback->SetExtraStyle(wxWS_EX_VALIDATE_RECURSIVELY | wxWS_EX_PROCESS_UI_UPDATES);
@@ -987,7 +990,7 @@ void LaunchPanel::buildProfileRow()
     wxBoxSizer *row = new wxBoxSizer(wxHORIZONTAL);
     p_profilePanel->SetSizer(row);
     p_profileLabel = new wxStaticText(p_profilePanel, wxID_ANY, "Profile:",
-                                      wxDefaultPosition, wxSize(120, -1));
+                                      wxDefaultPosition, FromDIP(wxSize(120, -1)));
     p_profileChoice = new wxChoice(p_profilePanel, wxID_ANY);
     p_profileChoice->SetToolTip("An allocation profile of this machine: account, run directory, scratch directory and queue. Profiles are made in Register Machines.");
     row->Add(p_profileLabel, 0, wxALIGN_CENTER_VERTICAL|wxLEFT, 3);
@@ -1465,6 +1468,28 @@ void LaunchPanel::sayClear()
 }
 
 
+// The field labels share one fixed width so the fields line up; a label
+// wider than that at a large font or display scale widens the whole column
+// instead of being cut (#1143).
+void LaunchPanel::fitLabelColumn()
+{
+    const int column = FromDIP(120);
+    std::vector<wxStaticText*> labels;
+    std::function<void(wxWindow*)> walk = [&](wxWindow *w) {
+        for (wxWindow *c : w->GetChildren()) {
+            wxStaticText *t = wxDynamicCast(c, wxStaticText);
+            if (t && t->GetMinSize().x == column) labels.push_back(t);
+            walk(c);
+        }
+    };
+    walk(this);
+    int width = column;
+    for (wxStaticText *t : labels) width = std::max(width, t->GetBestSize().x);
+    if (width == column) return;
+    for (wxStaticText *t : labels) t->SetMinSize(wxSize(width, -1));
+}
+
+
 // Embedded in the Set-up area: no feedback box or required-value key, the
 // fields shrink with the area and Launch sits under them.
 void LaunchPanel::compactLayout()
@@ -1475,8 +1500,8 @@ void LaunchPanel::compactLayout()
     for (wxWindow *c : p_calcDrctyPanel->GetChildren())
         if (wxStaticText *t = dynamic_cast<wxStaticText*>(c))
             if (t->GetLabel() == "*") t->SetLabel("");
-    p_calcDrctyTextCtrl->SetMinSize(wxSize(60, -1));
-    p_scratchDrctyTextCtrl->SetMinSize(wxSize(60, -1));
+    p_calcDrctyTextCtrl->SetMinSize(FromDIP(wxSize(60, -1)));
+    p_scratchDrctyTextCtrl->SetMinSize(FromDIP(wxSize(60, -1)));
     SetMinSize(wxDefaultSize);   // set to the width of the first layout
     Layout();
 }
@@ -3667,11 +3692,11 @@ void LaunchPanel::buildThreadsRow()
     wxBoxSizer *row = new wxBoxSizer(wxHORIZONTAL);
 
     ewxStaticText *label = new ewxStaticText(p_threadsPanel, wxID_STATIC,
-        _("Threads per rank:"), wxDefaultPosition, wxSize(120, -1), wxALIGN_LEFT);
+        _("Threads per rank:"), wxDefaultPosition, FromDIP(wxSize(120, -1)), wxALIGN_LEFT);
     row->Add(label, 0, wxALIGN_CENTER_VERTICAL, 3);
     row->AddSpacer(10);
     p_threadsSpin = new wxSpinCtrl(p_threadsPanel, wxID_ANY, "1",
-        wxDefaultPosition, wxSize(80, -1), wxSP_ARROW_KEYS, 1, 4096, 1);
+        wxDefaultPosition, FromDIP(wxSize(80, -1)), wxSP_ARROW_KEYS, 1, 4096, 1);
     p_threadsSpin->SetToolTip(_("OpenMP threads for each MPI rank. The processors "
         "above are divided by this to give the number of ranks."));
     row->Add(p_threadsSpin, 0, wxALIGN_CENTER_VERTICAL, 3);
