@@ -369,6 +369,14 @@ Binary files show size and extension. **Open in editor** downloads a separate
 that copy. Text viewing currently refuses sizes above the signed-int EDSI
 range limit (2 GiB); the editor download is still available.
 
+Organizer details pane timing (#1237): selecting a calculation fills the
+pane and lays it out first; the progress backfill and the thumbnail follow
+from the event loop. `ECCE_TIMING=1` prints one stderr line per refresh,
+`ORGANIZER: refresh <name> total=… props=… launch=… backfill=… thumb=…` (ms);
+a refresh over 1 s prints it without the variable. The `ECCE_TEST_ORGANIZER`
+hook `refreshtimes` answers the last such line plus `formula=[<pane text>]`
+(`tests/apps/refresh_timing_test.py`).
+
 Isolated `ECCE_TEST_ORGANIZER` hooks: `view <url>` opens a window;
 `view-status`, `view-more`, `view-follow on|off`, `view-find <text>`,
 `view-text <output path>` (displayed text in UTF-8), and `view-close` operate on that

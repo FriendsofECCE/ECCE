@@ -3678,6 +3678,13 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_another_code PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
+  # Details pane fills before the slow parts (hook refreshtimes, #1237).
+  add_test(NAME apps_refresh_timing
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/refresh_timing_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_refresh_timing PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
   # ecce-series: one setup, several structures (ORCA, G16, ECCE-QM; #621).
   add_test(NAME series_cli
            COMMAND ${PYTHON3_EXECUTABLE}
