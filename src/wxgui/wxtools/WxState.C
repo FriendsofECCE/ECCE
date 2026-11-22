@@ -509,6 +509,9 @@ ewxPanel* WxState::createLegend(wxWindow* parent)
 void WxState::OnPaint( wxPaintEvent& event )
 {
   wxPaintDC dc(this);
+  // The parent's colour now, not at construction: styling applied to the
+  // parent afterwards left a differently coloured square behind the icon.
+  SetBackgroundColour(GetParent()->GetBackgroundColour());
   dc.SetBackground(GetBackgroundColour());
   draw(dc, p_outOfContact && p_currentState == ResourceDescriptor::STATE_RUNNING
            ? (ResourceDescriptor::RUNSTATE)OUT_OF_CONTACT : p_currentState,
