@@ -18,6 +18,7 @@ class PdbCalculation : public AbstractPropCalculation
     virtual bool getFragment(Fragment &frag);
     virtual EcceURL getURL() const;
     virtual bool isReadOnly() const;
+    virtual bool canSaveInPlace() const;
 
     // IPropCalculation framework
     static bool canOpen(const EcceURL& url);

@@ -109,7 +109,7 @@ bool PdbCalculation::getFragment(Fragment &frag)
             && !STLUtil::startsWith(line, "CONECT")) {
       p_internalFormat = false;
 
-      wxLogWarning("PDB file is read-only because it contains information that ECCE cannot regenerate.  Save file to a new name if you wish to edit it.");
+      wxLogWarning("This PDB file holds records ECCE cannot write back, so Save asks for a new file name; the original file is not changed.");
       break;
     }
     getline(is, line);
@@ -164,19 +164,24 @@ EcceURL PdbCalculation::getURL() const
 }
 
 
+//  A PDB from elsewhere is a new, editable structure (#1259); only saving
+//  over it is refused, see canSaveInPlace().
 bool PdbCalculation::isReadOnly() const
 {
-  return !p_internalFormat;
+  return false;
+}
+
+
+bool PdbCalculation::canSaveInPlace() const
+{
+  return p_internalFormat;
 }
 
 
 // IPropCalculation framework
 //
-// We allow the user to open PDB files but...
-// If the PDB format used does not match that which we "dump" ourself, then
-// we open the PDB in a limited and read-only manner.
-// Otherwise, we're fine to open and edit our limited* PDB files.
-// * Meaning, we only understand a few of the PDB keywords such as ATOM/HEATOM.
+// Any PDB file opens editable.  One with records beyond those ECCE writes
+// (ATOM, HETATM, MODEL, CONECT) is saved only to a new name.
 
 bool PdbCalculation::canOpen(const EcceURL& url)
 {

@@ -51,6 +51,11 @@ What happens next depends on the format:
   location:** and **Select chain:** (`All` reads every chain). A file with
   a single model and no alternate locations, such as glycine, loads without
   a question.
+- PDB opened directly (from the file manager, or as the Builder's file
+  argument): the structure can be edited like any other, with undo. If the
+  file holds records ECCE does not write (HEADER, REMARK, CRYST1 and so on),
+  **File > Save** asks for a new file name, so the original file is never
+  overwritten; the message area says so when the file opens.
 - CIF: loaded without a question. ECCE builds the whole unit cell (1 x 1 x 1)
   from the atoms and symmetry operations in the file, or from the space-group
   name when the file lists no operations. A site shared by several species
