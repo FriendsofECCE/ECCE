@@ -569,7 +569,9 @@ public:
       dc.SetPen(wxPen(wxColour(0x50, 0x50, 0x50), 1));
       dc.DrawLine(b.x + 5, b.y + 5, b.x + 11, b.y + 11);
       dc.DrawLine(b.x + 11, b.y + 5, b.x + 5, b.y + 11);
-      *outButton = b;
+      // The clickable area is larger than the drawn cross: a 16 px target
+      // was easy to miss with a trackpad.
+      *outButton = b.Inflate(4, 4);
     }
     *outTab = r;
   }
@@ -592,8 +594,35 @@ wxString tabCaption(const wxString& title)
 }
 
 
+// wxAuiTabCtrl only presses a tab's close cross when its last motion event
+// left the pointer over it (m_hoverButton). A pointer arriving from the 3-D
+// view or another window often sends none, so the first click on the cross
+// only selected the tab and a second click closed it (#1234). A motion at
+// the press point first makes the hover state current.
+void hookTabCtrls()
+{
+  static std::set<wxWindow*> hooked;
+  if (!s_book) return;
+  for (wxWindow *child : s_book->GetChildren()) {
+    wxAuiTabCtrl *tc = wxDynamicCast(child, wxAuiTabCtrl);
+    if (!tc || !hooked.insert(tc).second) continue;
+    tc->Bind(wxEVT_LEFT_DOWN, [tc](wxMouseEvent& ev) {
+      wxMouseEvent move(wxEVT_MOTION);
+      move.SetPosition(ev.GetPosition());
+      move.SetEventObject(tc);
+      tc->GetEventHandler()->ProcessEvent(move);
+      ev.Skip();
+    });
+    tc->Bind(wxEVT_DESTROY, [tc](wxWindowDestroyEvent& ev) {
+      hooked.erase(tc);
+      ev.Skip();
+    });
+  }
+}
+
 void onPageChanged(wxAuiNotebookEvent& ev)
 {
+  hookTabCtrls();  // a split made a new tab strip
   Tab *t = activeTab();
   placeMenus(t);
   activateTool(t);
@@ -844,6 +873,7 @@ bool ToolTabs::adoptMain(wxFrame *org)
   tabs().push_back(Tab{org, 0, mb, page, _("Organizer"),
                        dotFor("Organizer"), "", {}, true});
   s_book->AddPage(page, _("Organizer"), true);
+  hookTabCtrls();
   s_book->Bind(wxEVT_AUINOTEBOOK_PAGE_CHANGED, onPageChanged);
   s_book->Bind(wxEVT_AUINOTEBOOK_PAGE_CLOSE, onPageClose);
   s_book->Bind(wxEVT_AUINOTEBOOK_TAB_RIGHT_UP, onTabRightUp);
@@ -947,6 +977,7 @@ bool ToolTabs::adopt(wxFrame *tool, wxAuiManager *mgr, const wxString& title)
   }
   wxString caption = tool->GetTitle().empty() ? title : tool->GetTitle();
   s_book->AddPage(page, tabCaption(caption), true);
+  hookTabCtrls();
   // AddPage selected it; make sure the menus follow even if it was the
   // only change.
   placeMenus(activeTab());
