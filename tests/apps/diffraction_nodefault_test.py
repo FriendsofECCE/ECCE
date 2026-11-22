@@ -19,10 +19,25 @@ import harness
 import packing_cells_test as pc
 
 
+def tail(text, gdb):
+    """The log lines that say why, short enough for a 25-line job summary:
+    under gdb the signal and the main thread's top frames."""
+    lines = text.splitlines()
+    if gdb:
+        signal = [l for l in lines if "received signal" in l][-1:]
+        heads = [i for i, l in enumerate(lines) if l.startswith("Thread 1 ")]
+        if heads:
+            frames = [l for l in lines[heads[-1] + 1:] if l.startswith("#")][:14]
+            return [l[:170] for l in signal + frames]
+    return [l[:170] for l in lines[-15:]]
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--build", default=os.path.join(ROOT, "build-cmake"))
     ap.add_argument("--png")
+    ap.add_argument("--gdb", action="store_true",
+                    help="run the Builder under gdb; a crash or hang leaves its stacks in the log")
     args = ap.parse_args()
     build = os.path.abspath(args.build)
     harness.prerequisites(build, ())
@@ -58,7 +73,8 @@ def main():
                  "xrd update", "xrd cancel", "xrd progress", "xrd state",
                  "quit"]
         text, _ = bo.runScript(s, display, env, wrappers, ["-context", url], lines, png, "nodefault",
-                               {"ECCE_PANEL_MODE": "detail"})
+                               dict({"ECCE_PANEL_MODE": "detail"},
+                                    **({"ECCE_TEST_GDB": "1"} if args.gdb else {})))
         sizes = re.findall(r"PANESIZE Diffraction: (\w+)", text)
         states = re.findall(r"BUILDER: xrd: view=(.*)", text)
         bo.check(len(sizes) >= 2 and sizes[0] == "hidden",
@@ -73,6 +89,9 @@ def main():
         else:
             bo.check(False, "xrd states reported")
         bo.check("progress=0 running=0" in text, "progress row hidden after Cancel")
+        if bo.failures:
+            # Last in the output, so a job runner that keeps only the tail shows why.
+            print("  builder log tail:\n    " + "\n    ".join(tail(text, args.gdb)))
     finally:
         if display:
             display.__exit__(None, None, None)
