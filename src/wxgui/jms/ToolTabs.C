@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "wx/aui/auibook.h"
+#include "wx/eventfilter.h"
 #include "wx/aui/framemanager.h"
 #include "wx/aui/tabart.h"
 #include "wx/app.h"
@@ -1137,6 +1138,32 @@ void ToolTabs::release(wxTopLevelWindow *tlw, bool showFrame)
 
 
 namespace {
+// Test hook "paintlog": every paint of a window on the host, in order, so a
+// tab open or close shows whether a half-made state reached the screen.
+class PaintLog : public wxEventFilter
+{
+public:
+  int FilterEvent(wxEvent& ev) override
+  {
+    if (ev.GetEventType() == wxEVT_PAINT && s_hostFrame) {
+      wxWindow *w = wxDynamicCast(ev.GetEventObject(), wxWindow);
+      if (w && wxGetTopLevelParent(w) == s_hostFrame) {
+        count++;
+        wxString e = wxString::Format("%s@%dx%d", w->GetClassInfo()->GetClassName(),
+                                      w->GetSize().x, w->GetSize().y);
+        if (seq.empty() || seq.back().first != e) seq.push_back({e, 1});
+        else seq.back().second++;
+      }
+    }
+    return Event_Skip;
+  }
+  int count = 0;
+  std::vector<std::pair<wxString, int>> seq;
+};
+PaintLog *s_paintLog = 0;
+}
+
+namespace {
 wxWindowRef s_focusBefore;
 wxString s_dialogResult = "none";
 wxString s_popupResult = "none";
@@ -1315,6 +1342,18 @@ bool ToolTabs::testCommand(const wxString& cmd, const wxString& arg,
         s_hostFrame->GetClassInfo()->GetClassName(),
         m->tool->IsShown() ? "shown" : "hidden", (int)mapped,
         (int)s_book->GetPageCount(), s_hostFrame->GetTitle(), topName);
+  } else if (cmd == "paintlog") {
+    // "paintlog on" starts a fresh log; "paintlog" reports it.
+    if (arg == "on") {
+      if (!s_paintLog) { s_paintLog = new PaintLog; wxEvtHandler::AddFilter(s_paintLog); }
+      s_paintLog->count = 0;
+      s_paintLog->seq.clear();
+      outcome = "on";
+      return true;
+    }
+    if (!s_paintLog) { outcome = "off"; return true; }
+    outcome = wxString::Format("paints=%d seq=", s_paintLog->count);
+    for (auto& e : s_paintLog->seq) outcome += wxString::Format("%s*%d,", e.first, e.second);
   } else if (cmd == "quitlabel") {
     // The Quit item of the menu bar on the host now.
     wxMenuBar *mb = s_hostFrame ? s_hostFrame->wxFrame::GetMenuBar() : 0;

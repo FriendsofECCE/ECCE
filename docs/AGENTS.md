@@ -420,6 +420,12 @@ SGContainerManager=N SGViewer=N WxLauncher=N` (classes never made are left out).
 After every tool tab is closed the counts return to their values before the
 first tab; `tests/apps/monolith_campaign_test.py H` checks that and the RSS.
 
+Paints (#1210, `ECCE_TEST_ORGANIZER`, one-program mode): `paintlog on` starts a
+fresh log of every paint of a window in the main window; `paintlog` answers
+`paints=N seq=Class@WxH*count,...` in order (repeats merged), or `off`. Use it
+to see what reaches the screen while a tab opens or closes;
+`tests/apps/one_process_test.py --1210-only` runs it for a Viewer tab.
+
 **Second start and file types (#1069)**, one-program mode only: a second `ecce`
 for the same user, data folder and server (`ECCE_REALUSERHOME`,
 `ECCE_LOCAL_DATA`, `ECCE_SERVER_SESSION`/`ECCE_REMOTE_SERVER`) raises the
