@@ -5407,7 +5407,8 @@ void CalcMgr::OnToolClick( wxCommandEvent& event )
   else {
     // @todo Do we allow tools invoke in multi selection mode?
   }
-  if (tool->getName() == LAUNCHER && p_currentSelection.size() == 1)
+  if (tool->getName() == LAUNCHER && p_currentSelection.size() == 1 &&
+      dynamic_cast<TaskJob*>(itemData->getResource()))
     startLaunchButton(itemData->getUrl().toString());
   else
     startApp(tool->getName(), forceNew, itemData->getUrl().toString());
