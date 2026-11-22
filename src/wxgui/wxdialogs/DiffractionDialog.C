@@ -22,6 +22,8 @@
 #include <wx/process.h>
 #include <wx/evtloop.h>
 #include <wx/tglbtn.h>
+#include <wx/gauge.h>
+#include <wx/tokenzr.h>
 #include <wx/wrapsizer.h>
 #include <wx/popupwin.h>
 #include "wxgui/WindowShot.H"
@@ -346,7 +348,7 @@ wxString hklText(int h, int k, int l)
 
 wxRect DiffractionView::imageArea(const wxSize& s) const
 {
-  const int top = 30, side = 12, bottom = 26;
+  const int top = 30, side = 12, bottom = 50;
   const int side2 = std::max(10, std::min(s.x - 2 * side, s.y - top - bottom));
   return wxRect((s.x - side2) / 2, top, side2, side2);
 }
@@ -579,7 +581,24 @@ void DiffractionView::paintImage(wxGraphicsContext *gc, double W, double H) cons
     gc->DrawEllipse(a.x + a.width / 2 - radius, a.y + a.height / 2 - radius, 2 * radius, 2 * radius);
   }
   gc->PopState();
-  text(gc, caption, v.x, v.y + v.height + 6, wxColour(90, 90, 90), 0.9);
+  // Wrapped to the pane width; imageArea() keeps room for three lines.
+  {
+    double y = v.y + v.height + 4;
+    wxString line;
+    int lines = 0;
+    wxStringTokenizer words(caption, " ");
+    while (words.HasMoreTokens() && lines < 3) {
+      const wxString w = words.GetNextToken();
+      const wxString trial = line.empty() ? w : line + " " + w;
+      if (!line.empty() && extent(gc, trial, 0.9).x > W - 8) {
+        text(gc, line, 4, y, wxColour(90, 90, 90), 0.9);
+        y += 14; ++lines; line = w;
+      } else {
+        line = trial;
+      }
+    }
+    if (!line.empty() && lines < 3) text(gc, line, 4, y, wxColour(90, 90, 90), 0.9);
+  }
 }
 
 bool DiffractionView::darkScheme() const { return p_scheme && p_scheme->GetSelection() == 1; }
@@ -857,9 +876,26 @@ DiffractionView::DiffractionView(wxWindow *parent, const string& structure,
     top->Add(w, 1, wxEXPAND | wxLEFT | wxRIGHT, 4);
   }
   p_pointer = new wxStaticText(this, wxID_ANY, "Calculating...", wxDefaultPosition,
-                              wxDefaultSize, wxST_ELLIPSIZE_END | wxST_NO_AUTORESIZE);
+                              wxDefaultSize, wxST_NO_AUTORESIZE);
   top->Add(p_pointer, 0, wxEXPAND | wxALL, 4);
   p_status = p_pointer;
+  auto *progress = new wxBoxSizer(wxHORIZONTAL);
+  p_gauge = new wxGauge(this, wxID_ANY, 100, wxDefaultPosition, wxSize(-1, 14));
+  p_cancel = new wxButton(this, wxID_ANY, "Cancel", wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
+  p_cancel->SetToolTip("Stop this calculation");
+  progress->Add(p_gauge, 1, wxALIGN_CENTER_VERTICAL | wxRIGHT, 6);
+  progress->Add(p_cancel, 0);
+  top->Add(progress, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 4);
+  top->Show(progress, false);
+  p_progress = progress;
+  // The wrap width follows the pane, not the label: a label that rewraps on
+  // its own size events resizes itself and loops.
+  Bind(wxEVT_SIZE, [this](wxSizeEvent& e) {
+    e.Skip();
+    const int w = e.GetSize().x - 8;
+    if (w > 20 && w != p_wrapWidth) { p_wrapWidth = w; CallAfter([this] { if (!p_statusText.empty()) status(p_statusText, true); }); }
+  });
+  p_cancel->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { abortCalculation(); });
   p_measure = new wxStaticText(this, wxID_ANY, "");
   p_measure->Hide();
   auto *buttons = new wxWrapSizer(wxHORIZONTAL);
@@ -1049,7 +1085,39 @@ DiffractionView::~DiffractionView()
   if (!p_dir.empty()) fs::remove_all(p_dir, ec);
 }
 
-void DiffractionView::status(const wxString& text) { p_status->SetLabel(text); }
+void DiffractionView::status(const wxString& text, bool rewrap)
+{
+  // pollRun repeats the same text every tick; relayout only on a change.
+  // Pointer readouts share the label, so compare with what it shows.
+  wxString shown = p_status->GetLabel();
+  shown.Replace("\n", " ");
+  if (!rewrap && text == p_statusText && shown == text) return;
+  p_statusText = text;
+  p_status->SetLabel(text);
+  if (p_wrapWidth > 20) p_status->Wrap(p_wrapWidth);
+  p_status->InvalidateBestSize();
+  Layout();
+}
+
+void DiffractionView::showProgress(bool on)
+{
+  if (!p_progress || !GetSizer() || GetSizer()->IsShown(p_progress) == on) return;
+  GetSizer()->Show(p_progress, on);
+  Layout();
+}
+
+// The user's own stop: nothing is loaded, and nothing restarts until a setting
+// changes or Update is pressed.
+void DiffractionView::abortCalculation()
+{
+  p_debounce.Stop();
+  cancelCalculation();
+  showProgress(false);
+  p_dirty = true;
+  status("Calculation cancelled. Press Update to run it again.");
+  if (p_manual) p_update->Show();
+  Layout();
+}
 
 double DiffractionView::number(wxTextCtrl *c) const
 {
@@ -1614,6 +1682,7 @@ void DiffractionView::cancelCalculation()
   p_pid = 0;
   p_poll.Stop();
   p_load = {};
+  showProgress(false);
 }
 
 // A view change clears the pattern, so it calculates at once even for a slow
@@ -1691,6 +1760,10 @@ void DiffractionView::pollRun()
     p_manual = true;
     p_update->Show();
     Layout();
+  }
+  if (p_watch.Time() > 2000) {
+    showProgress(true);
+    p_gauge->Pulse();
   }
   status(p_manual ? "Calculating... This structure takes over 2 seconds; subsequent changes need Update." :
                     "Calculating...");
@@ -1877,6 +1950,9 @@ wxString DiffractionView::script(const vector<string>& args)
                             row >= 0 ? p_list->GetItemText(row) : wxString("none"));
   }
   if (args[1] == "update") { startCalculation(); return "started"; }
+  if (args[1] == "cancel") { abortCalculation(); return "cancelled"; }
+  if (args[1] == "progress")
+    return wxString::Format("progress=%d running=%d", p_progress && GetSizer() && GetSizer()->IsShown(p_progress), p_process != nullptr);
   if (args[1] == "options") { showOptions(); return "done"; }
   if (args[1] == "close-options") { p_options->Hide(); return "done"; }
   if (args[1] == "defaults") { restoreDefaults(); return "done"; }

@@ -1054,7 +1054,7 @@ void Builder::ensureDetail()
     if (paneGroup(pane) == GROUP_PROPERTIES &&
         pane.name != NAME_PROPERTY_INDEX) {
       docked.push_back(&pane);
-      if (!shown && pane.IsShown()) shown = pane.window;
+      if (!shown && pane.IsShown() && pane.name != "Diffraction") shown = pane.window;
     }
   }
   wxAuiPaneInfo &current = p_mgr.GetPane(p_detail);
@@ -1074,6 +1074,7 @@ void Builder::ensureDetail()
     }
     int best = 1 << 30;
     for (size_t i = 0; !p_detail && i < docked.size(); ++i) {
+      if (docked[i]->name == "Diffraction") continue;   // computes on opening (#1245)
       const int order = factory.indexOf(docked[i]->name.ToStdString());
       if (order >= 0 && order < best) {
         best = order;
@@ -1123,7 +1124,8 @@ void Builder::accordionNormalize(wxWindow *keepOpen)
     }
   }
   for (size_t i = 0; !open && i < docked.size(); ++i) {
-    if (!p_folded.count(docked[i]->window)) open = docked[i]->window;
+    if (!p_folded.count(docked[i]->window) && docked[i]->name != "Diffraction")
+      open = docked[i]->window;
   }
   for (size_t k = 0; !open &&
        k < sizeof(DEFAULT_PANEL_ORDER) / sizeof(DEFAULT_PANEL_ORDER[0]); ++k) {
@@ -1131,7 +1133,8 @@ void Builder::accordionNormalize(wxWindow *keepOpen)
       if (docked[i]->name == DEFAULT_PANEL_ORDER[k]) open = docked[i]->window;
     }
   }
-  if (!open && !docked.empty()) open = docked[0]->window;
+  for (size_t i = 0; !open && i < docked.size(); ++i)
+    if (docked[i]->name != "Diffraction") open = docked[i]->window;
   for (size_t i = 0; i < docked.size(); ++i) {
     foldPane(docked[i]->window, docked[i]->window != open);
   }

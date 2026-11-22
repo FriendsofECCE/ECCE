@@ -89,6 +89,8 @@ private:
               const std::function<bool(std::string&)>& load, std::string& why);
   void processEnded(wxProcessEvent& event);
   void pollRun();
+  void abortCalculation();
+  void showProgress(bool on);
   bool prepareFibre(std::string& why);
   void restoreDefaults();
   wxTimer p_debounce, p_poll;
@@ -124,7 +126,7 @@ private:
   wxBitmap render(int w, int h, int scale) const;
   wxRect imageArea(const wxSize& s) const;
   int imagePixels() const;
-  void status(const wxString& text);
+  void status(const wxString& text, bool rewrap = false);
   void onCalculate(wxCommandEvent&);
   void onBackdrop(wxCommandEvent&);
   void onSavePng(wxCommandEvent&);
@@ -152,6 +154,11 @@ private:
   wxCheckBox *p_selectedOnly;
   wxSlider *p_opacity;
   wxStaticText *p_status, *p_pointer;
+  class wxGauge *p_gauge = nullptr;
+  wxButton *p_cancel = nullptr;
+  wxSizer *p_progress = nullptr;
+  wxString p_statusText;
+  int p_wrapWidth = 0;
   DiffractionPanel *p_panel;
   wxImage p_calc, p_back;
   std::vector<float> p_r, p_z, p_i;

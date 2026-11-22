@@ -169,7 +169,20 @@ def runScript(s, display, env, wrappers, argv, lines, png, prefix, extra=None):
         handle.write("\n".join(lines) + "\n")
     log = os.path.join(work, "builder.log")
     benv = dict(env, ECCE_BUILDER_SCRIPT=script, **(extra or {}))
-    proc = subprocess.Popen([os.path.join(wrappers, "ecce-builder")] + argv,
+    command = os.path.join(wrappers, "ecce-builder")
+    gdb = bool(benv.get("ECCE_TEST_GDB")) and shutil.which("gdb")
+    if gdb:
+        # A wrapper copy that runs the Builder under gdb: a crash, or a hang
+        # interrupted below, leaves a backtrace in the log.
+        with open(command) as handle:
+            text = handle.read().replace(
+                '"$ECCE_HOME/bin/builder"',
+                'gdb -batch -ex run -ex "thread apply all bt 60" --args "$ECCE_HOME/bin/builder"')
+        command = os.path.join(work, "ecce-builder-gdb")
+        with open(command, "w") as handle:
+            handle.write(text)
+        os.chmod(command, 0o755)
+    proc = subprocess.Popen([command] + argv,
                             env=benv, cwd=os.path.join(s.home, "bin"),
                             stdout=open(log, "w"), stderr=subprocess.STDOUT,
                             start_new_session=True)
@@ -199,10 +212,19 @@ def runScript(s, display, env, wrappers, argv, lines, png, prefix, extra=None):
                     break
             time.sleep(0.5)
         time.sleep(2)
+        if gdb and proc.poll() is None:
+            # Stops the Builder where it hangs; gdb prints the stacks and exits.
+            os.killpg(proc.pid, 2)
+            try:
+                proc.wait(timeout=60)
+            except subprocess.TimeoutExpired:
+                pass
     finally:
         stop(proc)
     with open(log, errors="replace") as handle:
         text = handle.read()
+    if "ECCE_BUILDER_SCRIPT" not in text:
+        print("  builder produced no script output; log tail:\n" + "\n".join(text.splitlines()[-25:]))
     return text, taken
 
 
