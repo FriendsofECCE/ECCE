@@ -22,7 +22,9 @@ SCRIPT = [
     "select_protein", "selection",
     "menu Edit|Clear Selection", "select_ligand", "selection",
     "menu Edit|Clear Selection", "menu Edit|Select Protein", "selection",
-    "menu Edit|Clear Selection", "menu Edit|Select Ligand", "selection",
+    #  Select Ligand is a submenu filled as the Edit menu opens, which a
+    #  script does not do: "ligand 1" is its first entry.
+    "menu Edit|Clear Selection", "ligands", "ligand 1", "selection",
     #  Replace, not add: ligand then protein is the protein alone.
     "menu Edit|Clear Selection", "select_ligand", "selection",
     "select_protein", "selection",
