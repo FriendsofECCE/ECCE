@@ -873,6 +873,21 @@ bool CalcMgr::Layout()
 }
 
 
+// The window classes from w up to its top-level window, "(hidden)" after
+// each one not shown; *firstHidden gets the lowest hidden one (#1237).
+static string deskChain(wxWindow *w, wxWindow **firstHidden = 0)
+{
+  string chain;
+  if (firstHidden) *firstHidden = 0;
+  for (; w; w = w->GetParent()) {
+    chain += string(" ") + wxString(w->GetClassInfo()->GetClassName()).ToStdString() +
+             (w->IsShown() ? "" : "(hidden)");
+    if (!w->IsShown() && firstHidden && !*firstHidden) *firstHidden = w;
+    if (w->IsTopLevel()) break;
+  }
+  return chain;
+}
+
 void CalcMgr::runTestCommand(const string& line)
 {
   string outcome;
@@ -2124,6 +2139,24 @@ void CalcMgr::runTestCommand(const string& line)
       WxResourceTreeItemData *node = findNode(EcceURL(calcName), true, true);
       if (!node) outcome = "not in the tree";
       else { p_treeCtrl->SelectItem(node->GetId()); outcome = "ok"; }
+    } else if (command == "desk") {
+      // "desk": the details pane as the screen gets it (#1237): size, shown,
+      // the splitter's size, the tool-tab notebook's selection and page
+      // count, and the window chain up to the top level with hidden ones
+      // marked.
+      wxWindow *desk = p_contextPanel ? p_contextPanel->getWidget() : 0;
+      if (!desk || !p_splitterWindow) outcome = "no desk";
+      else {
+        wxAuiNotebook *nb = 0;
+        for (wxWindow *w = desk; w && !nb; w = w->GetParent()) nb = wxDynamicCast(w->GetParent(), wxAuiNotebook);
+        const wxSize d = desk->GetSize(), sp = p_splitterWindow->GetClientSize();
+        std::ostringstream o;
+        o << "desk " << d.x << "x" << d.y << " shown=" << desk->IsShownOnScreen()
+          << " splitter=" << sp.x << "x" << sp.y << " sel=";
+        if (nb && nb->GetSelection() != wxNOT_FOUND) o << nb->GetSelection(); else o << "none";
+        o << " pages=" << (nb ? (int)nb->GetPageCount() : 0) << " chain=" << deskChain(desk);
+        outcome = o.str();
+      }
     } else if (command == "refreshtimes") {
       // "refreshtimes": the last details-pane refresh's timing line and the
       // pane's formula text (#1237)
@@ -4560,14 +4593,8 @@ void CalcMgr::setContextPanel()
       // Which window above the desk is hidden; one hidden although its tab
       // is the selected one kept a new desk panel unmapped until a focus
       // change (#1237): show it. A page of an unselected tab stays hidden.
-      string chain;
       wxWindow *hidden = 0;
-      for (wxWindow *w = desk; w; w = w->GetParent()) {
-        chain += string(" ") + wxString(w->GetClassInfo()->GetClassName()).ToStdString() +
-                 (w->IsShown() ? "" : "(hidden)");
-        if (!w->IsShown() && !hidden) hidden = w;
-        if (w->IsTopLevel()) break;
-      }
+      const string chain = deskChain(desk, &hidden);
       bool unselected = false;
       if (hidden)
         if (wxAuiNotebook *nb = wxDynamicCast(hidden->GetParent(), wxAuiNotebook))
