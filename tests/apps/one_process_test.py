@@ -14,6 +14,7 @@ Same installed tree, isolation and services as run_tests.py.  Exit 77
 (skip) without an install or Xvfb.
 """
 
+import faulthandler
 import os
 import re
 import shutil
@@ -2533,6 +2534,9 @@ def runPanelTeardown(display):
 
 
 def main():
+    # A stalled run is killed by its wall-clock limit without saying where;
+    # every 10 min the Python stacks go to stderr so the log shows it.
+    faulthandler.dump_traceback_later(600, repeat=True)
     if "--1131" in sys.argv:    # same as ECCE_1131_ONLY=1
         sys.argv.remove("--1131")
         os.environ["ECCE_1131_ONLY"] = "1"
