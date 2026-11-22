@@ -24,13 +24,38 @@ SCRIPT = [
 ]
 
 
-def run(display):
-    work = os.path.join(fixture.stateHome(), "builder-import-pdb")
+#  Heavy atoms only, no residues: benzene and ethanol, 8 A apart (#1251).
+HEAVY_XYZ = """9
+benzene and ethanol, heavy atoms
+C 1.400 0.000 0.000
+C 0.700 1.212 0.000
+C -0.700 1.212 0.000
+C -1.400 0.000 0.000
+C -0.700 -1.212 0.000
+C 0.700 -1.212 0.000
+C 8.000 0.000 0.000
+C 9.520 0.000 0.000
+O 9.998 1.349 0.000
+"""
+SCRIPT_HEAVY = ["wait 2000", "import @XYZ@", "wait 1000", "info",
+                "menu Build|Add Hydrogen", "wait 2000", "coords", "info",
+                "menu Build|Add Hydrogen", "wait 1000", "info", "quit"]
+#  A drawn atom with nubs next to a protein that has none (#1251).
+SCRIPT_MIXED = ["wait 2000", "import " + STRUCTURE, "wait 1000",
+                "add C Tetrahedral 40 40 40", "wait 500", "info",
+                "menu Build|Add Hydrogen", "wait 5000", "info", "quit"]
+
+
+def run(display, script=None, name="builder-import-pdb"):
+    work = os.path.join(fixture.stateHome(), name)
     shutil.rmtree(work, ignore_errors=True)
     os.makedirs(work)
     path = os.path.join(work, "import.script")
+    xyz = os.path.join(work, "heavy.xyz")
+    with open(xyz, "w") as handle:
+        handle.write(HEAVY_XYZ)
     with open(path, "w") as handle:
-        handle.write("\n".join(SCRIPT) + "\n")
+        handle.write("\n".join(script or SCRIPT).replace("@XYZ@", xyz) + "\n")
     try:
         #  A private state directory has no saved login: without -pipe the
         #  builder stops at the "ECCE Authentication" dialog.
@@ -94,11 +119,65 @@ def problemsIn(log):
     return problems
 
 
+def heavyProblems(log):
+    problems = []
+    for line in log.splitlines():
+        if "ECCE_BUILDER_SCRIPT" in line and "FAIL" in line:
+            problems.append(line.strip())
+    atoms = [int(m) for m in re.findall(r"BUILDER: atoms=(\d+)", log)]
+    if atoms != [9, 21, 21]:
+        problems.append("atom counts %s, want [9, 21, 21] (+6 +6 H, then no change)" % atoms)
+    heavy, hyd = [], []
+    for m in re.finditer(r"BUILDER: atom \d+ (\S+) (\S+) (\S+) (\S+)", log):
+        (hyd if m.group(1) == "H" else heavy).append(
+            (m.group(1), float(m.group(2)), float(m.group(3)), float(m.group(4))))
+    ring = [h for h in hyd if h[1] < 4]
+    if len(hyd) != 12 or len(ring) != 6:
+        problems.append("%d H, %d near the ring, want 12 and 6" % (len(hyd), len(ring)))
+    for h in hyd:
+        d, atom = min((sum((a - b) ** 2 for a, b in zip(h[1:], x[1:])) ** 0.5, x)
+                      for x in heavy)
+        if atom[0] == "C" and not 1.08 <= d <= 1.10:
+            problems.append("C-H %.3f A, want 1.08-1.10" % d)
+        if h[1] < 4 and abs(h[3]) > 0.02:
+            problems.append("ring H out of plane: z=%.3f" % h[3])
+    print("%s  heavy-atom XYZ: atoms %s" % ("FAIL" if problems else "PASS", atoms))
+    return problems
+
+
+def mixedProblems(log):
+    problems = []
+    for line in log.splitlines():
+        if "ECCE_BUILDER_SCRIPT" in line and "FAIL" in line:
+            problems.append(line.strip())
+    atoms = [int(m) for m in re.findall(r"BUILDER: atoms=(\d+)", log)]
+    nubs = [int(m) for m in re.findall(r"nubs=(\d+)", log)]
+    if len(atoms) != 2 or len(nubs) != 2:
+        problems.append("atoms %s nubs %s, want two of each" % (atoms, nubs))
+    else:
+        if nubs[0] != 4 or nubs[1] != 0:
+            problems.append("nubs before/after %s, want [4, 0]" % nubs)
+        #  protein ~1314 H + 4 for the drawn atom, minus its 4 nubs
+        if not 1250 <= atoms[1] - atoms[0] <= 1500:
+            problems.append("atoms %s: protein did not get its hydrogens" % atoms)
+    print("%s  181L + drawn atom with nubs: atoms %s nubs %s" %
+          ("FAIL" if problems else "PASS", atoms, nubs))
+    return problems
+
+
 def check(display, results):
     results.checks += 1
     problems = problemsIn(run(display))
     if problems:
         results.fail("builder-import-pdb", "; ".join(problems))
+    results.checks += 1
+    problems = heavyProblems(run(display, SCRIPT_HEAVY, "builder-heavy"))
+    if problems:
+        results.fail("builder-heavy-xyz", "; ".join(problems))
+    results.checks += 1
+    problems = mixedProblems(run(display, SCRIPT_MIXED, "builder-mixed"))
+    if problems:
+        results.fail("builder-mixed-hydrogen", "; ".join(problems))
 
 
 def main():
@@ -127,6 +206,8 @@ def main():
             try:
                 out = run(display)
                 problems = problemsIn(out)
+                problems += heavyProblems(run(display, SCRIPT_HEAVY, "builder-heavy"))
+                problems += mixedProblems(run(display, SCRIPT_MIXED, "builder-mixed"))
             finally:
                 restore()
         finally:

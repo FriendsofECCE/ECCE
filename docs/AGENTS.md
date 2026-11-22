@@ -76,11 +76,15 @@ residues and no nubs it now runs the residue-template path (the Residue table's
 Add Hydrogens) and the status line says `Added N hydrogens to M of K residues`,
 naming the residues that got none (waters). Residues without a template
 (ligands) get hydrogens from their geometry: bond orders from lengths
-(aromatic ring C-C 1.32-1.46 A), then hydrogens in the ideal directions for C, N, O, S. With neither nubs nor
-templates it says `No hydrogens added`. Script commands in
+(aromatic ring C-C 1.32-1.46 A), then hydrogens in the ideal directions for C, N, O, S. A structure with neither nubs nor residues (heavy atoms from
+XYZ or CIF) is filled from its geometry the same way, each bonded group on its
+own (lone ions and water oxygens are left alone). Nubs on a drawn part of a
+structure with residues are filled and every residue is filled too, in one
+undo step (#1251). With nothing to fill it says `No hydrogens added`. Script commands in
 `ECCE_BUILDER_SCRIPT`: `import FILE` (File > Import of FILE), `resatoms`
 (atoms per residue name), `menu Build|Add Hydrogen`; see
-`tests/apps/builder_import_pdb_test.py`.
+`tests/apps/builder_import_pdb_test.py` (also the XYZ and the 181L plus
+`add C Tetrahedral 40 40 40` cases).
 
 Builder Edit menu: **Invert Selection** (Ctrl+R, formerly Reverse Selection).
 After a structure opens and after every Edit > Select command the 3-D view

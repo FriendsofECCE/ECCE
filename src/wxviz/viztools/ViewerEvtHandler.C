@@ -844,7 +844,10 @@ void ViewerEvtHandler::addHydrogens(WxVizToolFW& fw)
   if (frag->numAtoms() == 0) return;
 
   const int nubs = countElement(frag, "Nub");
-  const bool byTemplate = nubs == 0 && frag->numResidues() > 0;
+  // Residues are filled even when a drawn part has nubs; a structure with
+  // neither is filled from its geometry.
+  const bool byTemplate = frag->numResidues() > 0;
+  const bool byGeometry = nubs == 0 && frag->numResidues() == 0;
   auto perResidue = [](SGFragment *f) {
     vector<int> h(f->numResidues(), 0);
     for (int i = 0; i < (int)f->numAtoms(); i++) {
@@ -858,7 +861,7 @@ void ViewerEvtHandler::addHydrogens(WxVizToolFW& fw)
   const int before = countElement(frag, "H");
   const vector<int> hBefore = byTemplate ? perResidue(frag) : vector<int>();
   Command *cmd;
-  if (byTemplate) {
+  if (byTemplate || byGeometry) {
     cmd = new AddSegmentHCmd("Add Hydrogens", &sg);
     cmd->getParameter("valence")->setBoolean(true);
   } else {
@@ -891,6 +894,8 @@ void ViewerEvtHandler::addHydrogens(WxVizToolFW& fw)
       }
       msg += ".";
     }
+  } else if (added <= 0 && byGeometry) {
+    msg = "No hydrogens added: no atom has an open valence.";
   } else if (added <= 0) {
     msg = "No hydrogens added: the structure has no open sites (nubs).";
   } else {
