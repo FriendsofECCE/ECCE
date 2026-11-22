@@ -32,8 +32,16 @@ import shutil
 import select
 import signal
 import subprocess
+import sys
 import threading
 import time
+
+# Line-buffered so a run killed by a timeout keeps its last lines in the log;
+# block buffering lost up to 8 KB and pointed at the wrong case.
+try:
+    sys.stdout.reconfigure(line_buffering=True)
+except (AttributeError, ValueError):
+    pass
 
 # Where the installed ECCE being tested lives.  Overridable so a developer
 # can test a build installed somewhere writable instead of /opt/ecce -- see
