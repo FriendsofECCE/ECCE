@@ -2122,6 +2122,12 @@ void CalcMgr::runTestCommand(const string& line)
       WxResourceTreeItemData *node = findNode(EcceURL(calcName), true, true);
       if (!node) outcome = "not in the tree";
       else { p_treeCtrl->SelectItem(node->GetId()); outcome = "ok"; }
+    } else if (command == "refreshtimes") {
+      // "refreshtimes": the last details-pane refresh's timing line and the
+      // pane's formula text (#1237)
+      CalculationContextPanel *cp = dynamic_cast<CalculationContextPanel*>(p_contextPanel);
+      outcome = cp ? CalculationContextPanel::lastRefreshTimings() + " formula=[" + cp->fieldText("empiricalFormula") + "]"
+                   : "no calculation pane";
     } else if (command == "selection") {
       WxResourceTreeItemData *n = p_treeCtrl->GetSelection().IsOk() ? dynamic_cast<WxResourceTreeItemData*>(
           p_treeCtrl->GetItemData(p_treeCtrl->GetSelection())) : 0;

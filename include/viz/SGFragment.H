@@ -193,8 +193,22 @@ SoINTERNAL public:
     /// The largest residue that is a ligand candidate (RES_OTHER, more than
     /// one atom); selects it and describes the choice, and any others, in
     /// message.  Returns false, selecting nothing, when there is none.
+    /// Everything outside standard polymer residues except the ligand
+    /// getLigand would pick; with no ligand, water is left out as well.
+    void getHeteroatoms(vector<bool>& atombits, vector<bool>& bondbits,
+                        string& message);
     bool getLigand(vector<bool>& atombits, vector<bool>& bondbits,
                    string& message);
+    /// Non-polymer, non-water residues, the likely ligand first: bigger
+    /// non-additive residues, then additives, then single atoms and ions.
+    struct LigandCandidate {
+      string name;
+      int number;
+      int atoms;
+      int firstAtom;
+      ResidueClass cls;
+    };
+    vector<LigandCandidate> ligandCandidates();
     void getFullResidue(TAtm *atm, vector<bool>& atombits, vector<bool>& bondbits);
 
     // Methods to get parameters using NWChem string selections
