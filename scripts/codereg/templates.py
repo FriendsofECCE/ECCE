@@ -508,6 +508,11 @@ class EccePanel(wx.lib.scrolledpanel.ScrolledPanel):
 
 
     def OnChanges(self, event):
+        # Destroying the frame after OnClose makes the focused field lose
+        # focus; the link to the editor is closed by then.
+        if getattr(EcceGlobals, "Closing", False):
+            event.Skip()
+            return
         self.CheckDependency()
         if EcceGlobals.ReadOnlyFlag == "Writable":
             if EcceGlobals.PortOut != 0:
@@ -527,7 +532,17 @@ class EccePanel(wx.lib.scrolledpanel.ScrolledPanel):
     def OnClose(self, event):
         if (EcceGlobals.ReadOnlyFlag == "Writable"):
             if EcceGlobals.PortOut != 0:
+                # A value typed into the field that still has focus is only
+                # sent when it loses focus, which comes after the link is
+                # closed: send it first, or it is lost.
+                widget = wx.Window.FindFocus()
+                while widget is not None and not hasattr(widget, "ExportSetting"):
+                    widget = widget.GetParent()
+                if widget is not None and EcceGlobals.RestoreFlag != "NO_GUIValues":
+                    EcceGlobals.Socket.send((widget.ExportSetting()+"\n").encode())
+                    widget.Save()
                 EcceGlobals.Socket.send("#CLOSING\n".encode())
+        EcceGlobals.Closing = True
         if EcceGlobals.PortOut != 0:
             EcceGlobals.Socket.close()
         self.GetParent().Destroy()

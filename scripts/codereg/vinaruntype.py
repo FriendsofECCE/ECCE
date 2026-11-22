@@ -4,9 +4,10 @@ import sys
 
 
 def trace(msg):
-    # Diagnostics for #1244 while the default ligand is being verified.
-    sys.stderr.write("VINADLG: %s\n" % msg)
-    sys.stderr.flush()
+    # How the default ligand was chosen (#1244); ECCE_VINA_TRACE=1 prints it.
+    if os.environ.get("ECCE_VINA_TRACE"):
+        sys.stderr.write("VINADLG: %s\n" % msg)
+        sys.stderr.flush()
 
 
 class VinaRunTypeFrame(EcceFrame):

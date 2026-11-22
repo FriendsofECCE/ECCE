@@ -91,7 +91,7 @@ def main():
         logpath = os.path.join(s.state, "calced.log")
         asked = {}
         with xdisplay.Display() as display:
-            env = s.env({"DISPLAY": display.name, "GTK_THEME": "Adwaita",
+            env = s.env({"DISPLAY": display.name, "GTK_THEME": "Adwaita", "ECCE_VINA_TRACE": "1",
                          "ECCE_TEST_CALCED": cmdfile, "ECCE_TMPDIR": tmpdir,
                          "PATH": wrappers + os.pathsep + s.env()["PATH"]})
             with open(logpath, "w") as log:
