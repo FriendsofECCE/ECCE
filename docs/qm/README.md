@@ -129,8 +129,9 @@ and `opt_conv normal|tight` (default normal) tune the latter.
   energy-weighted density `1/2 sum_s (S^-1 F_s D_s + D_s F_s S^-1)` for the
   overlap term (also right for ROHF/ROKS), and the LDA/GGA terms of the XC
   energy on the grid. For RHF, UHF, ROHF and SVWN, PBE, B3LYP, PBE0 with
-  restricted, unrestricted and restricted-open orbitals. The derivative of the
-  grid weights is neglected.
+  restricted, unrestricted and restricted-open orbitals. The XC gradient
+  includes atom-centred grid-point motion and the derivatives of the
+  size-adjusted, normalised Becke partition weights.
 * Optimiser (`optimizer.cpp`): Cartesian BFGS, Lindh model Hessian
   (stretches, bends, torsions) as the start, rational function steps in the
   space with translation and rotation removed, trust radius 0.3 bohr (at most
@@ -151,6 +152,10 @@ and `opt_conv normal|tight` (default normal) tune the latter.
   differences of the energy), `tests/qm/opt_test.py` (final energy, distances
   and angles against ORCA TightOpt, `opt_oracle.json`, made by
   `gen_opt_oracle.py`).
+  `qm_grid_weights` checks B3LYP/6-31G* water and LiF against central energy
+  differences (1e-4 bohr, tolerance 1e-5 Eh/bohr) on the default grid,
+  net force below 1e-6 Eh/bohr on 99/590 and 150/974 grids, and invariance
+  under rigid translation.
 
 ### Dummy atoms and constraints (#309)
 
@@ -254,9 +259,10 @@ did not converge). Further keywords: `hessian_step` (bohr, default 0.005),
   step is a compromise: smaller ones amplify the SCF noise, larger ones the
   cubic terms; 0.0025 and 0.005 agree to 0.05 cm-1 for water B3LYP, 0.02 is off by 0.8, and
   0.005 reproduces ORCA's analytic frequencies to 0.2-0.8 cm-1.
-  With DFT the Hessian is the derivative of the gradient that neglects the
-  grid-weight terms, so translations and rotations carry a residual of a few
-  cm-1 (printed, see below).
+  Numerical DFT Hessians include grid response through the gradient. The
+  analytic DFT Hessian still holds the grid fixed; its error depends on grid
+  size. A finite angular quadrature can also leave a rotational residual
+  (printed, see below).
 * Analysis: masses of the most abundant isotopes (hydrogen 1.00783, not
   deuterium or the average; elements up to Kr), mass-weighted Hessian,
   translations and rotations about the centre of mass projected out (3 for an

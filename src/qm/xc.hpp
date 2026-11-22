@@ -34,8 +34,8 @@ class XcIntegrator {
   // is computed (Vb = Va).  Returns E_xc; also reports the integrated electron count.
   double compute(const Mat& Da, const Mat& Db, bool closed_shell, Mat& Va, Mat& Vb, double* nelec = nullptr);
   // Gradient of E_xc with respect to the nuclei (3 per atom, bohr) from the
-  // basis-function derivatives only; the weights' dependence on the nuclei is
-  // neglected.  Same density arguments as compute().
+  // basis functions, moving atom-centred points and Becke partition weights.
+  // Same density arguments as compute().
   void gradient(const Mat& Da, const Mat& Db, bool closed_shell, std::vector<double>& grad);
   // Pieces of the analytic Hessian with the grid points and weights held
   // fixed.  P: one density, the total, for a closed shell (unpolarised libxc),

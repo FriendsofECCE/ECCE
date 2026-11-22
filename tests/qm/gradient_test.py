@@ -5,10 +5,9 @@ that no component is zero.
 
     gradient_test.py ECCE_QM_EXE [--quick] [--grid NRAD NANG] [--filter REGEX]
 
-HF must agree to 1e-6 hartree/bohr.  The DFT gradient leaves out the
-derivative of the grid weights, so it agrees to about 1e-5 on the default
-grid and better on a finer one; the tolerance here is 5e-5 (--grid changes the
-grid of both the gradient and the energies).
+HF must agree to 1e-6 hartree/bohr, DFT to 1e-5.  The DFT gradient includes
+the motion of the atom-centred grid and its Becke partition derivatives
+(--grid changes the grid of both the gradient and the energies).
 
 Cases named "<mol>_<method>_solv" run with the CPCM solvent water (epsilon
 80.151); the gradient must also sum to zero over the atoms.
@@ -20,7 +19,7 @@ sys.path.insert(0, HERE)
 from molecules import MOLECULES
 
 STEP = 1e-4
-TOL_HF, TOL_DFT = 1e-6, 5e-5
+TOL_HF, TOL_DFT = 1e-6, 1e-5
 
 def pushed(name):
     """Geometry in bohr, every atom moved by a fixed pseudo-random amount."""
@@ -102,7 +101,7 @@ def main():
                 continue
             err, net = check(exe, work, name, method, grid, solv=solv)
             tol = TOL_HF if method.lstrip("ru").lstrip("o") == "hf" else TOL_DFT
-            ok = err <= tol and net <= (1e-8 if tol == TOL_HF else 1e-6)  # grid breaks translation in DFT
+            ok = err <= tol and net <= (1e-8 if tol == TOL_HF else 1e-6)
             bad += not ok
             print("%-6s %-8s %-5s max|analytic - FD| = %.2e  net force %.1e  %s" % (name, method, "solv" if solv else "", err, net, "ok" if ok else "FAIL (tol %.0e)" % tol), flush=True)
     return 1 if bad else 0

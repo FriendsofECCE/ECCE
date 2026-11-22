@@ -21,7 +21,9 @@ the CPKS denominators assume canonical) stay on finite differences.
   derivatives (`AoValues::d3`, `ao_d3_index`).
 * libxc must be built with fxc: the vendored build sets `DISABLE_FXC OFF`;
   Debian's libxc-dev has it.
-* No grid-weight derivatives (the gradient has none either). The finite-
+* No grid-weight derivatives in the analytic Hessian. The gradient includes
+  partition and grid-point response (#1250); see
+  [the gradient map](ecceqm-grid-weight-gradient.md). The finite-
   difference oracle moves the grid with the atoms, the analytic Hessian holds
   it fixed, so their difference is the grid response: H2O/PBE/6-31G* max |dH|
   3.3e-3 at 50/194, 6e-5 at 75/302, 2.8e-6 at the default 99/590 (frequencies

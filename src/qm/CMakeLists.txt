@@ -168,6 +168,8 @@ if(QM_PYTHON3)
   add_test(NAME qm_gradient_quick COMMAND ${QM_PYTHON3} ${_qm_tests}/gradient_test.py $<TARGET_FILE:ecce-qm> --quick)
   add_test(NAME qm_opt_quick COMMAND ${QM_PYTHON3} ${_qm_tests}/opt_test.py $<TARGET_FILE:ecce-qm> --quick)
   add_test(NAME qm_gradient COMMAND ${QM_PYTHON3} ${_qm_tests}/gradient_test.py $<TARGET_FILE:ecce-qm>)
+  add_test(NAME qm_grid_weights COMMAND ${QM_PYTHON3} ${_qm_tests}/grid_weights_test.py $<TARGET_FILE:ecce-qm>)
+  set_tests_properties(qm_grid_weights PROPERTIES TIMEOUT 900)
   add_test(NAME qm_opt COMMAND ${QM_PYTHON3} ${_qm_tests}/opt_test.py $<TARGET_FILE:ecce-qm>)
   # Frequencies, IR intensities and thermochemistry against ORCA
   # (tests/qm/freq_oracle.json), ROHF O2 against its energy curvature.

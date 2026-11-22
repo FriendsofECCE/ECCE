@@ -636,6 +636,12 @@ a ghost: the element's basis functions, no nucleus, no electrons. Single-point
 and polarizability are refused with a message. The output's `begin atoms` block
 ends such rows with `ghost`.
 
+ECCE-QM DFT gradients include atom-centred grid motion and Becke partition
+weight derivatives. `ctest -R '^qm_grid_weights$'` checks water and LiF
+against energy differences (1e-4 bohr) and checks net force on two grids.
+Numerical Hessians inherit this grid response; analytic DFT Hessians still
+hold the grid fixed.
+
 Counterpoise calculation (ECCE-QM and ORCA, Energy runs, structure with 2 or
 more fragments): SetupParams keys `ES.Runtype.Counterpoise` (1 = on) and
 `ES.Runtype.CounterpoiseOwn` (1 = also each monomer in its own basis). Fragments

@@ -67,6 +67,7 @@ XcIntegrator::XcIntegrator(const Basis& b, const FunctionalSpec& f, Grid g)
   for (size_t k = 0; k < idx.size(); ++k) {
     grid_.x.push_back(g.x[idx[k]]); grid_.y.push_back(g.y[idx[k]]);
     grid_.z.push_back(g.z[idx[k]]); grid_.w.push_back(g.w[idx[k]]);
+    grid_.atom.push_back(g.atom[idx[k]]); grid_.atomic_w.push_back(g.atomic_w[idx[k]]);
   }
   for (const auto& lf : leaves) {
     Impl::Batch B;
@@ -348,6 +349,7 @@ void XcIntegrator::gradient(const Mat& Da, const Mat& Db, bool closed, std::vect
   const int blk = kBatch;
   const int nblk = static_cast<int>(impl_->batches.size());
   const int natm = basis_.natm();
+  const BeckePartition partition(basis_.molecule());
   grad.assign(3 * natm, 0.0);
   const int pol = closed ? 0 : 1;
 #pragma omp parallel
@@ -388,7 +390,7 @@ void XcIntegrator::gradient(const Mat& Da, const Mat& Db, bool closed, std::vect
       }
       std::vector<double> rho(closed ? n : 2 * n), sig(gga ? (closed ? n : 3 * n) : 0);
       std::vector<double> zk(n), vrho(rho.size()), vsig(sig.size());
-      std::vector<double> vr_acc(rho.size(), 0.0), vs_acc(sig.size(), 0.0);
+      std::vector<double> vr_acc(rho.size(), 0.0), vs_acc(sig.size(), 0.0), exc(n, 0.0);
       for (int g = 0; g < n; ++g) {
         if (closed) {
           rho[g] = 2 * ra[g];
@@ -409,6 +411,7 @@ void XcIntegrator::gradient(const Mat& Da, const Mat& Db, bool closed, std::vect
         const xc_func_type* p = &fp->f;
         if (p->info->family == XC_FAMILY_LDA) xc_lda_exc_vxc(p, n, rho.data(), zk.data(), vrho.data());
         else xc_gga_exc_vxc(p, n, rho.data(), sig.data(), zk.data(), vrho.data(), vsig.data());
+        for (int g = 0; g < n; ++g) exc[g] += zk[g];
         for (size_t k = 0; k < vr_acc.size(); ++k) vr_acc[k] += vrho[k];
         for (size_t k = 0; k < vs_acc.size(); ++k) vs_acc[k] += vsig[k];
       }
@@ -422,6 +425,9 @@ void XcIntegrator::gradient(const Mat& Da, const Mat& Db, bool closed, std::vect
               A.array() += (hess[d][e]->array() * t.array() + dphi[d]->array() * td[e].array()).colwise() * gv[e].array();
           const Vec col = A.colwise().sum();
           for (int m = 0; m < nl; ++m) gt[3 * B.aoatom[m] + d] -= 2 * factor * col(m);
+          // Moving a grid point differentiates every AO with the opposite sign.
+          const Vec row = A.rowwise().sum();
+          for (int g = 0; g < n; ++g) gt[3 * grid_.atom[g0 + g] + d] += 2 * factor * row(g);
         }
       };
       Vec vra(n), vrb(n), gva[3], gvb[3];
@@ -445,6 +451,14 @@ void XcIntegrator::gradient(const Mat& Da, const Mat& Db, bool closed, std::vect
       }
       spin_term(ta, tda, vra, gva, closed ? 2.0 : 1.0);
       if (!closed) spin_term(tb, tdb, vrb, gvb, 1.0);
+      std::vector<double> dw;
+      for (int g = 0; g < n; ++g) {
+        const size_t k = g0 + g;
+        partition.weight({grid_.x[k], grid_.y[k], grid_.z[k]}, grid_.atom[k], &dw);
+        const double density = closed ? rho[g] : rho[2 * g] + rho[2 * g + 1];
+        const double scale = grid_.atomic_w[k] * density * exc[g];
+        for (int d = 0; d < 3 * natm; ++d) gt[d] += scale * dw[d];
+      }
     }
 #pragma omp critical
     for (int k = 0; k < 3 * natm; ++k) grad[k] += gt[k];

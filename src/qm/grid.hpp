@@ -9,7 +9,21 @@ namespace qm {
 
 struct Grid {
   std::vector<double> x, y, z, w;  // bohr; weights include r^2 and 4*pi
+  std::vector<int> atom;          // centre the point moves with
+  std::vector<double> atomic_w;   // radial/angular weight before partitioning
   size_t size() const { return w.size(); }
+};
+
+class BeckePartition {
+ public:
+  explicit BeckePartition(const Molecule& mol);
+  // Optional nuclear derivative (3 per atom), including point motion with owner.
+  double weight(const std::array<double, 3>& point, int owner,
+                std::vector<double>* gradient = nullptr) const;
+
+ private:
+  const Molecule& mol_;
+  std::vector<double> aij_, rij_;
 };
 
 // nrad radial points and nang Lebedev points per atom (nang must be one of

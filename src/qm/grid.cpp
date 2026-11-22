@@ -40,12 +40,92 @@ double bragg(int Z) {
   return 1.3;
 }
 
-double becke_s(double nu) {
-  for (int i = 0; i < 3; ++i) nu = 1.5 * nu - 0.5 * nu * nu * nu;
+double becke_s(double nu, double* derivative = nullptr) {
+  double ds = -0.5;
+  for (int i = 0; i < 3; ++i) {
+    ds *= 1.5 * (1 - nu * nu);
+    nu = 1.5 * nu - 0.5 * nu * nu * nu;
+  }
+  if (derivative) *derivative = ds;
   return 0.5 * (1.0 - nu);
 }
 
 }  // namespace
+
+BeckePartition::BeckePartition(const Molecule& mol) : mol_(mol) {
+  const int na = static_cast<int>(mol.atoms.size());
+  aij_.assign(na * na, 0.0);
+  rij_.assign(na * na, 0.0);
+  for (int i = 0; i < na; ++i)
+    for (int j = 0; j < na; ++j) {
+      double r2 = 0;
+      for (int c = 0; c < 3; ++c) {
+        const double d = mol.atoms[i].x[c] - mol.atoms[j].x[c];
+        r2 += d * d;
+      }
+      rij_[i * na + j] = std::sqrt(r2);
+      if (i == j) continue;
+      const double chi = bragg(mol.atoms[i].basis_Z()) / bragg(mol.atoms[j].basis_Z());
+      const double u = (chi - 1) / (chi + 1);
+      aij_[i * na + j] = std::max(-0.5, std::min(0.5, u / (u * u - 1)));
+    }
+}
+
+double BeckePartition::weight(const std::array<double, 3>& point, int owner,
+                              std::vector<double>* gradient) const {
+  const int na = static_cast<int>(mol_.atoms.size()), nd = 3 * na;
+  if (gradient) gradient->assign(nd, 0.0);
+  if (na == 1) return 1.0;
+  std::vector<double> dist(na);
+  std::vector<std::array<double, 3>> unit(na);
+  for (int i = 0; i < na; ++i) {
+    double r2 = 0;
+    for (int c = 0; c < 3; ++c) {
+      unit[i][c] = point[c] - mol_.atoms[i].x[c];
+      r2 += unit[i][c] * unit[i][c];
+    }
+    dist[i] = std::sqrt(r2);
+    if (gradient) for (int c = 0; c < 3; ++c)
+      unit[i][c] = dist[i] > 0 ? unit[i][c] / dist[i] : 0.0;
+  }
+  double sum = 0, own = 0;
+  std::vector<double> dp(gradient ? nd : 0), dsum(dp.size(), 0.0), down(dp.size());
+  for (int i = 0; i < na; ++i) {
+    double pr = 1;
+    std::fill(dp.begin(), dp.end(), 0.0);
+    for (int j = 0; j < na && pr > 1e-30; ++j) {
+      if (i == j) continue;
+      const double r = rij_[i * na + j], a = aij_[i * na + j];
+      const double mu = (dist[i] - dist[j]) / r;
+      double ds = 0;
+      const double s = becke_s(mu + a * (1 - mu * mu), gradient ? &ds : nullptr);
+      if (gradient) {
+        for (double& v : dp) v *= s;
+        const double scale = pr * ds * (1 - 2 * a * mu) / r;
+        for (int c = 0; c < 3; ++c) {
+          const double u = (mol_.atoms[i].x[c] - mol_.atoms[j].x[c]) / r;
+          dp[3 * i + c] += scale * (-unit[i][c] - mu * u);
+          dp[3 * j + c] += scale * (unit[j][c] + mu * u);
+        }
+      }
+      pr *= s;
+    }
+    sum += pr;
+    if (gradient) for (int k = 0; k < nd; ++k) dsum[k] += dp[k];
+    if (i == owner) { own = pr; down = dp; }
+  }
+  const double w = sum > 0 ? own / sum : 0.0;
+  if (gradient && sum > 0) {
+    for (int k = 0; k < nd; ++k) (*gradient)[k] = (down[k] - w * dsum[k]) / sum;
+    // The point follows its centre: d/dr = -sum_A d/dR_A at fixed r.
+    for (int c = 0; c < 3; ++c) {
+      double shift = 0;
+      for (int i = 0; i < na; ++i) shift += (*gradient)[3 * i + c];
+      (*gradient)[3 * owner + c] -= shift;
+    }
+  }
+  return w;
+}
 
 Grid make_grid(const Molecule& mol, int nrad, int nang, bool prune) {
   const LebEntry* leb = nullptr;
@@ -68,22 +148,9 @@ Grid make_grid(const Molecule& mol, int nrad, int nang, bool prune) {
     return leb;
   };
 
-  // Becke size-adjustment parameters a_ij.
-  std::vector<double> aij(na * na, 0.0), rij(na * na, 0.0);
-  for (int i = 0; i < na; ++i)
-    for (int j = 0; j < na; ++j) {
-      double dx = mol.atoms[i].x[0] - mol.atoms[j].x[0], dy = mol.atoms[i].x[1] - mol.atoms[j].x[1],
-             dz = mol.atoms[i].x[2] - mol.atoms[j].x[2];
-      rij[i * na + j] = std::sqrt(dx * dx + dy * dy + dz * dz);
-      if (i != j) {
-        double chi = bragg(mol.atoms[i].basis_Z()) / bragg(mol.atoms[j].basis_Z());
-        double u = (chi - 1) / (chi + 1), a = u / (u * u - 1);
-        aij[i * na + j] = std::max(-0.5, std::min(0.5, a));
-      }
-    }
+  const BeckePartition partition(mol);
 
   Grid g;
-  std::vector<double> P(na);
   for (int A = 0; A < na; ++A) {
     const double xi = ta_xi(mol.atoms[A].basis_Z());
     const double rbragg = bragg(mol.atoms[A].basis_Z()) / 0.529177210903;
@@ -98,29 +165,11 @@ Grid make_grid(const Molecule& mol, int nrad, int nang, bool prune) {
         const double* p = la->data[ia];
         const double px = mol.atoms[A].x[0] + r * p[0], py = mol.atoms[A].x[1] + r * p[1],
                      pz = mol.atoms[A].x[2] + r * p[2];
-        double wp = 1.0;
-        if (na > 1) {
-          std::vector<double> d(na);
-          for (int k = 0; k < na; ++k) {
-            double dx = px - mol.atoms[k].x[0], dy = py - mol.atoms[k].x[1], dz = pz - mol.atoms[k].x[2];
-            d[k] = std::sqrt(dx * dx + dy * dy + dz * dz);
-          }
-          double sum = 0;
-          for (int i = 0; i < na; ++i) {
-            double pr = 1;
-            for (int j = 0; j < na && pr > 1e-30; ++j) {
-              if (i == j) continue;
-              double mu = (d[i] - d[j]) / rij[i * na + j];
-              pr *= becke_s(mu + aij[i * na + j] * (1 - mu * mu));
-            }
-            P[i] = pr;
-            sum += pr;
-          }
-          wp = sum > 0 ? P[A] / sum : 0.0;
-        }
+        const double wp = partition.weight({px, py, pz}, A);
         const double w = 4 * kPi * wr * p[3] * wp;
         if (w == 0) continue;
         g.x.push_back(px); g.y.push_back(py); g.z.push_back(pz); g.w.push_back(w);
+        g.atom.push_back(A); g.atomic_w.push_back(4 * kPi * wr * p[3]);
       }
     }
   }

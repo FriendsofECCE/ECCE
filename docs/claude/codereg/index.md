@@ -90,6 +90,7 @@ unit is produced in `ai.<code>`/the `.tpl`, closest to the input deck.
 - [ECCE-QM D3(BJ): C++ code, upstream data converted at build time, where it is wired](ecceqm-d3bj-dispersion-453.md)
 - [ECCE-QM analytic RHF Hessian: libcint derivative sign, ordered-pair double counting, scope](ecceqm-analytic-hessian-conventions.md)
 - [ECCE-QM analytic RKS Hessian: fixed grid, what it agrees with, which functionals](ecceqm-analytic-rks-hessian.md)
+- [ECCE-QM XC gradients: Becke weights and moving grid points (#1250)](ecceqm-grid-weight-gradient.md)
 - [ECCE-QM analytic UHF/UKS Hessian: spin channels, polarised fxc, why ROHF/ROKS stay numerical (#394)](ecceqm-analytic-uhf-uks-hessian.md)
 - [ECCE-QM analytic Hessian in CPCM (and D3): cavity terms included, assembly, agreement (#394)](ecceqm-analytic-cpcm-hessian.md)
 - [A `.desc` bracket group's names are labels, not the stored key](labels-not-the-stored-key.md)
