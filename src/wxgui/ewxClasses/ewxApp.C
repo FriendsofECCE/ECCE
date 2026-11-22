@@ -404,9 +404,14 @@ void ewxApp::showAbout(const wxAboutDialogInfo& info, wxWindow *parent)
    }
    wxBoxSizer *col = new wxBoxSizer(wxVERTICAL);
    const int width = 560;
-   wxStaticText *title = new wxStaticText(&dlg, wxID_ANY,
-                                          info.GetName() + " " + info.GetVersion());
+   // The version line names the build, which goes into bug reports: a
+   // read-only field so it can be selected, drawn like the bold title.
+   const wxString version = info.GetName() + " " + info.GetVersion();
+   wxTextCtrl *title = new wxTextCtrl(&dlg, wxID_ANY, version, wxDefaultPosition,
+                                      wxDefaultSize, wxTE_READONLY | wxBORDER_NONE);
    title->SetFont(title->GetFont().Bold().Larger());
+   title->SetBackgroundColour(dlg.GetBackgroundColour());
+   title->SetMinSize(wxSize(title->GetTextExtent(version).x + 12, -1));
    col->Add(title, 0, wxBOTTOM, 8);
    // The description carries the build information, which people paste
    // into bug reports: a borderless read-only text field so it can be
