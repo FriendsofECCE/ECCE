@@ -317,8 +317,11 @@ window of its own. This needs the tools to run in one program
 (the default); with `ECCE_ONE_PROCESS=0` in the environment every tool opens
 in its own window and the tab says so.
 
-Clicking Builder or Viewer again for a calculation that
-already has that tool open switches to its tab. Closing a tool's tab
+Opening the Builder, Viewer, Calculation Editor or Launcher again for a
+calculation that already has that tool open switches to its tab; Viewers
+of different calculations open side by side. A tab shows the tool's name;
+rest the pointer on it to see the calculation's full path and the tool,
+for example `(HOME)/Solids/urea_r2 – Viewer`. Closing a tool's tab
 closes only that tool. While a tool starts or a job is submitted, clicks
 and keys are ignored and the cursor shows the wait; the controls are not
 greyed out.
@@ -382,7 +385,14 @@ greyed out.
   in earlier versions, for large or several monitors. **Custom** is shown
   once the table below has been changed.
 - **Window menu**: with tools as tabs, every tab's menu bar has a **Window**
-  menu (before **Help**) listing the open tabs; choosing one switches to it.
+  menu (before **Help**). **Next Tab** (Ctrl+Tab or Ctrl+Page Down) and
+  **Previous Tab** (Ctrl+Shift+Tab or Ctrl+Page Up) go through the tabs and
+  wrap around from the last to the first; on macOS the keys are Cmd+Shift+]
+  and Cmd+Shift+[, or Control+Tab and Control+Shift+Tab. Below them the menu lists the open
+  tabs in strip order as the tool and the calculation's path, for example
+  **Viewer – (HOME)/Solids/urea_r2** (a very long path is shortened in the
+  middle, so the calculation's name always shows); the active tab is ticked
+  and choosing one switches to it.
   The window's title names the tab you are on. **Quit**, **Preferences** and
   **About** are the Organizer's whichever tab is active, so Quit from a
   Builder tab asks "Quit ECCE" for the whole session.

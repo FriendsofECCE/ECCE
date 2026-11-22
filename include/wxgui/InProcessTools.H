@@ -41,6 +41,9 @@ public:
   static void untrack(WxJMSMessageDispatch *d);
   // Open windows of a tool (tests and Quit).
   static int count(const string& app);
+  // The calculation URL a tracked window has open (its poll context, else
+  // the one it was opened for); empty if none.
+  static string context(const wxTopLevelWindow *frame);
   // Asks every tool window to close; false if one refused (Organizer Quit).
   static bool closeAll(bool force);
   // A tool's close handler is running (it may yield): a Quit meanwhile

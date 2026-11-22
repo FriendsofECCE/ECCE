@@ -34,6 +34,7 @@
 #include "util/ErrMsg.H"
 #include "util/JMSMessage.H"
 #include "util/MqttLink.H"
+#include "wxgui/ToolTabs.H"
 #include "util/StringConverter.H"
 
 #include "tdat/AuthCache.H"
@@ -1082,7 +1083,8 @@ void WxJMSMessageDispatch::setPollContext(const string& contextId)
          p_contextId.append("/");
       }
    }
-
+   // A tab names the calculation its tool has open.
+   ToolTabs::contextChanged();
 }
 
 string WxJMSMessageDispatch::getPollContext() const

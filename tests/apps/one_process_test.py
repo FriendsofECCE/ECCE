@@ -55,6 +55,10 @@ if "--1210-only" in sys.argv:
     sys.argv.remove("--1210-only")
     os.environ["ECCE_1210_ONLY"] = "1"
 # --1088-only: only runTabs1088 (as ECCE_1088_ONLY=1).
+# --1256-only: only runTabIdentity (as ECCE_1256_ONLY=1).
+if "--1256-only" in sys.argv:
+    sys.argv.remove("--1256-only")
+    os.environ["ECCE_1256_ONLY"] = "1"
 if "--1088-only" in sys.argv:
     sys.argv.remove("--1088-only")
     os.environ["ECCE_1088_ONLY"] = "1"
@@ -933,6 +937,106 @@ def runTabs(display):
               str(pb.answers(log, "answer")))
         check(len(tabs) >= 4 and " 1:" in tabs[-1],
               "the Builder tab is still there after Cancel", str(tabs))
+        check(not result.crashed and result.returncode == 0
+              and "Aborted" not in log,
+              "the tabbed Organizer ends cleanly",
+              "returncode %s\n%s" % (result.returncode, log[-2000:]))
+    finally:
+        shutil.rmtree(data, ignore_errors=True)
+        shutil.rmtree(work, ignore_errors=True)
+
+
+def runTabIdentity(display):
+    """#1256: Viewers of two calculations open side by side, the editor
+    opened twice for one calculation keeps one tab, each tab's tooltip names
+    the calculation's path and the tool, Next/Previous Tab (menu and keys)
+    wrap around, and the Window menu lists every tab and selects it."""
+    data = tempfile.mkdtemp(prefix="ecce-oneproc-data-")
+    work = tempfile.mkdtemp(prefix="ecce-oneproc-")
+    try:
+        project = os.path.join(data, "users", "local", "oneproc")
+        os.makedirs(project)
+        shutil.copy(pb.PROJECT_META, os.path.join(project, ".ecce-meta"))
+        urlA = "file://" + pb.makeCalc(project, "ident-a", "created", None)
+        urlB = "file://" + pb.makeCalc(project, "ident-b", "created", None)
+        cmds = os.path.join(work, "commands")
+        open(cmds, "w").close()
+
+        def append(line, wait):
+            with open(cmds, "a") as handle:
+                handle.write(line + "\n")
+            time.sleep(wait)
+
+        def inspect(_display):
+            append("start CalculationViewer " + urlA, 25)
+            append("start CalculationViewer " + urlB, 25)
+            append("start CalculationEditor " + urlA, 25)
+            append("start CalculationEditor " + urlA, 15)  # reused
+            append("tabs", 2)
+            append("tabtips", 2)
+            append("windowitems", 2)
+            append("tab 0", 3)
+            for c in ("prevtab", "nexttab"):
+                append(c, 2)
+            for k in ("next", "prev", "pgup", "pgdn"):
+                append("tabkey " + k, 2)
+            append("windowmenu 2", 3)
+            append("tabs", 2)
+            append("close", 3)
+            append("answer", 3)
+            append("answer no", 3)
+            append("answer no", 20)
+
+        setLayout(display, "small")
+        result = apps.run(display, "organizer", windowTimeout=60, settle=20,
+                          env={**({"ECCE_TEST_GDB": "1"} if GDB else {}),
+                               "ECCE_ONE_PROCESS": "1",
+                               "ECCE_TEST_ORGANIZER": cmds,
+                               "ECCE_LOCAL_DATA": data},
+                          inspect=inspect)
+        log = result.log or ""
+        if GDB:
+            print(log[-6000:])
+        tabs = re.findall(r"ECCE_TEST_ORGANIZER: tabs: (.*)$", log, re.M)
+        tips = pb.answers(log, "tabtips")
+        items = pb.answers(log, "windowitems")
+        print("      tabs: " + "\n            ".join(tabs))
+        print("      tabtips: " + str(tips))
+        print("      windowitems: " + str(items))
+        dash = " \u2013 "
+        tipList = re.findall(r"\d+:([^|]*)\|", tips[0]) if tips else []
+        check(len(tipList) == 4,
+              "two Viewers of different calculations and one editor tab "
+              "(the second editor start reused it)", str(tipList) + str(tabs))
+        if len(tipList) == 4:
+            check(tipList[0] == "", "the Organizer's tab has no tooltip",
+                  tipList[0])
+            a = [t for t in tipList if "oneproc/ident-a" + dash in t]
+            b = [t for t in tipList if "oneproc/ident-b" + dash in t]
+            tools = [t.split(dash)[-1] for t in tipList[1:]]
+            check(len(a) == 2 and len(b) == 1 and tools[0] == tools[1]
+                  and tools[2] != tools[0],
+                  "each tool tab's tooltip is '<path> \u2013 <tool>'",
+                  str(tipList))
+        steps = [pb.answers(log, c) for c in ("prevtab", "nexttab")] + \
+                [pb.answers(log, "tabkey " + k) for k in
+                 ("next", "prev", "pgup", "pgdn")]
+        check([s[0] if s else "" for s in steps] ==
+              ["3", "0", "1", "0", "3", "0"],
+              "Next/Previous Tab and Ctrl+Tab, Ctrl+Shift+Tab, Ctrl+PgUp, "
+              "Ctrl+PgDn step through the tabs and wrap around", str(steps))
+        it = items[0].split("|") if items else []
+        check(len(it) >= 7 and it[0].startswith("Next Tab[") and
+              it[1].startswith("Previous Tab[") and it[2] == "-" and
+              it[3] == "Organizer" and it[6].endswith("*") and
+              sum(1 for x in it[4:7] if "oneproc/ident-" in x and dash in x)
+              == 3,
+              "the Window menu has Next/Previous Tab with shortcuts, a "
+              "separator, then every tab as '<tool> \u2013 <path>', the "
+              "active one checked", str(it))
+        check(len(tabs) >= 2 and re.search(r"(^| )2:[^ ]*\*", tabs[-1])
+              is not None,
+              "choosing a Window menu entry selects that tab", str(tabs))
         check(not result.crashed and result.returncode == 0
               and "Aborted" not in log,
               "the tabbed Organizer ends cleanly",
@@ -2589,6 +2693,11 @@ def main():
             if failures:
                 results.fail("one-process", "; ".join(failures))
             return
+        if os.environ.get("ECCE_1256_ONLY") == "1":
+            runTabIdentity(display)
+            if failures:
+                results.fail("one-process", "; ".join(failures))
+            return
         if os.environ.get("ECCE_1088_ONLY") == "1":
             runTabs1088(display)
             if failures:
@@ -2638,6 +2747,7 @@ def main():
         runTabsPopups(display)
         runUtilityWindows(display)
         runTabs1088(display)
+        runTabIdentity(display)
         runPanelTeardown(display)
         if os.environ.get("ECCE_TABS_ONLY") == "1":
             if failures:
