@@ -391,6 +391,38 @@ int main(int argc, char **argv)
     }
   }
 
+  {
+    // Atoms added without a parent or an edited residue to a structure
+    // with residues must not be dropped (#1258): the copies below are what
+    // symmetry generation and Fragment::absorbAtoms hand to addAtom.
+    string tag = "181L addAtom";
+    Fragment *frag = load(dir + "/181L.pdb", "PDB");
+    if (frag) {
+      int n0 = frag->numAtoms();
+      size_t r0 = frag->numResidues();
+      vector<TAtm*> src;
+      for (int i = 0; i < n0; i++) src.push_back(frag->atomRef(i));
+      for (TAtm *a : src) frag->addAtom(new TAtm(*a), (TAtm*)0);
+      check(frag->numAtoms() == 2 * n0, tag + ": atoms doubled ("
+            + to_string(frag->numAtoms()) + " of " + to_string(2 * n0) + ")");
+      check(frag->numResidues() == 2 * r0, tag + ": one new residue per "
+            "copied residue (" + to_string(frag->numResidues()) + " of "
+            + to_string(2 * r0) + ")");
+      vector<Residue*> res = frag->residues();
+      set<Residue*> known(res.begin(), res.end());
+      bool owned = true;
+      for (int i = 0; i < frag->numAtoms(); i++)
+        if (known.count(frag->atomRef(i)->getResidue()) == 0) owned = false;
+      check(owned, tag + ": every atom has a residue of the fragment");
+      bool names = frag->numAtoms() == 2 * n0;
+      for (int i = 0; names && i < n0; i++)
+        if (frag->atomRef(i)->getResidue()->name()
+            != frag->atomRef(n0 + i)->getResidue()->name()) names = false;
+      check(names, tag + ": copies keep the residue names");
+      delete frag;
+    }
+  }
+
   cout << (failures ? "FAILED" : "PASSED") << " (" << failures
        << " failures)" << endl;
   return failures ? 1 : 0;
