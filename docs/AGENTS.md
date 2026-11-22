@@ -84,8 +84,7 @@ templates it says `No hydrogens added`. Script commands in
 
 Builder Edit menu: **Invert Selection** (Ctrl+R, formerly Reverse Selection).
 After a structure opens and after every Edit > Select command the 3-D view
-has the keyboard focus, so Delete and Ctrl+Z act at once; a first click that
-only gives the view the focus does not clear the selection. Script commands
+has the keyboard focus, so Delete and Ctrl+Z act at once. Script commands
 `undo`, `ctrlz` (the Ctrl+Z key hook) and `focus` (class of the focused
 window); see `tests/apps/builder_delete_undo_test.py`.
 

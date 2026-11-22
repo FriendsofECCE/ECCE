@@ -1676,19 +1676,8 @@ void SoWxRenderArea::OnMouse( wxMouseEvent& event )
 {
   //  A press in the view takes the keyboard (Delete, Ctrl+C) from whatever
   //  panel control had it; wx does not do so for a GL canvas by itself.
-  //  That first left click only moves the focus: it must not reach the scene,
-  //  where a click on empty space clears the selection (#1240).
-  if (event.LeftDown() && !HasFocus()) {
-    SetFocus();
-    p_focusClick = true;
-    return;
-  }
   if (event.ButtonDown() && !HasFocus())
     SetFocus();
-  if (p_focusClick) {
-    if (event.LeftUp()) p_focusClick = false;
-    if (!event.LeftDown()) return;
-  }
   processEvent(&event);
 }
 
