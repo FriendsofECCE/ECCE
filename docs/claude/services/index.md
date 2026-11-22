@@ -129,3 +129,4 @@ what the deployment mode needs (GETTING_STARTED, "Deployment modes"):
 - [A wx log window at start-up blocks Quit; quitting during the example import; two-sessions vs one program (#1065)](log-window-blocks-quit-1065.md)
 - [One program: one wx log target per process; a modal wxLogGui box from a tool stops queued events on macOS (#1123)](one-program-log-target-1123.md)
 - [Two tool starts within 100 ms left the second queued; Windows Quit lingered behind a separate tool (#1106)](start-queue-and-windows-quit-1106.md)
+- [An app test whose output pipe is not read freezes the app after 64 KiB of log](app-test-pipe-blocks-after-64k.md)

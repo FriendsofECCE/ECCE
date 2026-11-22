@@ -148,6 +148,8 @@ def run(display, label, importExamples, startDelay, parse=False,
         log = result.log or ""
         states = pb.answers(log, "toolstate")
         inproc = pb.answers(log, "inprocess")
+        # A log that stops near 64 KiB was a pipe left unread (apps.run).
+        print(label, "log bytes:", len(log.encode("utf-8", "replace")))
         print(label, "toolstate:", states)
         print(label, "inprocess:", inproc)
         print(label, "tabs:", pb.answers(log, "tabs"))
