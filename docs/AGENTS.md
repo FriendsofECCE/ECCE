@@ -1522,8 +1522,9 @@ every option; the help page **Diffraction** describes the views.
 `sinc(x) = sin(x)/x`, `sinc(0) = 1` and `q = 4*pi*sin(theta)/lambda` in Å⁻¹.
 The neutral-atom IT92 factors and B damping are shared with Powder; no
 Lorentz/polarisation factor is added. Periodic inputs contribute the cell
-contents once, without images. At most 3000 atoms use exact distances;
-larger inputs use an element-pair histogram of 0.01 Å bins. Pair generation
+contents once, without images. At most 300 atoms use exact distances;
+larger inputs use an element-pair histogram of 0.002 Å bins (a 1441-atom protein
+in seconds rather than minutes). Pair generation
 is O(N²) for both methods. The CLI summary and JSON state which was used.
 JSON includes q, raw intensity and relative intensity arrays; `.csv` holds
 `two_theta,intensity` (maximum 100 in the requested range), and `.png` plots

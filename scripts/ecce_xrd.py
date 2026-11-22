@@ -1088,15 +1088,15 @@ def run_powder(a):
 
 # --------------------------------------------------------------- Debye sum
 
-DEBYE_DIRECT_LIMIT = 3000
-DEBYE_BIN_WIDTH = 0.01
+DEBYE_DIRECT_LIMIT = 300
+DEBYE_BIN_WIDTH = 0.002
 
 
 def debye_intensity(symbols, xyz, q, occupancy=None, bfactor=0.0, method="auto"):
     """Orientational average sum_ij f_i f_j sinc(q r_ij), including self terms.
 
-    q is 4*pi*sin(theta)/lambda in inverse Angstrom. Above 3000 atoms,
-    element-pair distances are rounded to 0.01 A bin centres. Occupancies
+    q is 4*pi*sin(theta)/lambda in inverse Angstrom. Above 300 atoms,
+    element-pair distances are rounded to 0.002 A bin centres. Occupancies
     multiply amplitudes, as in structure_factors2; no periodic images or LP.
     """
     xyz, q = np.asarray(xyz, float), np.asarray(q, float)
@@ -1211,7 +1211,7 @@ def run_debye(a):
                      "raw_intensity": raw.tolist(), "intensity": y.tolist()})
         print(json.dumps(info))
     else:
-        description = "direct sum" if method == "direct" else "distance histogram (0.01 A bins)"
+        description = "direct sum" if method == "direct" else "distance histogram (0.002 A bins)"
         print("%d atoms, Debye %s, %g to %g degrees (%g A)" %
               (len(sym), description, a.tt_min, a.tt_max, wl))
     return 0

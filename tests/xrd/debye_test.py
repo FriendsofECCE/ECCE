@@ -46,7 +46,7 @@ def test_analytic():
         want_occ = ((.5*na)**2 + (.8*cl)**2 + 2*.5*.8*na*cl*sinc) * np.exp(-3*s2)
         check(np.allclose(got, want_occ, rtol=1e-13), method + ": occupancy and B match powder amplitudes")
     got = xrd.debye_intensity(["Na", "Cl"], [[0, 0, 0], [2.824, 0, 0]], q, method="histogram")
-    check(np.allclose(got, want, rtol=1e-13), "histogram rounds distances to nearest 0.01 A centre")
+    check(np.allclose(got, want, rtol=1e-13), "histogram rounds distances to nearest bin centre")
     line = np.array([[0, 0, 0], [.25, 0, 0], [.8, 0, 0], [1.31, 0, 0]])
     species = ["Na", "Cl", "Na", "Cl"]
     direct = xrd.debye_intensity(species, line, q)
@@ -84,6 +84,21 @@ def test_cluster():
               (hkl, peak, powder_tt, published))
     check(len(symbols) > xrd.DEBYE_DIRECT_LIMIT and np.isfinite(intensity).all(),
           "large cluster automatically uses distance histogram")
+
+
+def test_histogram_matches_direct():
+    # The histogram path is the default above DEBYE_DIRECT_LIMIT (#1246); it must
+    # agree with the exact sum within plotting precision.
+    rng = np.random.default_rng(7)
+    n = xrd.DEBYE_DIRECT_LIMIT + 100
+    xyz = rng.uniform(0, 25, (n, 3))
+    symbols = [("C", "N", "O", "S")[i % 4] for i in range(n)]
+    tt = np.arange(5, 60.001, .5)
+    q = 4 * np.pi * np.sin(np.radians(tt / 2)) / xrd.CU_KA1
+    exact = xrd.debye_intensity(symbols, xyz, q, method="direct")
+    fast = xrd.debye_intensity(symbols, xyz, q)
+    err = np.max(np.abs(fast - exact)) / np.max(exact)
+    check(err < 1e-3, "auto histogram within 1e-3 of the exact sum (%.2e)" % err)
 
 
 def test_cli(tmp):
@@ -140,6 +155,7 @@ def test_cli(tmp):
 def main():
     test_analytic()
     test_cluster()
+    test_histogram_matches_direct()
     with tempfile.TemporaryDirectory() as tmp:
         test_cli(tmp)
     print("%d failure(s)" % len(failures))
