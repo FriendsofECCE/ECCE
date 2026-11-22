@@ -33,6 +33,7 @@
 #include "util/EditEvent.H"
 
 #include "tdat/Fragment.H"
+#include "tdat/LigandSelect.H"
 #include "tdat/TAtm.H"
 #include "tdat/GeomConstraintModel.H"
 #include "tdat/GeomConstraintRules.H"
@@ -5109,6 +5110,23 @@ static string unescapeWarningText(const string& in)
 void CalcEd::writeVinaAutoNote() const
 {
   if (p_codeName != "Vina" || p_runtypeNotePath.empty()) return;
+  // The dialog's list of ligand choices: label TAB atom range, likely
+  // ligand first.  No file when the structure has no candidates.
+  {
+    string molPath = p_runtypeNotePath;
+    molPath.replace(molPath.size() - 5, 5, ".molecules");
+    vector<LigandSelect::Candidate> cands;
+    if (p_frag) cands = LigandSelect::ligandCandidates(*p_frag);
+    if (cands.empty()) {
+      remove(molPath.c_str());
+    } else {
+      ofstream mol(molPath.c_str());
+      for (const auto& c : cands)
+        mol << c.name << " " << c.number << " (" << c.atoms << " atom"
+            << (c.atoms == 1 ? "" : "s") << ")\t"
+            << LigandSelect::atomRangeString(c.atomIndices) << endl;
+    }
+  }
   string line;
   const string key = "the ligand was chosen automatically: ";
   for (const auto& w : p_inputGenWarnings) {
@@ -6220,6 +6238,9 @@ void CalcEd::closeRuntypeApp(const bool& sendTerm)
 
   if (!p_runtypeNotePath.empty()) {
     remove(p_runtypeNotePath.c_str());
+    string molPath = p_runtypeNotePath;
+    molPath.replace(molPath.size() - 5, 5, ".molecules");
+    remove(molPath.c_str());
     p_runtypeNotePath.clear();
   }
 

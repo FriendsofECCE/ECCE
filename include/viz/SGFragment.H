@@ -17,6 +17,7 @@
 
 #include "tdat/Fragment.H"
 #include "tdat/DisplayStyle.H"
+#include "tdat/LigandSelect.H"
 
 #include "inv/ChemKit/ChemData.H"
 
@@ -185,8 +186,12 @@ SoINTERNAL public:
 
     /// Residue classes by name; the one rule for Select Protein/Ligand and
     /// the docking ligand choice.  POLYMER is amino acid or nucleic acid.
-    enum ResidueClass { RES_POLYMER, RES_WATER, RES_ION, RES_ADDITIVE,
-                        RES_OTHER };
+    typedef LigandSelect::ResidueClass ResidueClass;
+    static constexpr ResidueClass RES_POLYMER = LigandSelect::RES_POLYMER;
+    static constexpr ResidueClass RES_WATER = LigandSelect::RES_WATER;
+    static constexpr ResidueClass RES_ION = LigandSelect::RES_ION;
+    static constexpr ResidueClass RES_ADDITIVE = LigandSelect::RES_ADDITIVE;
+    static constexpr ResidueClass RES_OTHER = LigandSelect::RES_OTHER;
     static ResidueClass residueClass(const string& residueName);
     /// Residues that are polymer, as joined chains.
     void getProtein(vector<bool>& atombits, vector<bool>& bondbits);
@@ -201,13 +206,7 @@ SoINTERNAL public:
                    string& message);
     /// Non-polymer, non-water residues, the likely ligand first: bigger
     /// non-additive residues, then additives, then single atoms and ions.
-    struct LigandCandidate {
-      string name;
-      int number;
-      int atoms;
-      int firstAtom;
-      ResidueClass cls;
-    };
+    typedef LigandSelect::Candidate LigandCandidate;
     vector<LigandCandidate> ligandCandidates();
     void getFullResidue(TAtm *atm, vector<bool>& atombits, vector<bool>& bondbits);
 
