@@ -247,6 +247,9 @@ void CalculationContextPanel::refresh()
   // New values (a longer formula after a Save) need their columns widened.
   Layout();
   FitInside();
+  // After a tool tab closed, GTK did not repaint the refilled pane until the
+  // window lost and regained focus (#1237); ask for the paint explicitly.
+  Refresh();
 
   string formula;
   p_properties->findValue(VDoc::getEcceNamespace() + ":empiricalFormula",
