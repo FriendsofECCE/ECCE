@@ -63,6 +63,10 @@ if "--1256-only" in sys.argv:
 if "--1088-only" in sys.argv:
     sys.argv.remove("--1088-only")
     os.environ["ECCE_1088_ONLY"] = "1"
+# --launcher-only: only the Launcher tab and Set-up launch runs.
+if "--launcher-only" in sys.argv:
+    sys.argv.remove("--launcher-only")
+    os.environ["ECCE_LAUNCHER_ONLY"] = "1"
 
 
 def check(ok, what, detail=""):
@@ -2085,6 +2089,7 @@ def runSetupLaunch(display):
             append("setup launch notify state ready", 5)
             append("setup launch get state", 2)
             append("setup launch go", 90)
+            append("setup launch get greyed", 2)
             append("setup launch info", 2)
             append("close", 3)
             append("answer", 3)
@@ -2127,6 +2132,10 @@ def runSetupLaunch(display):
               and states[1].lower() == "ready",
               "a state notice reaches the open Set-up panel (running, then "
               "ready again)", str(states))
+        greyed = pb.answers(log, "setup launch get greyed")
+        check(greyed == ["0"],
+              "the editor is not greyed out during the launch: no window "
+              "is disabled for each log line (#1266)", str(greyed))
         tt = pb.answers(log, "tabs")
         check(tt and "Launcher" not in tt[0],
               "no Launcher tab was opened", str(tt))

@@ -493,7 +493,7 @@ settings keys and units as the Python dialogs. The window
 is widened to 1100 px within the work area. Hook `setup info|theory|runtype|basis|launch|launch info|launch go|launch get WHAT|launch notify machreg|launch notify state STATE|input|fold|unfold|save|preview|width N|set KEY VALUE|find TEXT` on the
 active Set-up tab (`area=input|theory|runtype title=... folded=0|1
 controls=N marked=<button> overlaps=N more="none|+N hidden"`, where `overlaps` counts shown controls of the editor's column whose rectangles intersect (0 is right) and `more` is the code bar's hidden-codes button; `width N` resizes the Organizer's window to N px; `preview` prints `shown=<len:fnv> file=<len:fnv>`;
-`launch get WHAT` reads the embedded Launcher panel (`machines`, `machine`, `state`, ...); `launch notify machreg|state STATE` publishes the broker notice the panel follows (machine registration changed; the calculation's state, read from its stored metadata);
+`launch get WHAT` reads the embedded Launcher panel (`machines`, `machine`, `state`, ...; `greyed` is how many times the editor's window was disabled during the last launch, 0 when the log lines go out without greying it); `launch notify machreg|state STATE` publishes the broker notice the panel follows (machine registration changed; the calculation's state, read from its stored metadata);
 `set` edits a field of the embedded dialog as a user would, `find` says
 whether the preview contains TEXT, `basis` shows the basis panel
 (`area=basis list=N of M picked=<set> covered=H,O uncovered=<elements>

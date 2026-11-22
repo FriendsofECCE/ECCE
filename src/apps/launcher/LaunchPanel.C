@@ -2955,6 +2955,28 @@ void LaunchPanel::reloadMachinePreferences()
 
 
 
+namespace {
+//  Counts the times a window is found disabled during a launch, for the
+//  "greyed" test hook: every yield sends idle events, so it sees each one.
+struct GreyWatch : public wxEventFilter
+{
+    wxWindow *top;
+    int& count;
+    bool was;
+    GreyWatch(wxWindow *t, int& c) : top(t), count(c), was(true)
+        { count = 0; if (top) wxTheApp->AddFilter(this); }
+    ~GreyWatch() override { if (top) wxTheApp->RemoveFilter(this); }
+    int FilterEvent(wxEvent&) override
+    {
+        bool on = top->IsEnabled();
+        if (was && !on) count++;
+        was = on;
+        return Event_Skip;
+    }
+};
+}
+
+
 /**
  *
  *  Set the calculation reference for which machine to launch the
@@ -2992,7 +3014,7 @@ void LaunchPanel::launchCalc(const bool& fullLaunchFlag)
     if (!p_slctPrefs->isOptionSupported("TL") && p_taskJob &&
         !LaunchBatch::noWallTime(p_taskJob->launchdata().maxwall))
         say("This machine entry does not pass a time limit: "
-            "the stored wall time is not applied.", WxFeedback::WARNING, false, true);
+            "the stored wall time is not applied.", WxFeedback::WARNING);
 
     //  A timed-out earlier submit may have queued the job: warn, never block.
     if (p_taskJob)
@@ -3000,7 +3022,7 @@ void LaunchPanel::launchCalc(const bool& fullLaunchFlag)
         string maybe = p_taskJob->getProp(VDoc::getEcceNamespace() + ":submituncertain");
         if (!maybe.empty())
             say("May already be in the queue: " + maybe,
-                                           WxFeedback::WARNING, false, true);
+                                           WxFeedback::WARNING);
     }
 
     //  Broker messages (state, invoke, quit, machine changes) touch the
@@ -3011,26 +3033,29 @@ void LaunchPanel::launchCalc(const bool& fullLaunchFlag)
             { if (s) s->deferMessages(true); }
         ~DeferMessages() { if (s) s->deferMessages(false); }
     } defer(p_host);
-    //  No input while the steps run; the window still repaints.
+    //  No input while the steps run; the window still repaints. The log
+    //  lines go out without a flush: a flush is wxSafeYield, which greys
+    //  every window for each line (#1266); runLaunchStep paints them.
     InputBlock noInput;
+    GreyWatch watch(wxGetTopLevelParent(this), p_launchGreyed);
 
     while (valid && !p_launchData->done())
     {
         string dscpn = p_launchData->description();
-        say(dscpn, WxFeedback::INFO, false, true);
+        say(dscpn, WxFeedback::INFO);
 
         if (!(valid = runLaunchStep()))
         {
             p_launchError = p_launchData->message();
             LaunchBatch::recordFailure(p_taskJob, p_launchError);
-            say(p_launchData->message(), WxFeedback::ERROR, false, true);
+            say(p_launchData->message(), WxFeedback::ERROR);
         }
 
         else if (p_launchData->message() != "")
-            say(p_launchData->message(), WxFeedback::WARNING, false, true);
+            say(p_launchData->message(), WxFeedback::WARNING);
 
         else if (p_launchData->info() != "")
-            say(p_launchData->info(), WxFeedback::INFO, false, true);
+            say(p_launchData->info(), WxFeedback::INFO);
 
         if (valid && p_launchData->launchWarning() != "")
         {
@@ -3133,12 +3158,13 @@ bool LaunchPanel::runLaunchStep()
         finished = true;
     });
     p_stepPumps = 0;
-    while (!finished)
+    //  At least one pass, so the step's log line is drawn even when it is quick.
+    do
     {
         wxTheApp->Yield(true);
         p_stepPumps++;
         wxMilliSleep(20);
-    }
+    } while (!finished);
     worker.join();
     return ok;
 }
@@ -3942,6 +3968,8 @@ string LaunchPanel::hookGet(const string& what)
         return this->checkConnectAllowed() ? "1" : "0";
     if (what == "pumps")
         return StringConverter::toString(p_stepPumps);
+    if (what == "greyed")
+        return StringConverter::toString(p_launchGreyed);
     if (what == "launcherror")
         return p_launchError;
     if (what == "launchable")
