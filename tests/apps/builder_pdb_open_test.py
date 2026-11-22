@@ -141,6 +141,8 @@ def main():
             apps.stopServices(display)
     if problems:
         print("\n".join("      | " + l for l in out.splitlines()[-30:]))
+        #  Last, so the reasons survive when only the tail is kept.
+        print("\n".join("      problem: " + p for p in problems))
         print("FAIL  builder pdb open")
         return 1
     print("PASS  builder pdb open")
