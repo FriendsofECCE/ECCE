@@ -421,6 +421,9 @@ void Builder::refreshColumn()
   }
   wxAuiPaneInfoArray &panes = p_mgr.GetAllPanes();
   bool anyProperties = false;
+  //  Diffraction is offered for every structure and computed on demand; it
+  //  is not a result, so it never makes the Builder open on Properties.
+  bool anyResults = false;
   for (size_t i = 0; i < panes.GetCount(); ++i) {
     wxAuiPaneInfo &pane = panes.Item(i);
     if (paneGroup(pane) != GROUP_PROPERTIES ||
@@ -428,6 +431,7 @@ void Builder::refreshColumn()
       continue;
     }
     anyProperties = true;
+    if (pane.name != "Diffraction") anyResults = true;
     if (p_columnSeen.insert(pane.window).second) {
       if (p_panelMode == PANELS_ACCORDION) {
         pane.Show(true);
@@ -445,8 +449,8 @@ void Builder::refreshColumn()
   //  An editable calculation opens on the building tools, so a new user
   //  sees Build; one with results (read-only) opens on Properties.  A tab
   //  somebody chose, or a panel somebody opened, wins either way.
-  if (!anyProperties) {
-    p_columnTab = 0;
+  if (!anyResults) {
+    if (!p_columnTabChosen || !anyProperties) p_columnTab = 0;
   } else if (!p_columnTabChosen) {
     p_columnTab = p_calculation && isReadOnly() ? 1 : 0;
   }
