@@ -655,7 +655,7 @@ bool Builder::Create( wxWindow* parent, bool standalone, wxWindowID id,
   //  gives the focus back to its previous owner.
   Bind(wxEVT_MENU, [this](wxCommandEvent& ev) { ev.Skip(); focusView(); },
        ID_SELECT_MOLECULE, ID_SELECT_MOLECULE);
-  for (int id : {wxID_SELECTALL, ID_SELECT_SOLVENT, ID_SELECT_IONS,
+  for (int id : {(int)wxID_SELECTALL, ID_SELECT_SOLVENT, ID_SELECT_IONS,
                  ID_SELECT_PROTEIN, ID_SELECT_HETERO, ID_SELECT_BACKBONE,
                  ID_SELECT_SIDECHAINS, ID_SELECT_REVERSE, ID_UNSELECT})
     Bind(wxEVT_MENU, [this](wxCommandEvent& ev) { ev.Skip(); focusView(); }, id);

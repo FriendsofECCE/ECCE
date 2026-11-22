@@ -790,7 +790,7 @@ void Builder::runBuilderScript(const std::string& file)
       } else if (w[0] == "focus" && w.size() == 1) {
         wxWindow *f = wxWindow::FindFocus();
         fprintf(stderr, "BUILDER: focus %s\n",
-                f ? f->GetClassInfo()->GetClassName() : "none");
+                f ? (const char*)wxString(f->GetClassInfo()->GetClassName()).utf8_str() : "none");
       } else if (w[0] == "resatoms") {
         std::map<std::string,int> counts;
         for (int i = 0; i < (int)frag->numAtoms(); i++) {
