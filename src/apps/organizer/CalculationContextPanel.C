@@ -32,6 +32,8 @@
 #include "dsm/EDSIFactory.H"
 #include "dsm/JCode.H"
 #include "util/Ecce.H"
+#include "util/VizThumbnail.H"
+#include <set>
 #include "dsm/MdTask.H"
 #include "dsm/PropertyTask.H"
 #include "dsm/Resource.H"
@@ -238,6 +240,18 @@ void CalculationContextPanel::refresh()
           }
         }
       }
+    } else if (!getenv("ECCE_NO_VIZIMAGES")) {
+      //  Only the Builder's Save and the example import write a thumbnail,
+      //  so a calculation made by a script, an import or a copy has none.
+      //  Ask for it once per session when a structure is stored; it shows
+      //  the next time the calculation is selected.
+      static std::set<string> asked;
+      string formula;
+      p_properties->findValue(VDoc::getEcceNamespace() + ":empiricalFormula",
+                              formula);
+      const string url = getUrl().toString();
+      if (!formula.empty() && asked.insert(url).second)
+        VizThumbnail::thumbnail(ORGANIZER, url);
     }
   }
 

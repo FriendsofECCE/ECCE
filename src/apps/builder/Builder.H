@@ -911,6 +911,8 @@ class Builder: public BuilderGUI,
       wxWindow *p_accordionOpen = 0;
       map<wxWindow*, int> p_baseProportion;
       map<string, int> p_toolIndex;
+      vector<string> p_toolNames;       // by tool menu index
+      size_t p_contextMenuPos = 0;
       set<string> p_structureNames;
       wxPanel *p_tabsPanel = 0;
       wxPanel *p_togglePanel = 0;
