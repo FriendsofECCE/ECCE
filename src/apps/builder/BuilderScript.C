@@ -156,6 +156,7 @@
 #include "util/EventDispatcher.H"
 #include "util/Event.H"
 #include "wxviz/ViewerEvtHandler.H"
+#include "viz/EcceDispParam.H"
 #include "viz/HydrogenBondsCmd.H"
 #include "wxviz/SGSelection.H"
 #include "tdat/TPerTab.H"
@@ -1755,6 +1756,16 @@ void Builder::runBuilderScript(const std::string& file)
         //  What a click on atom N (from 1) in the current mode runs.
         frag->m_atomHighLight.assign(1, atoi(w[1].c_str()) - 1);
         pickedInMode(false, -1);
+      } else if (w[0] == "corner") {
+        //  The 3-D view's corner texts as drawn: strings, on/off, colours.
+        float fr, fg, fb;
+        EcceDispParam().getForeground(fr, fg, fb);
+        const SbColor bg = getViewer().getBackgroundColor();
+        fprintf(stderr, "BUILDER: corner shown=%d fg=%.2f,%.2f,%.2f "
+                "bg=%.2f,%.2f,%.2f lleft=[%s] lright=[%s]\n",
+                p_viewer->textLabelsShown() ? 1 : 0, fr, fg, fb,
+                bg[0], bg[1], bg[2], p_viewer->getLLeftText().c_str(),
+                p_viewer->getLRightText().c_str());
       } else if (w[0] == "inview") {
         //  inview: whether any atom is outside the 3-D view (#409).
         fprintf(stderr, "BUILDER: inview outside=%d\n",

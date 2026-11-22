@@ -162,7 +162,11 @@ With one atom selected the Builder/Viewer shows `El N  (x, y, z) Å  RES` at the
 bottom left of the 3-D view; with two atoms the distance `El N - El M  d Å`
 (#1236). Builder script `selectoverlay [N [M]]` (from 1) selects those atoms and
 prints `SELOVERLAY: <count> [<overlay text>]`; test
-`tests/apps/atom_numbers_test.py`.
+`tests/apps/atom_numbers_test.py`. Builder script `corner` prints
+`BUILDER: corner shown=0|1 fg=r,g,b bg=r,g,b lleft=[...] lright=[...]` (the
+corner texts the view holds and their colours);
+`tests/apps/builder_selection_corner_test.py` clicks atoms and checks the
+corner's pixels.
 
 Build > Cut Cluster (#1033) turns a periodic structure into a non-periodic
 cluster around the selected atoms. Builder script:
