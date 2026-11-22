@@ -2148,7 +2148,7 @@ void CalcMgr::runTestCommand(const string& line)
       if (!desk || !p_splitterWindow) outcome = "no desk";
       else {
         wxAuiNotebook *nb = 0;
-        for (wxWindow *w = this; w && !nb; w = w->GetParent()) nb = wxDynamicCast(w->GetParent(), wxAuiNotebook);
+        for (wxWindow *w = desk; w && !nb; w = w->GetParent()) nb = wxDynamicCast(w->GetParent(), wxAuiNotebook);
         const wxSize d = desk->GetSize(), sp = p_splitterWindow->GetClientSize();
         std::ostringstream o;
         o << "desk " << d.x << "x" << d.y << " shown=" << desk->IsShownOnScreen()
