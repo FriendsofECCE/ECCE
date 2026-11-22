@@ -62,11 +62,13 @@ PropertyIndexPanel::PropertyIndexPanel(wxWindow *parent)
     wxTreeItemId hit = p_tree->HitTest(event.GetPosition(), flags);
     int vx = 0, vy = 0;
     p_tree->GetViewStart(&vx, &vy);
+    wxRect row;
+    const int rowh = hit.IsOk() && p_tree->GetBoundingRect(hit, row) ? row.height : -1;
     fprintf(stderr, "[PANELS] list click y=%d hit=%s rowh=%d scrollpos=%d "
             "viewstart_y=%d\n", event.GetY(),
             hit.IsOk() ? p_tree->GetItemText(hit).ToStdString().c_str()
                        : "(none)",
-            hit.IsOk() ? p_tree->GetItemRect(hit).height : -1,
+            rowh,
             p_tree->GetScrollPos(wxVERTICAL), vy);
   });
   p_tree->Bind(wxEVT_TREE_ITEM_GETTOOLTIP, [this](wxTreeEvent& event) {
