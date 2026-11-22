@@ -494,6 +494,10 @@ int PropertyTask::computeTsOnlyIrcOrbitals()
     return -1;
   }
   if (getStoredProperty("PTMO") || !getStoredProperty("MO")) return -1;
+  // ECCE-QM writes PTMO whenever it keeps point orbitals; without it the MO
+  // set is the last point's (an end of the path), not the TS's.
+  const JCode *code = application();
+  if (code && code->getCodeName() == "ECCE-QM") return -1;
   PropVector *c = dynamic_cast<PropVector*>(getStoredProperty("IRCCOORD"));
   PropTSVecTable *geom = dynamic_cast<PropTSVecTable*>(getStoredProperty("IRCGEOM"));
   if (!c || !geom || geom->tables() < 2 ||

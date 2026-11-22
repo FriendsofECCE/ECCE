@@ -3,7 +3,7 @@ type: pitfall
 title: "ORCA prints an IRC's MOs once, at the TS; the two end points come from re-reading their gbw (PTMO holds three tables)"
 area: codereg
 paths: ["scripts/parsers/orca.mo", "scripts/parsers/orca.desc", "src/dsm/edsiimpl/PropertyTask.C", "src/apps/builder/PointNote.C", "scripts/gensub", "scripts/parsers/orca.ptmo", "tests/parsers/orca_irc_orbitals_test.py", "tests/apps/orca_irc_orbitals_test.py"]
-issues: [751]
+issues: [751, 1211]
 ---
 - With Print[P_MOs], ORCA writes MOLECULAR ORBITALS once, at the TS geometry
   before the IRC starts. `orca.desc` takes it with Frequency=last, which
@@ -20,6 +20,10 @@ issues: [751]
   `[PTMO]...` (script `orca.ptmo` = orca.mo with `$main::PTONLY`) takes them
   with Frequency=all, one table each. The `[MO]` rule keeps ORCA's own block.
   An IRC output without these appended blocks (an import) gets no PTMO.
+  `tsOnlyIrcOrbitals()` then treats the stored MO set as the TS's. It skips
+  ECCE-QM: an ECCE-QM IRC without PTMO (`point_orbitals no`) kept its last
+  point's orbitals, and taking them as the TS's enabled "Show MO while
+  playing" with nothing to follow (#1211).
 - `PropertyTask::orbitalsAtSomePointsOnly()` is true when PTMO has fewer
   tables than IRCGEOM has frames; `orbitalTable(point)` maps the IRCCOORD-0
   frame to table 0, the most negative IRCCOORD to the backward-end table and
