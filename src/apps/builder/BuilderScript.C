@@ -2642,6 +2642,20 @@ void Builder::focusView()
   CallAfter([this]() {
     if (SoWxRenderArea *area = findViewerArea(p_viewer)) area->SetFocus();
   });
+  //  After opening a structure the panels are still being built and one of
+  //  their buttons takes the focus; ask once more when that has settled.
+  wxTimer *later = new wxTimer();
+  wxWeakRef<Builder> self(this);
+  later->Bind(wxEVT_TIMER, [self, later](wxTimerEvent&) {
+    SoWxRenderArea *area = self ? findViewerArea(self->p_viewer) : 0;
+    if (area) {
+      wxWindow *f = wxWindow::FindFocus();
+      if (!dynamic_cast<wxTextEntry*>(f)) area->SetFocus();
+    }
+    later->Stop();
+    wxTheApp->CallAfter([later]() { delete later; });
+  });
+  later->StartOnce(400);
 }
 
 

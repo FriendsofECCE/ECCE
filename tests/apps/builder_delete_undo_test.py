@@ -14,7 +14,7 @@ import fixture    # noqa: E402
 
 STRUCTURE = os.path.join(HERE, "..", "fragreaders", "data", "181L.pdb")
 SCRIPT = [
-    "wait 2000", "import " + STRUCTURE, "wait 1000", "focus", "info", "resatoms",
+    "wait 2000", "import " + STRUCTURE, "wait 1500", "focus", "info", "resatoms",
     "menu Edit|Select Solvent", "wait 500", "focus", "selection",
     "menu Edit|Delete Selection", "wait 500", "info", "resatoms",
     "undo", "wait 500", "info", "resatoms",
@@ -71,7 +71,7 @@ def problemsIn(log):
     if atoms[3] >= atoms[2] or atoms[4] != atoms[2]:
         problems.append("invert delete / Ctrl+Z hook: atoms %s" % atoms[2:])
     focus = re.findall(r"BUILDER: focus (\S+)", log)
-    if len(focus) != 2 or any("RenderArea" not in f for f in focus):
+    if len(focus) != 2 or any(f not in ("wxGLCanvas", "SoWxRenderArea") for f in focus):
         problems.append("focus after open / Select Solvent: %s" % focus)
     print("%s  solvent delete/undo: atoms %s" %
           ("FAIL" if problems else "PASS", atoms))
