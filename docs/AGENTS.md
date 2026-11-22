@@ -382,7 +382,7 @@ through the command-line tools in "Commands". You cannot click in the windows.
 | Organizer | The main window: the tree of projects and calculations, the project table, the Run Mgmt menu (launch, terminate, reconnect, re-parse) and the Tools menu. | `ecce` (it opens the Organizer directly) |
 | Builder | Builds and edits a structure; the Viewer panels show results (orbitals, spectra, trajectories, properties). | From a calculation in the Organizer |
 | Calculation Editor | Sets up the calculation: theory, basis set, run type, details; writes and checks the input. | From a calculation in the Organizer |
-| Launcher | Chooses machine, queue, cores, wall time and allocation profile, and submits. | Opened from the Organizer for a calculation |
+| Launcher | Chooses machine, queue, cores, wall time and allocation profile, and submits. | Opened from the Organizer for several calculations; for one calculation the Organizer's Launch button (hook `launchbutton URL`) opens its editor tab with the Launch panel (same as the editor's Launch... button), the Launcher tab only without tabs or without a set-up area |
 | Register Machines | Registers compute machines: codes, job script, queues. | **Tools > Register Machines...**, or `ecce -machine` |
 | Machine Browser | Runs a few status queries on a registered machine over ECCE's login. | From the Organizer or Launcher |
 | Basis Set Tool (retired) | The old basis window; the editor's basis panel replaces it. | Only with `ECCE_FULL_BASIS_TOOL=1` (Preferences > Advanced, **Separate Basis Set Tool window**) |

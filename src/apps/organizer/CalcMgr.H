@@ -725,7 +725,11 @@ protected:
   bool p_wasHosted = false;         // the host saved the window geometry
 
   void startApp(const string& app, int force, const string& url,
-                const string& codename = "", int amulet = 0);
+                const string& codename = "", int amulet = 0,
+                const string& action = "");
+  // The Launch button for one calculation: its editor's Launch panel in
+  // the tab, else the Launcher.
+  void startLaunchButton(const string& url);
   ToolStartup *p_toolStartup = 0;     // feedback while a tool starts (#1071)
   void startPropertyEdit(const string& property);
 

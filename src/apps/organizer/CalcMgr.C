@@ -3759,6 +3759,10 @@ void CalcMgr::runTestCommand(const string& line)
       args >> tool >> url;
       startApp(tool, 0, url);
       outcome = "requested";
+    } else if (command == "launchbutton") {
+      // "launchbutton URL": the Launch button for one selected calculation.
+      startLaunchButton(calcName);
+      outcome = "requested";
     } else if (command == "probe") {
       // What a user sees first: the registration notice, whether the home
       // is in the tree, and the selection the tree's focus handler settles
@@ -5403,7 +5407,10 @@ void CalcMgr::OnToolClick( wxCommandEvent& event )
   else {
     // @todo Do we allow tools invoke in multi selection mode?
   }
-  startApp(tool->getName(), forceNew, itemData->getUrl().toString());
+  if (tool->getName() == LAUNCHER && p_currentSelection.size() == 1)
+    startLaunchButton(itemData->getUrl().toString());
+  else
+    startApp(tool->getName(), forceNew, itemData->getUrl().toString());
 
   stopDisabler();
 }
@@ -12052,7 +12059,7 @@ static bool solvateWindowWanted()
 }
 
 void CalcMgr::startApp(const string& appIn, int force, const string& url,
-                       const string& codename, int debug)
+                       const string& codename, int debug, const string& action)
 {
   // The Solvate window is retired (#1118): Build > Solvate does its job.
   if (appIn == "SolvationEditor" && !solvateWindowWanted()) {
@@ -12127,6 +12134,7 @@ void CalcMgr::startApp(const string& appIn, int force, const string& url,
   msg->addIntProperty("forcenew",force);
   msg->addProperty("calcurl",url);
   if (basisPanel) msg->addProperty("actiontopic", "basis");
+  else if (!action.empty()) msg->addProperty("actiontopic", action);
   if (codename != "") {
     msg->addProperty("codename", codename);
     msg->addIntProperty("debug",debug);
@@ -12136,6 +12144,17 @@ void CalcMgr::startApp(const string& appIn, int force, const string& url,
   if (!InProcessTools::open(*msg))
     publish("ecce_get_app",*msg);
   delete msg;
+}
+
+
+// With tabs the editor's Launch panel replaces the Launcher tab for one
+// calculation; without them the editor has no panel to show.
+void CalcMgr::startLaunchButton(const string& url)
+{
+  if (!url.empty() && ToolTabs::enabled() && InProcessTools::handles(CALCED))
+    startApp(CALCED, 0, url, "", 0, "launch");
+  else
+    startApp(LAUNCHER, 0, url);
 }
 
 

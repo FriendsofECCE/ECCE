@@ -92,6 +92,11 @@ void CalcEdMessages::invokeMCB(JMSMessage& msg)
       CalcEd *ed = p_calced;
       ed->CallAfter([ed]() { ed->showBasisPanel(); });
     }
+    // The Organizer's Launch button for one calculation.
+    if (action == "launch") {
+      CalcEd *ed = p_calced;
+      ed->CallAfter([ed]() { ed->showLaunchPanel(); });
+    }
   } else {
     showEditor();
   }
