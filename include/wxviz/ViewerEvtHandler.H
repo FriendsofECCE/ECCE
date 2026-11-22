@@ -159,6 +159,8 @@ public:
   virtual void delWheelManip(wxCommandEvent & event);
 
   virtual void addHydrogen(wxCommandEvent & event);
+  // Build > Add Hydrogen and the Builder button: one path, with a message.
+  static void addHydrogens(WxVizToolFW& fw);
   virtual void delHydrogen(wxCommandEvent & event);
   virtual void showHydrogen(wxCommandEvent & event);
   virtual void showHydrogenBond(wxCommandEvent & event);

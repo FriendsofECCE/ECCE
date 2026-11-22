@@ -654,11 +654,10 @@ string StringConverter::toString(double val)
 string StringConverter::toString(const vector<int>& value, const char *delim)
 {
     string ret = "";
-    size_t idx;
-    for (idx = 0; idx < value.size() - 1; idx++) {
-        ret += toString(value[idx]) + delim;
+    for (size_t idx = 0; idx < value.size(); idx++) {
+        if (idx) ret += delim;
+        ret += toString(value[idx]);
     }
-    ret += toString(value[idx]);
     return ret;
 }
 
@@ -669,11 +668,10 @@ string StringConverter::toString(const vector<int>& value, const char *delim)
 string StringConverter::toString(const vector<double>& value, const char *delim)
 {
     string ret = "";
-    size_t idx;
-    for (idx = 0; idx < value.size() - 1; idx++) {
-        ret += toString(value[idx]) + delim;
+    for (size_t idx = 0; idx < value.size(); idx++) {
+        if (idx) ret += delim;
+        ret += toString(value[idx]);
     }
-    ret += toString(value[idx]);
     return ret;
 }
 
@@ -684,11 +682,10 @@ string StringConverter::toString(const vector<double>& value, const char *delim)
 string StringConverter::toString(const vector<bool>& value, const char *delim)
 {
     string ret = "";
-    size_t idx;
-    for (idx = 0; idx < value.size() - 1; idx++) {
-        ret += toString(value[idx]) + delim;
+    for (size_t idx = 0; idx < value.size(); idx++) {
+        if (idx) ret += delim;
+        ret += toString(value[idx]);
     }
-    ret += toString(value[idx]);
     return ret;
 }
 
@@ -699,11 +696,10 @@ string StringConverter::toString(const vector<bool>& value, const char *delim)
 string StringConverter::toString(const vector<string>& value, const char *delim)
 {
     string ret = "";
-    size_t idx;
-    for (idx = 0; idx < value.size() - 1; idx++) {
-        ret += value[idx] + delim;
+    for (size_t idx = 0; idx < value.size(); idx++) {
+        if (idx) ret += delim;
+        ret += value[idx];
     }
-    ret += value[idx];
     return ret;
 }
 

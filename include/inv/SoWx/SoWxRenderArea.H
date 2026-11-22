@@ -297,6 +297,7 @@ private:
   wxTimer p_resizeRedraw;
 
   bool p_inPaint;
+  bool p_focusClick = false;  // a left click that only gave the view the focus
   // Set when Inventor's renderCB fires while a paint is already in
   // flight (p_inPaint) -- that redraw request is otherwise silently
   // dropped with no retry, which is what made geometry-trace/vibration

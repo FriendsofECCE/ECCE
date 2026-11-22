@@ -18,12 +18,176 @@ using namespace ecce;
 #include "tdat/FragUtil.H"
 #include "tdat/TPerTab.H"
 #include "tdat/ShapeData.H"
+#include "tdat/TAtm.H"
+#include "tdat/TBond.H"
+#include "tdat/Residue.H"
+#include <cmath>
+#include <set>
+#include <array>
 
 #include "viz/AddSegmentHCmd.H"
 #include "viz/SGFragment.H"
 #include "viz/SGContainer.H"
 
 #define PI 3.14159265358979323846
+
+namespace {
+
+typedef double V3[3];
+
+double bondOrderFromLength(const string& a, const string& b, double d)
+{
+  string x = a < b ? a : b, y = a < b ? b : a;
+  if (x == "C" && y == "C") return d < 1.25 ? 3 : d < 1.32 ? 2 : d < 1.46 ? 1.5 : 1;
+  if (x == "C" && y == "N") return d < 1.20 ? 3 : d < 1.30 ? 2 : d < 1.40 ? 1.5 : 1;
+  if (x == "C" && y == "O") return d < 1.30 ? 2 : 1;
+  if (x == "C" && y == "S") return d < 1.65 ? 2 : 1;
+  return 1;
+}
+
+void unit(V3 v)
+{
+  double n = sqrt(v[0]*v[0] + v[1]*v[1] + v[2]*v[2]);
+  if (n > 1e-9) for (int i = 0; i < 3; i++) v[i] /= n;
+}
+
+void cross(const V3 a, const V3 b, V3 c)
+{
+  c[0] = a[1]*b[2] - a[2]*b[1];
+  c[1] = a[2]*b[0] - a[0]*b[2];
+  c[2] = a[0]*b[1] - a[1]*b[0];
+}
+
+// A unit vector perpendicular to v, in the plane of v and ref when ref is
+// not parallel to v.
+void perpendicular(const V3 v, const V3 ref, V3 out)
+{
+  V3 n;
+  cross(v, ref, n);
+  double len = sqrt(n[0]*n[0] + n[1]*n[1] + n[2]*n[2]);
+  if (len < 1e-3) {
+    V3 axis = {1, 0, 0};
+    if (fabs(v[0]) > 0.9) { axis[0] = 0; axis[1] = 1; }
+    cross(v, axis, n);
+  }
+  unit(n);
+  cross(n, v, out);
+  unit(out);
+}
+
+// Hydrogens for atoms of residues the templates do not cover, from the
+// heavy-atom geometry: the bond order of each bond is read off its length
+// (a ring C-C of 1.36-1.46 A is aromatic), what the valence leaves open is
+// filled by hydrogens in the ideal directions.  Returns the number added.
+int addValenceHydrogens(SGFragment *frag, const set<const Residue*>& residues)
+{
+  int added = 0;
+  vector<TAtm*> *all = frag->atoms();
+  vector<TAtm*> todo;
+  for (size_t i = 0; i < all->size(); i++)
+    if (residues.count((*all)[i]->getResidue())) todo.push_back((*all)[i]);
+  delete all;
+
+  for (size_t t = 0; t < todo.size(); t++) {
+    TAtm *atm = todo[t];
+    const string sym = atm->atomicSymbol();
+    int valence = sym == "C" ? 4 : sym == "N" ? 3 : (sym == "O" || sym == "S") ? 2 : 0;
+    if (valence == 0) continue;
+    const double *p = atm->coordinates();
+    vector<V3*> dirs;
+    double sum = 0;
+    const vector<TBond*>& bl = atm->bondList();
+    for (size_t b = 0; b < bl.size(); b++) {
+      TAtm *o = bl[b]->atom1() == atm ? bl[b]->atom2() : bl[b]->atom1();
+      if (o->atomicSymbol() == "Nub") continue;
+      V3 *d = new V3[1];
+      for (int k = 0; k < 3; k++) (*d)[k] = o->coordinates()[k] - p[k];
+      double len = sqrt((*d)[0]*(*d)[0] + (*d)[1]*(*d)[1] + (*d)[2]*(*d)[2]);
+      sum += o->atomicSymbol() == "H" ? 1 : bondOrderFromLength(sym, o->atomicSymbol(), len);
+      unit(*d);
+      dirs.push_back(d);
+    }
+    int k = dirs.size();
+    int m = (int)floor(valence - sum + 0.5);
+    vector<std::array<double,3>> out;
+    if (k >= 1 && m >= 1 && k + m <= 4) {
+      const double tet = 1.0/3.0, ts = 0.9428090416;
+      if (k == 1) {
+        V3 b = {(*dirs[0])[0], (*dirs[0])[1], (*dirs[0])[2]};
+        V3 ref = {0, 0, 0};
+        // The other neighbour of the neighbour fixes the plane, if any.
+        TAtm *nb = 0;
+        for (size_t q = 0; q < bl.size() && !nb; q++) {
+          TAtm *o = bl[q]->atom1() == atm ? bl[q]->atom2() : bl[q]->atom1();
+          if (o->atomicSymbol() != "Nub") nb = o;
+        }
+        const vector<TBond*>& nbl = nb->bondList();
+        for (size_t q = 0; q < nbl.size(); q++) {
+          TAtm *o = nbl[q]->atom1() == nb ? nbl[q]->atom2() : nbl[q]->atom1();
+          if (o == atm || o->atomicSymbol() == "Nub") continue;
+          for (int c = 0; c < 3; c++) ref[c] = o->coordinates()[c] - p[c];
+          break;
+        }
+        V3 e1, e2;
+        perpendicular(b, ref, e1);
+        cross(b, e1, e2);
+        if (m == 1 && sym == "C") {
+          out.push_back({-b[0], -b[1], -b[2]});
+        } else if (m == 2) {
+          for (int sgn = -1; sgn <= 1; sgn += 2) {
+            V3 d;
+            for (int c = 0; c < 3; c++) d[c] = -0.5*b[c] + sgn*0.8660254*e1[c];
+            out.push_back({d[0], d[1], d[2]});
+          }
+        } else {
+          for (int h = 0; h < m && h < 3; h++) {
+            double phi = 2.0943951*h;
+            V3 d;
+            for (int c = 0; c < 3; c++)
+              d[c] = -tet*b[c] + ts*(cos(phi)*e1[c] + sin(phi)*e2[c]);
+            out.push_back({d[0], d[1], d[2]});
+          }
+        }
+      } else if (k == 2) {
+        V3 s, n;
+        for (int c = 0; c < 3; c++) s[c] = -((*dirs[0])[c] + (*dirs[1])[c]);
+        unit(s);
+        cross(*dirs[0], *dirs[1], n);
+        unit(n);
+        if (m == 1) {
+          out.push_back({s[0], s[1], s[2]});
+        } else {
+          for (int sgn = -1; sgn <= 1; sgn += 2) {
+            V3 d;
+            for (int c = 0; c < 3; c++) d[c] = 0.5774*s[c] + sgn*0.8165*n[c];
+            out.push_back({d[0], d[1], d[2]});
+          }
+        }
+      } else if (k == 3) {
+        V3 s;
+        for (int c = 0; c < 3; c++)
+          s[c] = -((*dirs[0])[c] + (*dirs[1])[c] + (*dirs[2])[c]);
+        unit(s);
+        out.push_back({s[0], s[1], s[2]});
+      }
+    }
+    for (size_t b = 0; b < dirs.size(); b++) delete[] dirs[b];
+
+    const double len = sym == "C" ? 1.09 : sym == "N" ? 1.01 : sym == "O" ? 0.96 : 1.34;
+    for (size_t h = 0; h < out.size(); h++) {
+      double xyz[3] = {p[0] + len*out[h][0], p[1] + len*out[h][1], p[2] + len*out[h][2]};
+      TAtm *hatm = new TAtm("H", xyz);
+      frag->addAtom(hatm, atm);
+      hatm->atomName(hatm->getHydrogenName().c_str());
+      TBond *bond = new TBond(atm, hatm, TBond::Single);
+      bond->displayStyle(frag->getMainDisplayStyle());
+      added++;
+    }
+  }
+  return added;
+}
+
+}
 
 AddSegmentHCmd::AddSegmentHCmd(const string& name, Receiver * receiver)
     : FragCloneCmd(name, receiver)
@@ -44,6 +208,8 @@ void AddSegmentHCmd::init()
    string dir = StringConverter::toString(FFConfigData::getSegDirs());
    addParameter(new CommandParameter("directories", dir));
    addParameter(new CommandParameter("fftype", "Amber"));
+   // Residues with no template (ligands) get hydrogens from their geometry.
+   addParameter(new CommandParameter("valence", false));
    setHelpMessage("Add hydrogens to structure based on available fragment or "
                   "segment files");
 }
@@ -331,6 +497,19 @@ bool AddSegmentHCmd::execute()
     frag->editResidueMode(1,saveResidue);
 
     sg->addHydrogens(frag, true, false);
+
+    if (getParameter("valence")->getBoolean()) {
+      set<const Residue*> rest;
+      vector<SGFragment::AtomRole> roles = frag->atomRoles();
+      for (int r = 0; r < frag->numResidues(); r++) {
+        const Residue *res = frag->residue(r);
+        if (res->residueStatus() == Residue::GENERATABLE) continue;
+        TAtm *first = res->firstAtomPtr();
+        if (first && roles[first->index()] == SGFragment::SOLUTE)
+          rest.insert(res);
+      }
+      addValenceHydrogens(frag, rest);
+    }
 
     frag->touchNumbers();
     sg->touchChemDisplay();

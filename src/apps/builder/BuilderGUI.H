@@ -166,6 +166,9 @@ public:
     /// Edit > Select Protein / Select Ligand (#967)
     virtual    void OnSelectProteinClick( wxCommandEvent& event ) { event.Skip(); }
     virtual    void OnSelectLigandClick( wxCommandEvent& event ) { event.Skip(); }
+    virtual    void OnSelectLigandItem( wxCommandEvent& event ) { event.Skip(); }
+    virtual    void OnMenuOpen( wxMenuEvent& event ) { event.Skip(); }
+    virtual    void OnSelectHeteroClick( wxCommandEvent& event ) { event.Skip(); }
     virtual    void OnUpdateSelectResidueItem( wxUpdateUIEvent& event ) { event.Skip(); }
 
     /// Edit > Select Ions
@@ -224,6 +227,10 @@ public:
     static const wxWindowID ID_SELECT_IONS;
     static const wxWindowID ID_SELECT_PROTEIN;
     static const wxWindowID ID_SELECT_LIGAND;
+    /// First of 16 consecutive ids for the Select Ligand submenu entries.
+    static const wxWindowID ID_LIGAND_FIRST;
+    wxMenu *p_ligandMenu;
+    static const wxWindowID ID_SELECT_HETERO;
     static const wxWindowID ID_DISTORT_BONDS;
     static const wxWindowID ID_TAKE_COORDS;
     static const wxWindowID ID_SAVE_THUMB;
