@@ -156,10 +156,16 @@ def captured(pm, cont, tag):
     return pm.out(cont, "cat /tmp/cap_%s_[0-9]* 2>/dev/null" % tag)[0]
 
 
-def pub(pm, cont, host, port, user, pw, topic, msg):
+def pub(pm, cont, host, port, user, pw, topic, msg, retry=True):
     # mosquitto_pub has no -W; -q 1 returns once the broker acknowledged.
-    return pm.sh(cont, "timeout 10 mosquitto_pub %s -t '%s' -m '%s' -q 1" %
-                 (mosq(host, port, user, pw), topic, msg))
+    for attempt in range(2 if retry else 1):
+        r = pm.sh(cont, "timeout 10 mosquitto_pub %s -t '%s' -m '%s' -q 1" %
+                  (mosq(host, port, user, pw), topic, msg))
+        if r.returncode == 0 or not retry or attempt == 1:
+            return r
+        print("publish of %s failed: exit %d; retrying in 2 s\n%s%s" %
+              (msg, r.returncode, r.stdout, r.stderr), flush=True)
+        time.sleep(2)
 
 
 def delivery(pm, host, port, label, key="k0", ca="alice", cb="bob"):
@@ -180,51 +186,67 @@ def delivery(pm, host, port, label, key="k0", ca="alice", cb="bob"):
                 return
     ready(cb, "bob", "ecce/bob/probe", "b" + label, [0, 1, 2])
     ready(ca, "alice", "ecce/alice/probe", "a" + label, [0])
+    sent = {}
+
+    def send(cont, user, topic, message):
+        msg = message + label
+        r = pub(pm, cont, host, port, user, PW[user], topic, msg)
+        sent[message] = r.returncode == 0
+        if r.returncode:
+            check(False, "%s: publish of %s failed: exit %d, stderr: %s" %
+                  (label, msg, r.returncode, r.stderr.strip()), r.stdout)
+
     A = "ecce/alice/session/%s/ecce_test" % key
-    pub(pm, ca, host, port, "alice", PW["alice"], A, "A-session-" + label)
-    pub(pm, ca, host, port, "alice", PW["alice"],
-        "ecce/alice/job/j1/status", "A-job-" + label)
-    pub(pm, ca, host, port, "alice", PW["alice"],
-        "ecce/alice/ecce_machreg_changed", "A-machreg-" + label)
-    pub(pm, cb, host, port, "bob", PW["bob"], A, "B-intrusion-" + label)
+    send(ca, "alice", A, "A-session-")
+    send(ca, "alice", "ecce/alice/job/j1/status", "A-job-")
+    send(ca, "alice", "ecce/alice/ecce_machreg_changed", "A-machreg-")
+    pub(pm, cb, host, port, "bob", PW["bob"], A, "B-intrusion-" + label,
+        retry=False)
     pub(pm, cb, host, port, "bob", PW["bob"],
-        "ecce/alice/ecce_machreg_changed", "B-spoof-" + label)
-    pub(pm, cb, host, port, "bob", PW["bob"],
-        "ecce/bob/session/k1/ecce_test", "B-own-" + label)
+        "ecce/alice/ecce_machreg_changed", "B-spoof-" + label, retry=False)
+    send(cb, "bob", "ecce/bob/session/k1/ecce_test", "B-own-")
     # Wait for what must arrive rather than a fixed time: a loaded host
     # delivered bob's own message after the old 3 s (#850). Everything was
     # published before this, so the absence checks below hold all the same.
-    want_a = ["A-machreg-" + label, "A-session-" + label, "A-job-" + label]
+    want_a = [m + label for m in ("A-machreg-", "A-session-", "A-job-")
+              if sent[m]]
     for _ in range(40):
         time.sleep(0.5)
         b, a = captured(pm, cb, "b" + label), captured(pm, ca, "a" + label)
-        if "B-own-" + label in b and all(w in a for w in want_a):
+        if ((not sent["B-own-"] or "B-own-" + label in b)
+                and all(w in a for w in want_a)):
             break
     time.sleep(1)
     b, a = captured(pm, cb, "b" + label), captured(pm, ca, "a" + label)
-    check("A-machreg-" + label in a and "A-session-" + label in a
-          and "A-job-" + label in a,
-          "%s: alice's own subscriber gets her session, job and machreg "
-          "messages (control)" % label, a)
-    check("B-own-" + label in b,
-          "%s: bob's own subscriber gets bob's message (control)" % label, b)
-    check("A-session-" + label not in b and "A-job-" + label not in b,
-          "%s: alice's session and job messages are delivered to no bob "
-          "subscription (#, ecce/#, ecce/+/#, ecce/alice/#, ecce/+/session/#)"
-          % label, b)
-    check("A-machreg-" + label in b,
-          "%s: the site-wide machreg message does reach bob" % label, b)
+    # A failed publish is an infrastructure failure, not evidence about ACLs.
+    if all(sent[m] for m in ("A-machreg-", "A-session-", "A-job-")):
+        check("A-machreg-" + label in a and "A-session-" + label in a
+              and "A-job-" + label in a,
+              "%s: alice's own subscriber gets her session, job and machreg "
+              "messages (control)" % label, a)
+    if sent["B-own-"]:
+        check("B-own-" + label in b,
+              "%s: bob's own subscriber gets bob's message (control)" % label, b)
+    if sent["A-session-"] and sent["A-job-"]:
+        check("A-session-" + label not in b and "A-job-" + label not in b,
+              "%s: alice's session and job messages are delivered to no bob "
+              "subscription (#, ecce/#, ecce/+/#, ecce/alice/#, ecce/+/session/#)"
+              % label, b)
+    if sent["A-machreg-"]:
+        check("A-machreg-" + label in b,
+              "%s: the site-wide machreg message does reach bob" % label, b)
     check("B-intrusion-" + label not in a and "B-spoof-" + label not in a,
           "%s: bob cannot publish into alice's topics (nothing delivered)"
           % label, a)
-    check("B-own-" + label not in a,
-          "%s: alice's subscriptions (incl. ecce/bob/#) receive none of "
-          "bob's own messages" % label, a)
+    if sent["B-own-"]:
+        check("B-own-" + label not in a,
+              "%s: alice's subscriptions (incl. ecce/bob/#) receive none of "
+              "bob's own messages" % label, a)
     # Wrong passwords, unknown accounts and anonymous clients are refused.
     for who, user, pw in (("bob with alice's password", "bob", PW["alice"]),
                           ("unknown account", "mallory", "x"),
                           ("anonymous", None, None)):
-        r = pub(pm, cb, host, port, user, pw, "ecce/bob/x", "no")
+        r = pub(pm, cb, host, port, user, pw, "ecce/bob/x", "no", retry=False)
         check(r.returncode not in (0, 124), "%s: %s is refused" % (label, who),
               r.stdout + r.stderr)
 
@@ -407,7 +429,8 @@ def systemd(pm, image):
     check(r.returncode == 0, "an account added by ecce-broker-setup --user "
           "works at once (the script reloads the running service)",
           o + r.stdout + r.stderr)
-    r = pub(pm, "bob", "sysb", 8088, "carol", "carol2", "ecce/carol/x", "hi")
+    r = pub(pm, "bob", "sysb", 8088, "carol", "carol2", "ecce/carol/x", "hi",
+            retry=False)
     check(r.returncode != 0, "...and a wrong password for it is refused")
     pid, _ = sh("systemctl show -p MainPID --value ecce-broker")
     sh("kill -9 %s" % pid.strip())
@@ -423,7 +446,8 @@ def systemd(pm, image):
               "pgrep -a mosquitto || true")
     check("inactive" in o and ":8088" not in o and "mosquitto" not in o,
           "systemctl stop: inactive, port 8088 closed, no mosquitto left", o)
-    r = pub(pm, "alice", "sysb", 8088, "alice", PW["alice"], "ecce/alice/x", "hi")
+    r = pub(pm, "alice", "sysb", 8088, "alice", PW["alice"], "ecce/alice/x", "hi",
+            retry=False)
     check(r.returncode != 0, "a client now gets no connection")
     o, rc = sh("systemctl start ecce-broker; sleep 3; systemctl is-active "
                "ecce-broker")
