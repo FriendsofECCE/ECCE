@@ -132,7 +132,7 @@ water from GROMACS:
   residues, an unbonded atom of an ion element counts as an ion.
 - **Select Backbone** and **Select Side Chains** select those parts of a
   protein or nucleic acid.
-- **Reverse Selection** (Ctrl+R) and **Clear Selection** (Ctrl+U).
+- **Invert Selection** (Ctrl+R) and **Clear Selection** (Ctrl+U).
 
 A style from **Render > Style** applies to the selected atoms only. With
 nothing selected, it applies to every atom. To draw the water as wireframe

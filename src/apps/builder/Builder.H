@@ -539,6 +539,8 @@ class Builder: public BuilderGUI,
       /// Ctrl+X/C/V/Z: edit the focused text field, else the structure.
       void editShortcut(int accelId);
       void deleteKey();
+      /// Give the 3-D view the keyboard (after a structure opens or a Select).
+      void focusView();
       virtual void OnModeShapeClick( wxCommandEvent& event );
       virtual void OnModeBondClick( wxCommandEvent& event );
       void syncLassoType(int modeId);

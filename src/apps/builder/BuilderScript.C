@@ -25,6 +25,9 @@
 //                                and press the key; prints the cell and
 //                                whether its editor is still open
 //    residues                    the residue names of the structure, on stderr
+//    undo                        Edit > Undo (the menu event)
+//    ctrlz                       the Ctrl+Z key press, through the frame's key hook (#1247)
+//    focus                       the class of the window with the keyboard focus
 //    resatoms                    atoms per residue name (NAME=N,...), on stderr
 //    import FILE                 File > Import of FILE, as the dialog does (#1244)
 //    menustate NAME              whether Tools > NAME is enabled, on stderr
@@ -774,6 +777,20 @@ void Builder::runBuilderScript(const std::string& file)
         for (int i = 0; i < frag->numResidues(); i++)
           names += (i ? "," : "") + frag->residue(i)->name();
         fprintf(stderr, "BUILDER: residues=%s\n", names.c_str());
+      } else if (w[0] == "undo" && w.size() == 1) {
+        wxCommandEvent ev(wxEVT_MENU, wxID_UNDO);
+        ev.SetEventObject(this);
+        GetEventHandler()->ProcessEvent(ev);
+      } else if (w[0] == "ctrlz" && w.size() == 1) {
+        wxKeyEvent ev(wxEVT_CHAR_HOOK);
+        ev.m_keyCode = 'Z';
+        ev.SetControlDown(true);
+        ev.SetEventObject(this);
+        GetEventHandler()->ProcessEvent(ev);
+      } else if (w[0] == "focus" && w.size() == 1) {
+        wxWindow *f = wxWindow::FindFocus();
+        fprintf(stderr, "BUILDER: focus %s\n",
+                f ? f->GetClassInfo()->GetClassName() : "none");
       } else if (w[0] == "resatoms") {
         std::map<std::string,int> counts;
         for (int i = 0; i < (int)frag->numAtoms(); i++) {
@@ -2619,6 +2636,14 @@ bool Builder::selectResidueClass(bool ligand)
   }
   return true;
 }
+
+void Builder::focusView()
+{
+  CallAfter([this]() {
+    if (SoWxRenderArea *area = findViewerArea(p_viewer)) area->SetFocus();
+  });
+}
+
 
 void Builder::OnSelectProteinClick(wxCommandEvent&)
 {

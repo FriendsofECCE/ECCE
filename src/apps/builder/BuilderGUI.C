@@ -233,7 +233,7 @@ void BuilderGUI::CreateControls()
     itemMenu16->Append(ID_SELECT_HETERO, _("Select Heteroatoms (not protein)"), _T(""), wxITEM_NORMAL);
     itemMenu16->Append(ID_SELECT_BACKBONE, _("Select Backbone"), _T(""), wxITEM_NORMAL);
     itemMenu16->Append(ID_SELECT_SIDECHAINS, _("Select Side Chains"), _T(""), wxITEM_NORMAL);
-    itemMenu16->Append(ID_SELECT_REVERSE, _("Reverse Selection\tCtrl+r"), _T(""), wxITEM_NORMAL);
+    itemMenu16->Append(ID_SELECT_REVERSE, _("Invert Selection\tCtrl+r"), _T(""), wxITEM_NORMAL);
     itemMenu16->Append(ID_UNSELECT, _("Clear Selection\tCtrl+u"), _T(""), wxITEM_NORMAL);
     menuBar->Append(itemMenu16, _("Edit"));
     wxMenu* itemMenu34 = new wxMenu;

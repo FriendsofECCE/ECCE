@@ -642,8 +642,25 @@ bool Builder::Create( wxWindow* parent, bool standalone, wxWindowID id,
       ev.Skip();
       return;
     }
+    //  Ctrl+Z likewise: the canvas takes the key before the accelerator
+    //  table sees it (#1247); editShortcut leaves text fields their own undo.
+    if (key == 'Z' && ev.ControlDown() && !ev.AltDown() && !ev.ShiftDown()) {
+      editShortcut(ID_ACCEL_UNDO);
+      return;
+    }
     if (key != WXK_ESCAPE || !escapeKey()) ev.Skip();
   });
+  //  The Edit > Select commands leave the keyboard in the 3-D view, so
+  //  Delete acts on what they selected (#1240).  Deferred: the closing menu
+  //  gives the focus back to its previous owner.
+  Bind(wxEVT_MENU, [this](wxCommandEvent& ev) { ev.Skip(); focusView(); },
+       ID_SELECT_MOLECULE, ID_SELECT_MOLECULE);
+  for (int id : {wxID_SELECTALL, ID_SELECT_SOLVENT, ID_SELECT_IONS,
+                 ID_SELECT_PROTEIN, ID_SELECT_HETERO, ID_SELECT_BACKBONE,
+                 ID_SELECT_SIDECHAINS, ID_SELECT_REVERSE, ID_UNSELECT})
+    Bind(wxEVT_MENU, [this](wxCommandEvent& ev) { ev.Skip(); focusView(); }, id);
+  Bind(wxEVT_MENU, [this](wxCommandEvent& ev) { ev.Skip(); focusView(); },
+       ID_LIGAND_FIRST, ID_LIGAND_FIRST + 15);
   //  Key events go to the focused child (the 3-D canvas), never the frame,
   //  so Delete is an accelerator: deleteKey leaves editable text fields alone.
   //  The same holds for the File/Select/Mode menu shortcuts (Ctrl+S did
@@ -4093,7 +4110,7 @@ void Builder::OnSelectSidechainsClick( wxCommandEvent& event )
  */
 void Builder::OnSelectReverseClick( wxCommandEvent& event )
 {
-   Command *cmd = new SelectCmd("Reverse Selection", getSG());
+   Command *cmd = new SelectCmd("Invert Selection", getSG());
    cmd->getParameter("reverse")->setBoolean(true);
    execute(cmd);
 }
@@ -6125,6 +6142,7 @@ bool Builder::readFragmentFromFile(SFile *file, wxString type, wxString ext)
     }
   }
 
+  if (ret) focusView();
   return ret;
 }
 
