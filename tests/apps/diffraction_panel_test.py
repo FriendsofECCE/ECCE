@@ -85,7 +85,7 @@ def main():
                  "changed range changes data; pane and breakout share the same result")
         bo.check("(2 0 0)" in text and "multiplicity = 6" in text,
                  "pointer-position hover/click reports the NaCl 200 reflection and multiplicity")
-        bo.check("pinned=1 selected=2 0 0" in text, "click pins the tooltip and selects the reflection row")
+        bo.check("pinned=1 selected=2 0 0" in text, "click pins the readout and selects the reflection row")
         bo.check("|F| =" in text, "precession spot hover includes the structure factor")
         bo.check("refused:" not in text and "Unhandled" not in text, "pane hooks finish without exceptions")
 

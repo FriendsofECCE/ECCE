@@ -1903,11 +1903,14 @@ void DiffractionView::clearTip()
   p_tipText.clear(); p_pinned = false;
 }
 
-void DiffractionView::showTip(wxWindow *, const wxPoint&, const wxString& label, bool)
+void DiffractionView::showTip(wxWindow *, const wxPoint&, const wxString& label, bool pin)
 {
   // The readout line under the image is the one place for pointer and click
-  // details; a popup over the pattern repeated it and covered the data.
+  // details; a popup over the pattern repeated it and covered the data. A
+  // click's details stay there until the pointer leaves, as the popup did.
+  if (p_pinned && !pin) return;
   if (label.empty() || p_process || p_debounce.IsRunning()) return;
+  p_pinned = pin;
   p_pointer->SetLabel(label.BeforeFirst('\n'));
 }
 
