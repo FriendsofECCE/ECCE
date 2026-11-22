@@ -275,7 +275,8 @@ bool SetupArea::showLaunch()
         else fb->setMessage(text, (WxFeedback::Severity)sev, false, false);
       }));
   wxWindow *w = p_launch->window();
-  p_body->GetSizer()->Add(w, 1, wxEXPAND);
+  // Natural width, as in the Launcher tab (#1265).
+  p_body->GetSizer()->Add(w, 1, wxALIGN_LEFT);
   p_kind = LAUNCH;
   p_title->SetLabel("Launch");
   p_note->SetLabel("");

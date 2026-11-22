@@ -43,7 +43,9 @@ WxLauncher::WxLauncher(wxWindow* parent)
 
     p_panel = new LaunchPanel(this, this);
     wxBoxSizer *sizer = new wxBoxSizer(wxVERTICAL);
-    sizer->Add(p_panel, 1, wxEXPAND);
+    // Natural width: stretched across a wide tab the fields and the Launch
+    // button drifted to the far edge (#1265).
+    sizer->Add(p_panel, 1, wxALIGN_LEFT);
     SetSizer(sizer);
     sizer->Fit(this);
     sizer->SetSizeHints(this);
