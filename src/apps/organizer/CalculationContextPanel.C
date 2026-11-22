@@ -281,7 +281,7 @@ void CalculationContextPanel::refresh()
              "ORGANIZER: refresh %s total=%ld props=%ld launch=%ld backfill=%ld thumb=%ld",
              name.c_str(), all, tProps, tLaunch, tBackfill, tThumb);
     s_lastRefreshTimings = buf;
-    if (all > 1000 || getenv("ECCE_TIMING")) cerr << buf << endl;
+    if (all > 1000 || getenv("ECCE_TIMING")) std::cerr << buf << std::endl;
   });
 }
 
