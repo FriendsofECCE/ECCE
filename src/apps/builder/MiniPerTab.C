@@ -385,10 +385,7 @@ void MiniPerTab::eventMCB(const Event& event)
 
 void MiniPerTab::OnAddhClick(wxCommandEvent &event)
 {
-  WxVizToolFW& fw = getFW();
-  SGContainer& sg = fw.getSceneGraph();
-  Command *cmd = new HydrogensCmd("Add Hydrogens", &sg);
-  fw.execute(cmd);
+  ViewerEvtHandler::addHydrogens(getFW());
 }
 
 

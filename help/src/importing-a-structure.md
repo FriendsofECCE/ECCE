@@ -108,6 +108,13 @@ the sites that should be bonded."
 You can draw atoms with **Mode > Atom** (Ctrl+5), and finish with **Build >
 Add Hydrogen** and **Build > Clean**, as in the first calculation.
 
+A structure from a PDB file has no free sites, so **Build > Add Hydrogen**
+adds hydrogens to its amino-acid and nucleotide residues from the residue
+templates. The status line gives the number of hydrogens added and names the
+residues that got none (water). A ligand without a template, such as benzene,
+gets its hydrogens from its geometry (aromatic rings are recognised by their
+bond lengths).
+
 ## Select parts of a system
 
 The **Edit** menu selects parts of a large system, such as a protein in
@@ -125,7 +132,7 @@ water from GROMACS:
   residues, an unbonded atom of an ion element counts as an ion.
 - **Select Backbone** and **Select Side Chains** select those parts of a
   protein or nucleic acid.
-- **Reverse Selection** (Ctrl+R) and **Clear Selection** (Ctrl+U).
+- **Invert Selection** (Ctrl+R) and **Clear Selection** (Ctrl+U).
 
 A style from **Render > Style** applies to the selected atoms only. With
 nothing selected, it applies to every atom. To draw the water as wireframe

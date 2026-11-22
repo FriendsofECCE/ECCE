@@ -50,6 +50,7 @@ import builder_metal_test                                     # noqa: E402
 import builder_nub_shape_test                                 # noqa: E402
 import builder_select_within_test
 import builder_select_protein_ligand_test
+import builder_import_pdb_test
 import builder_select_style_test                              # noqa: E402
 import builder_panes_test                                     # noqa: E402
 import pbc_edit_test                                          # noqa: E402
@@ -713,6 +714,7 @@ def main():
                 builder_select_style_test.check(display, results)
                 builder_select_within_test.check(display, results)
                 builder_select_protein_ligand_test.check(display, results)
+                builder_import_pdb_test.check(display, results)
                 builder_panes_test.check(display, results)
                 pbc_ux_test.check(display, results)
                 organizer_local_tree_test.check(display, results)

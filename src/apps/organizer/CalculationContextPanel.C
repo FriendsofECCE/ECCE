@@ -15,6 +15,7 @@
 #include "wx/image.h"
 #include "wx/app.h"
 #include "wx/weakref.h"
+#include "wx/stopwatch.h"
 
 #include "util/Preferences.H"
 #include "util/PreferenceLabels.H"
@@ -32,6 +33,8 @@
 #include "dsm/EDSIFactory.H"
 #include "dsm/JCode.H"
 #include "util/Ecce.H"
+#include "util/VizThumbnail.H"
+#include <set>
 #include "dsm/MdTask.H"
 #include "dsm/PropertyTask.H"
 #include "dsm/Resource.H"
@@ -154,8 +157,32 @@ CalculationContextPanel::~CalculationContextPanel( )
 /**
  * Updates all data fields to the current metadata property values.
  */
+namespace {
+std::string s_lastRefreshTimings;
+}
+
+std::string CalculationContextPanel::lastRefreshTimings()
+{
+  return s_lastRefreshTimings;
+}
+
+std::string CalculationContextPanel::fieldText(const std::string &name)
+{
+  ewxStaticText *w = dynamic_cast<ewxStaticText*>(FindWindow(name));
+  return w ? std::string(w->GetLabel().ToUTF8()) : std::string("none");
+}
+
+/**
+ * Updates all data fields to the current metadata property values.  The
+ * fields are filled and laid out first; the slow parts (the progress
+ * backfill, the thumbnail) follow from the event loop, so the pane paints
+ * before them (#1237).
+ */
 void CalculationContextPanel::refresh()
 {
+  wxStopWatch total, phase;
+  long tProps = 0, tLaunch = 0;
+
   // update the properties first, since this is why refresh is likely being
   // called
   if (dynamic_cast<MdTask*>(p_itemData->getResource()))
@@ -205,49 +232,87 @@ void CalculationContextPanel::refresh()
   wxString shown = wxString::FromUTF8(annotation.c_str());
   if (shown.empty() && !annotation.empty()) shown = annotation;
   annotationCtrl->SetValue(shown);
+  tProps = phase.Time();
 
+  phase.Start();
   refreshLaunchInfo();
+  tLaunch = phase.Time();
 
   p_storedProgress.clear();
   p_properties->findValue(VDoc::getEcceNamespace() + ":progress",
                           p_storedProgress);
   updateProgress();
-  if (p_storedProgress.empty() && p_calcMgr)
-    p_calcMgr->backfillProgress(getUrl());
+  const bool needBackfill = p_storedProgress.empty() && p_calcMgr;
 
   // New values (a longer formula after a Save) need their columns widened.
   Layout();
   FitInside();
 
-  // get the thumbnail and replace the builder button icon
-  // variables to get the jpeg thumbnail resource
-  SFile *thumbnail = TempStorage::getTempFile();
-  ChemistryTask * chemTask = 0;
-  chemTask = dynamic_cast<ChemistryTask *>(p_itemData->getResource());
-  if (chemTask) {
-    if (chemTask->getThumbnail(thumbnail)) {
-      wxWindow *window = this->FindWindow(BUILDER);
-      if (window) {
-        EcceTool *button = dynamic_cast<EcceTool*>(window);
-        if (button) {
-          wxLogNull quiet;   // an unreadable thumbnail is shown as the plain icon
-          wxBitmap bitmap(thumbnail->path(), 
-                          wxBITMAP_TYPE_JPEG);
-          if (bitmap.Ok()) { // bitmap data found
-            button->setBitMap(bitmap);
-          }
-        }
-      }
-    }
-  }
-
-  // the temp thumbnail has served its purpose, we can delete it now
-  thumbnail->remove();
-  delete thumbnail;
+  string formula;
+  p_properties->findValue(VDoc::getEcceNamespace() + ":empiricalFormula",
+                          formula);
+  const bool isTask = dynamic_cast<ChemistryTask *>(p_itemData->getResource()) != 0;
+  const long tSync = total.Time();
+  const string url = getUrl().toString();
+  const string name = p_itemData->getResource()->getName();
 
   // manage memory
   if (p_properties != 0) delete p_properties;
   if (p_inpProvProps != 0) delete p_inpProvProps;
+  p_properties = 0;
+  p_inpProvProps = 0;
+
+  // The panel can be replaced or the calculation changed before this runs.
+  wxWeakRef<wxWindow> self(this);
+  CallAfter([this, self, url, name, formula, needBackfill, isTask, tSync,
+             tProps, tLaunch]() {
+    if (!self || getUrl().toString() != url) return;
+    wxStopWatch sw;
+    if (needBackfill) p_calcMgr->backfillProgress(getUrl());
+    const long tBackfill = sw.Time();
+
+    sw.Start();
+    if (isTask) refreshThumbnail(url, formula);
+    const long tThumb = sw.Time();
+
+    const long all = tSync + tBackfill + tThumb;
+    char buf[512];
+    snprintf(buf, sizeof buf,
+             "ORGANIZER: refresh %s total=%ld props=%ld launch=%ld backfill=%ld thumb=%ld",
+             name.c_str(), all, tProps, tLaunch, tBackfill, tThumb);
+    s_lastRefreshTimings = buf;
+    if (all > 1000 || getenv("ECCE_TIMING")) std::cerr << buf << std::endl;
+  });
+}
+
+/**
+ * Replaces the Builder button's icon by the stored thumbnail, or asks once
+ * per session for one when the calculation has a structure but no thumbnail.
+ */
+void CalculationContextPanel::refreshThumbnail(const std::string &url,
+                                               const std::string &formula)
+{
+  ChemistryTask *chemTask = dynamic_cast<ChemistryTask *>(p_itemData->getResource());
+  if (!chemTask) return;
+  SFile *thumbnail = TempStorage::getTempFile();
+  if (chemTask->getThumbnail(thumbnail)) {
+    wxWindow *window = this->FindWindow(BUILDER);
+    EcceTool *button = window ? dynamic_cast<EcceTool*>(window) : 0;
+    if (button) {
+      wxLogNull quiet;   // an unreadable thumbnail is shown as the plain icon
+      wxBitmap bitmap(thumbnail->path(), wxBITMAP_TYPE_JPEG);
+      if (bitmap.Ok()) button->setBitMap(bitmap);
+    }
+  } else if (!getenv("ECCE_NO_VIZIMAGES")) {
+    // Only the Builder's Save and the example import write a thumbnail, so
+    // a calculation made by a script, an import or a copy has none; it shows
+    // the next time the calculation is selected.
+    static std::set<string> asked;
+    if (!formula.empty() && asked.insert(url).second)
+      VizThumbnail::thumbnail(ORGANIZER, url);
+  }
+  thumbnail->remove();
+  delete thumbnail;
 }
 
 

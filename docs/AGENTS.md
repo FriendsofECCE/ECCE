@@ -51,6 +51,43 @@ Builder and Viewer runs the script when it opens, so a test can rewrite the
 file between `start` commands and give each tab its own steps (the
 Viewer-tab close test in `tests/apps/one_process_test.py --panels-only`).
 
+## Select heteroatoms (#1244)
+
+Builder `Edit > Select Heteroatoms (not protein)` selects every atom outside
+standard amino-acid/nucleotide residues except the ligand `Select Ligand`
+would pick (the largest non-water, non-ion, non-additive residue); with no
+ligand it selects everything non-protein except water. Delete then removes
+them. Script command in `ECCE_BUILDER_SCRIPT`: `select_hetero`.
+
+## Add Hydrogen on a PDB structure (#1244)
+
+`Edit > Select Ligand` is a submenu of the ligand candidates (non-polymer,
+non-water residues, `BNZ 400 (6 atoms)`), the likely ligand first, additives
+after it, single atoms and ions last; it is refilled when Edit opens. Script
+commands: `ligands` (prints the entries), `ligand N` (select the Nth),
+`select_ligand` (the first). The Vina box's Ligand atoms use the same rule.
+Ligand choice skips crystallisation additives by residue name
+(`SGFragment::residueClass`: GOL, EDO, HED, MPD, SO4, ...), so 181L's ligand is
+BNZ and not the larger HED.
+
+Builder `Build > Add Hydrogen` (and the toolbar button) only turned nubs into
+hydrogens, so a structure imported from a PDB file (no nubs) got nothing. With
+residues and no nubs it now runs the residue-template path (the Residue table's
+Add Hydrogens) and the status line says `Added N hydrogens to M of K residues`,
+naming the residues that got none (waters). Residues without a template
+(ligands) get hydrogens from their geometry: bond orders from lengths
+(aromatic ring C-C 1.32-1.46 A), then hydrogens in the ideal directions for C, N, O, S. With neither nubs nor
+templates it says `No hydrogens added`. Script commands in
+`ECCE_BUILDER_SCRIPT`: `import FILE` (File > Import of FILE), `resatoms`
+(atoms per residue name), `menu Build|Add Hydrogen`; see
+`tests/apps/builder_import_pdb_test.py`.
+
+Builder Edit menu: **Invert Selection** (Ctrl+R, formerly Reverse Selection).
+After a structure opens and after every Edit > Select command the 3-D view
+has the keyboard focus, so Delete and Ctrl+Z act at once. Script commands
+`undo`, `ctrlz` (the Ctrl+Z key hook) and `focus` (class of the focused
+window); see `tests/apps/builder_delete_undo_test.py`.
+
 ## Scripted total charge and multiplicity
 
 `ECCE_CALCED_SCRIPT` and `ECCE_BUILDER_SCRIPT` accept `charge INTEGER` and
@@ -331,6 +368,14 @@ Binary files show size and extension. **Open in editor** downloads a separate
 `.txt` copy and calls the system default application; changes are local to
 that copy. Text viewing currently refuses sizes above the signed-int EDSI
 range limit (2 GiB); the editor download is still available.
+
+Organizer details pane timing (#1237): selecting a calculation fills the
+pane and lays it out first; the progress backfill and the thumbnail follow
+from the event loop. `ECCE_TIMING=1` prints one stderr line per refresh,
+`ORGANIZER: refresh <name> total=… props=… launch=… backfill=… thumb=…` (ms);
+a refresh over 1 s prints it without the variable. The `ECCE_TEST_ORGANIZER`
+hook `refreshtimes` answers the last such line plus `formula=[<pane text>]`
+(`tests/apps/refresh_timing_test.py`).
 
 Isolated `ECCE_TEST_ORGANIZER` hooks: `view <url>` opens a window;
 `view-status`, `view-more`, `view-follow on|off`, `view-find <text>`,
