@@ -203,6 +203,8 @@ def runScript(s, display, env, wrappers, argv, lines, png, prefix, extra=None):
         stop(proc)
     with open(log, errors="replace") as handle:
         text = handle.read()
+    if "ECCE_BUILDER_SCRIPT" not in text:
+        print("  builder produced no script output; log tail:\n" + "\n".join(text.splitlines()[-25:]))
     return text, taken
 
 
