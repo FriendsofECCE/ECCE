@@ -14,6 +14,8 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 #include <unistd.h>    // access
+#include <sys/stat.h>
+#include <mutex>
 #include "util/PosixCompat.H"
 #ifndef _WIN32
 #include <netdb.h>    // gethostbyname
@@ -214,17 +216,57 @@ static string siteConfigPath(const string& refname)
   return Ecce::siteConfigFile("CONFIG." + refname, refname);
 }
 
+// Modification time and size of every file config() reads for refname, in
+// a fixed order; a missing file gives a fixed placeholder.
+static string configStamp(const string& refname)
+{
+  string stamp;
+  std::vector<Ecce::SiteLayer> layers = Ecce::siteConfigLayers(refname);
+  for (size_t i = 0; i < layers.size(); i++) {
+    const string files[2] = {layers[i].dir + "Machines",
+                             layers[i].dir + "CONFIG." + refname};
+    for (const string& f : files) {
+      struct stat st;
+      char buf[96];
+      if (stat(f.c_str(), &st) == 0) {
+#ifdef __linux__
+        const long nsec = (long)st.st_mtim.tv_nsec;
+#else
+        const long nsec = 0;  // MinGW and macOS spell it differently
+#endif
+        snprintf(buf, sizeof buf, "%lld.%ld:%lld|", (long long)st.st_mtime,
+                 nsec, (long long)st.st_size);
+      } else
+        snprintf(buf, sizeof buf, "-|");
+      stamp += f + "=" + buf;
+    }
+  }
+  return stamp;
+}
+
 map<string,string> RefMachine::config(const string& refname)
 {
   map<string,string> merged;
   if (refname.empty())
     return merged;
 
+  // The code bar asks for every code on every machine at each selection;
+  // reading and parsing the files each time made ~2000 opens per click
+  // (#1237). The cache is kept while none of the files has changed.
+  static std::map<string, std::pair<string, map<string,string> > > cache;
+  static std::mutex lock;
+  std::lock_guard<std::mutex> guard(lock);
+  const string stamp = configStamp(refname);
+  auto hit = cache.find(refname);
+  if (hit != cache.end() && hit->second.first == stamp)
+    return hit->second.second;
+
   string site = siteConfigPath(refname);
   if (!site.empty())
     ConfigFile::mergeFile(site, merged);
   ConfigFile::mergeFile(
       Ecce::siteConfigLayers(refname)[0].dir + "CONFIG." + refname, merged);
+  cache[refname] = std::make_pair(stamp, merged);
   return merged;
 }
 
