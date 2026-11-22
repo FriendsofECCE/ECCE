@@ -333,7 +333,6 @@ void CalcEd::runCalcEdScript(const string& file)
         }
         outcome += std::string(" state=") + (p_iCalc ?
             ResourceUtils::stateToString(p_iCalc->getState()) : "none");
-#ifdef __WXMSW__
       } else if (w[0] == "setup") {
         // the Set-up tab's hook ("setup text", "setup input", ...)
         outcome = std::string(setupCommand(wxString::FromUTF8(rest(1).c_str())).utf8_str());
@@ -382,6 +381,7 @@ void CalcEd::runCalcEdScript(const string& file)
             outcome += " |" + n.substr(0, 70);
           for (char& c : outcome) if (c == '\n') c = ' ';
         }
+#ifdef __WXMSW__
       } else if (w[0] == "wmcommand" && w.size() == 2) {
         // the WM_COMMAND a click on a popup menu item with that id sends
         int id = atoi(w[1].c_str());
