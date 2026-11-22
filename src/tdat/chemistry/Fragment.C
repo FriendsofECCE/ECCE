@@ -861,13 +861,10 @@ void Fragment::addAtom(TAtm* atom, TAtm *parent)
 
   } else {
     int curResIndex = editResidueIndex();
-    // With residues, every atom must belong to one.  Without an edit
-    // residue or a parent in a residue the atom has no place: refuse it,
-    // since an atom left out of p_atoms would then be the parent of its
-    // nubs, whose residue is null.
-    if (curResIndex < 0 && (parent == NULL || parent->getResidue() == NULL)) {
-      throw EcceException("Choose a residue to edit, or insert one, before "
-                          "adding an atom away from the residues.", WHERE);
+    if (curResIndex < 0 && parent == NULL) {
+      // For now this is bad.  Later we'll start a new residue perhaps.
+      EE_ASSERT((curResIndex < 0 && parent == NULL),EE_FATAL,
+          "Should be a residue to edit or parent to add to");
     } else {
 
       // Figure out the beginning and ending atom index of the current
