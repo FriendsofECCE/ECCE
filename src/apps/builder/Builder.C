@@ -3374,17 +3374,25 @@ void Builder::deleteKey()
    //  A read-only field (the Log) must not swallow the key; an editable,
    //  enabled one takes it as an edit.
    wxWindow *focus = wxWindow::FindFocus();
+   if (getenv("ECCE_DEBUG_PANELS"))
+      fprintf(stderr, "[BUILDER] delete key: focus %s \"%s\"\n",
+              focus ? (const char*)focus->GetClassInfo()->GetClassName() : "none",
+              focus ? (const char*)focus->GetName().ToUTF8() : "");
    if (focus && focus->IsEnabled()) {
       if (wxTextEntry *te = dynamic_cast<wxTextEntry*>(focus)) {
          if (te->IsEditable()) {
             long from, to;
             te->GetSelection(&from, &to);
+            if (getenv("ECCE_DEBUG_PANELS"))
+               fprintf(stderr, "[BUILDER] delete key taken by a text field\n");
             if (from == to) to = from + 1;
             te->Remove(from, to);
             return;
          }
       } else if (dynamic_cast<wxSpinCtrl*>(focus) ||
                  dynamic_cast<wxSpinCtrlDouble*>(focus)) {
+         if (getenv("ECCE_DEBUG_PANELS"))
+            fprintf(stderr, "[BUILDER] delete key taken by a spin field\n");
          return;
       }
    }
