@@ -1,3 +1,5 @@
+#include <cstdio>
+#include <cstdlib>
 #include <algorithm>
 #include <map>
 #include <set>
@@ -46,6 +48,27 @@ PropertyIndexPanel::PropertyIndexPanel(wxWindow *parent)
 
   p_tree->Bind(wxEVT_TREE_SEL_CHANGED, &PropertyIndexPanel::OnSelChanged,
                this);
+  // GTK3 can leave the tree's painted rows one scroll step off its view
+  // start after a resize or refill; clicks hit-test against the view start,
+  // so repaint from it, and drop a scroll that no longer has a reason.
+  p_tree->Bind(wxEVT_SIZE, [this](wxSizeEvent& event) {
+    event.Skip();
+    p_tree->CallAfter([this]() { syncView(); });
+  });
+  p_tree->Bind(wxEVT_LEFT_DOWN, [this](wxMouseEvent& event) {
+    event.Skip();
+    if (!getenv("ECCE_DEBUG_PANELS")) return;
+    int flags = 0;
+    wxTreeItemId hit = p_tree->HitTest(event.GetPosition(), flags);
+    int vx = 0, vy = 0;
+    p_tree->GetViewStart(&vx, &vy);
+    fprintf(stderr, "[PANELS] list click y=%d hit=%s rowh=%d scrollpos=%d "
+            "viewstart_y=%d\n", event.GetY(),
+            hit.IsOk() ? p_tree->GetItemText(hit).ToStdString().c_str()
+                       : "(none)",
+            hit.IsOk() ? p_tree->GetItemRect(hit).height : -1,
+            p_tree->GetScrollPos(wxVERTICAL), vy);
+  });
   p_tree->Bind(wxEVT_TREE_ITEM_GETTOOLTIP, [this](wxTreeEvent& event) {
     auto *data = dynamic_cast<NameData*>(p_tree->GetItemData(event.GetItem()));
     if (data) for (const auto& entry : p_entries)
@@ -54,6 +77,14 @@ PropertyIndexPanel::PropertyIndexPanel(wxWindow *parent)
   });
 }
 
+
+void PropertyIndexPanel::syncView()
+{
+  if (p_tree->GetVirtualSize().y <= p_tree->GetClientSize().y)
+    p_tree->Scroll(0, 0);
+  p_tree->Refresh();
+  p_tree->Update();
+}
 
 void PropertyIndexPanel::setHeader(const wxString& title,
                                    const wxString& codeTheory,
@@ -137,6 +168,7 @@ void PropertyIndexPanel::setEntries(const std::vector<Entry>& entries)
   if (!selected.empty()) {
     setSelected(selected);
   }
+  p_tree->CallAfter([this]() { syncView(); });
 }
 
 
@@ -225,6 +257,7 @@ bool PropertyIndexPanel::selectEntry(const std::string& name, bool quiet)
     p_tree->UnselectAll();
   }
   p_quiet = false;
+  syncView();
   return found;
 }
 

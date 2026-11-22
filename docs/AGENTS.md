@@ -301,6 +301,13 @@ mult 1`. A rejected command leaves the existing state intact.
 them. These fragment/export hooks only write inputs. The Counterpoise Energy
 option and Relaxed Scan action below run calculations and collect energies. See [Scripting help](../help/src/scripting-and-ai.md#fragments-and-orca-counterpoise-inputs).
 
+## Properties list click diagnostics (#965)
+
+`ECCE_DEBUG_PANELS=1` makes the Properties list print, on each mouse-down,
+`[PANELS] list click y=.. hit=<row> rowh=.. scrollpos=.. viewstart_y=..` on
+stderr (event y, the row HitTest gives, row height, vertical scroll). One
+real click that selects the wrong row gives the numbers to compare.
+
 ## Isolated GUI tests
 
 Builder hook `key text cut|copy|paste|undo|selectall` fills an editable

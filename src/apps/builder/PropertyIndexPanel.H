@@ -59,6 +59,7 @@ class PropertyIndexPanel : public wxPanel
     wxStaticText *p_codeTheory;
     wxStaticText *p_energy;
     wxTreeCtrl *p_tree;
+    void syncView();
     std::function<void(const std::string&)> p_onSelect;
     bool p_quiet;   // selection set by the program, not the user
     std::vector<Entry> p_entries;
