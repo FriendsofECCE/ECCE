@@ -44,6 +44,7 @@ public:
   // Test hook: "starting", "up", "timed out" or "none", and the details.
   string state() const;
   string report() const;
+  string pending() const;
   // Saves the small window as a PNG (tests, screenshots); false if none.
   bool shot(const string& file);
 

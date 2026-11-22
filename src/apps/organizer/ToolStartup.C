@@ -240,7 +240,21 @@ string ToolStartup::report() const
   return "state=" + state() + " status=\"" + p_status + "\" busy=" +
          (p_busy ? "1" : "0") + " window=" +
          (p_frame && p_frame->IsShown() ? "shown" : "none") +
-         " launches=" + std::to_string(p_launches);
+         " launches=" + std::to_string(p_launches) + pending();
+}
+
+
+// Test hook: the entries still waiting for their tool's up notice.
+string ToolStartup::pending() const
+{
+  string out = " pending=" + std::to_string(p_entries.size());
+  long now = wxGetLocalTimeMillis().GetValue();
+  for (const Entry& e : p_entries)
+    out += " [" + e.app + " " + e.calc + " age=" +
+           std::to_string(now - e.started) + "ms" +
+           (e.timedOut ? " timedout" : "") + (e.deferred ? " deferred" : "") +
+           "]";
+  return out;
 }
 
 

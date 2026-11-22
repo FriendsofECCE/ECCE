@@ -1568,7 +1568,7 @@ class CompositionProgress
 {
   public:
     explicit CompositionProgress(wxWindow *parent) : p_parent(parent), p_dlg(0) {}
-    ~CompositionProgress() { if (p_dlg) p_dlg->Destroy(); }
+    ~CompositionProgress() { delete p_dlg; }
     void progress(double frac)
     {
       if (p_dlg == 0) {
@@ -1757,7 +1757,7 @@ class ComputeProgress : public ProgressMonitor
 {
   public:
     explicit ComputeProgress(wxWindow *parent) : p_parent(parent), p_dlg(0) {}
-    ~ComputeProgress() { if (p_dlg) p_dlg->Destroy(); }
+    ~ComputeProgress() { delete p_dlg; }
     bool isInterrupted(const string& msg, int pct)
     {
       if (p_dlg == 0) {
