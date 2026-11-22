@@ -40,6 +40,7 @@
 #include <cstdint>
 #include <ctime>
 #include <iostream>
+#include "wx/weakref.h"
 using std::cerr;
 using std::endl;
 
@@ -4542,6 +4543,24 @@ void CalcMgr::setContextPanel()
   p_splitterWindow->SetAutoLayout(true);
 
   Layout();
+
+  // With the Organizer in a tab, a new desk panel could stay unsized (an
+  // empty desk) until the window lost and regained focus, after a tool tab
+  // had closed (#1237). Size it again once GTK has allocated the splitter,
+  // and report a desk still smaller than its pane.
+  wxWeakRef<wxWindow> desk(p_contextPanel->getWidget());
+  CallAfter([this, desk]() {
+    if (!desk || !p_splitterWindow) return;
+    p_splitterWindow->SizeWindows();
+    desk->Layout();
+    desk->Refresh();
+    const wxSize d = desk->GetSize(), sp = p_splitterWindow->GetClientSize();
+    if (d.x < sp.x / 4 || d.y < sp.y / 2 || !desk->IsShownOnScreen())
+      std::cerr << "ORGANIZER: desk panel " << d.x << "x" << d.y
+                << " shown=" << desk->IsShownOnScreen() << " in splitter "
+                << sp.x << "x" << sp.y << " sash=" << p_splitterWindow->GetSashPosition()
+                << std::endl;
+  });
 
   //  cerr << "\nLeave setContextPanel of: " << p_panelNode->getName() << endl;
 

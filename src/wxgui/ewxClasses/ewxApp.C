@@ -12,6 +12,9 @@
 
 #include "wx/image.h"
 #include "wx/aboutdlg.h"
+#include "wx/textctrl.h"
+#include "wx/dcclient.h"
+#include "wx/clipbrd.h"
 #include "wx/statbmp.h"
 #include "wx/hyperlink.h"
 #include "wx/collpane.h"
@@ -405,9 +408,23 @@ void ewxApp::showAbout(const wxAboutDialogInfo& info, wxWindow *parent)
                                           info.GetName() + " " + info.GetVersion());
    title->SetFont(title->GetFont().Bold().Larger());
    col->Add(title, 0, wxBOTTOM, 8);
-   wxStaticText *desc = new wxStaticText(&dlg, wxID_ANY, info.GetDescription());
-   desc->Wrap(width);
-   col->Add(desc, 0, wxBOTTOM, 8);
+   // The description carries the build information, which people paste
+   // into bug reports: a borderless read-only text field so it can be
+   // selected, sized to its lines so it still reads as a label.
+   wxTextCtrl *desc = new wxTextCtrl(&dlg, wxID_ANY, info.GetDescription(),
+                                     wxDefaultPosition, wxDefaultSize,
+                                     wxTE_MULTILINE | wxTE_READONLY |
+                                     wxTE_NO_VSCROLL | wxBORDER_NONE);
+   desc->SetBackgroundColour(dlg.GetBackgroundColour());
+   {
+      wxClientDC dc(desc);
+      dc.SetFont(desc->GetFont());
+      int lines = 1 + info.GetDescription().Freq('\n');
+      for (const wxString& l : wxSplit(info.GetDescription(), '\n', '\0'))
+         lines += dc.GetTextExtent(l).x / width;
+      desc->SetMinSize(wxSize(width, lines * dc.GetCharHeight() + 8));
+   }
+   col->Add(desc, 0, wxBOTTOM | wxEXPAND, 8);
    wxStaticText *copy = new wxStaticText(&dlg, wxID_ANY, info.GetCopyright());
    copy->SetFont(copy->GetFont().Smaller());
    copy->Wrap(width);
@@ -441,7 +458,21 @@ void ewxApp::showAbout(const wxAboutDialogInfo& info, wxWindow *parent)
    row->Add(col, 1, wxTOP | wxRIGHT | wxBOTTOM, 12);
    wxBoxSizer *top = new wxBoxSizer(wxVERTICAL);
    top->Add(row, 1, wxEXPAND);
-   top->Add(dlg.CreateStdDialogButtonSizer(wxOK), 0, wxEXPAND | wxALL, 10);
+   wxBoxSizer *buttons = new wxBoxSizer(wxHORIZONTAL);
+   wxButton *copyButton = new wxButton(&dlg, wxID_COPY, _("Copy"));
+   copyButton->SetToolTip(_("Copy the version and build information"));
+   const wxString all = info.GetName() + " " + info.GetVersion() + "\n" +
+                        info.GetDescription();
+   copyButton->Bind(wxEVT_BUTTON, [all](wxCommandEvent&) {
+      if (wxTheClipboard->Open()) {
+         wxTheClipboard->SetData(new wxTextDataObject(all));
+         wxTheClipboard->Close();
+      }
+   });
+   buttons->Add(copyButton, 0, wxALIGN_CENTER_VERTICAL);
+   buttons->AddStretchSpacer();
+   buttons->Add(dlg.CreateStdDialogButtonSizer(wxOK), 0);
+   top->Add(buttons, 0, wxEXPAND | wxALL, 10);
    dlg.SetSizerAndFit(top);
    dlg.CentreOnParent();
    dlg.ShowModal();
