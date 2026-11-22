@@ -308,7 +308,7 @@ def _terminate(proc):
             pass
 
 
-def _drain(proc, chunks):
+def _drain(proc, chunks=None):
     """Read whatever the app wrote, WITHOUT waiting forever for EOF.
 
     This used to be a bare proc.stdout.read(), which blocks until every
@@ -326,6 +326,11 @@ def _drain(proc, chunks):
     A bounded read means a stuck app costs its own timeout and is
     reported, instead of taking the run with it.
     """
+    #  Without a list (callers outside run()), return what was read.
+    if chunks is None:
+        got = []
+        _drain(proc, got)
+        return b"".join(got).decode("utf-8", "replace")
     if proc.stdout is None:
         return
     fd = proc.stdout.fileno()
