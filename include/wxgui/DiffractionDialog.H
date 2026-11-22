@@ -126,7 +126,7 @@ private:
   wxBitmap render(int w, int h, int scale) const;
   wxRect imageArea(const wxSize& s) const;
   int imagePixels() const;
-  void status(const wxString& text);
+  void status(const wxString& text, bool rewrap = false);
   void onCalculate(wxCommandEvent&);
   void onBackdrop(wxCommandEvent&);
   void onSavePng(wxCommandEvent&);

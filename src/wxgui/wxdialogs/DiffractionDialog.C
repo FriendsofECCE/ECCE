@@ -875,7 +875,8 @@ DiffractionView::DiffractionView(wxWindow *parent, const string& structure,
     w->SetMinSize(wxSize(180, 140));
     top->Add(w, 1, wxEXPAND | wxLEFT | wxRIGHT, 4);
   }
-  p_pointer = new wxStaticText(this, wxID_ANY, "Calculating...");
+  p_pointer = new wxStaticText(this, wxID_ANY, "Calculating...", wxDefaultPosition,
+                              wxDefaultSize, wxST_NO_AUTORESIZE);
   top->Add(p_pointer, 0, wxEXPAND | wxALL, 4);
   p_status = p_pointer;
   auto *progress = new wxBoxSizer(wxHORIZONTAL);
@@ -887,10 +888,12 @@ DiffractionView::DiffractionView(wxWindow *parent, const string& structure,
   top->Add(progress, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 4);
   top->Show(progress, false);
   p_progress = progress;
-  p_pointer->Bind(wxEVT_SIZE, [this](wxSizeEvent& e) {
+  // The wrap width follows the pane, not the label: a label that rewraps on
+  // its own size events resizes itself and loops.
+  Bind(wxEVT_SIZE, [this](wxSizeEvent& e) {
     e.Skip();
-    const int w = e.GetSize().x;
-    if (w > 20 && w != p_wrapWidth) { p_wrapWidth = w; CallAfter([this] { status(p_statusText); }); }
+    const int w = e.GetSize().x - 8;
+    if (w > 20 && w != p_wrapWidth) { p_wrapWidth = w; CallAfter([this] { if (!p_statusText.empty()) status(p_statusText, true); }); }
   });
   p_cancel->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { abortCalculation(); });
   p_measure = new wxStaticText(this, wxID_ANY, "");
@@ -1082,11 +1085,16 @@ DiffractionView::~DiffractionView()
   if (!p_dir.empty()) fs::remove_all(p_dir, ec);
 }
 
-void DiffractionView::status(const wxString& text)
+void DiffractionView::status(const wxString& text, bool rewrap)
 {
+  // pollRun repeats the same text every tick; relayout only on a change.
+  // Pointer readouts share the label, so compare with what it shows.
+  wxString shown = p_status->GetLabel();
+  shown.Replace("\n", " ");
+  if (!rewrap && text == p_statusText && shown == text) return;
   p_statusText = text;
   p_status->SetLabel(text);
-  if (p_wrapWidth > 20) p_status->Wrap(p_wrapWidth - 8);
+  if (p_wrapWidth > 20) p_status->Wrap(p_wrapWidth);
   p_status->InvalidateBestSize();
   Layout();
 }
