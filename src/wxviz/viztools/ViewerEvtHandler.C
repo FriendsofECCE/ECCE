@@ -42,6 +42,7 @@
 #include "viz/DisplayAtomsCmd.H"
 #include "viz/DepthCueCmd.H"
 #include "viz/ForegroundCmd.H"
+#include <cmath>
 #include "viz/GenBondsCmd.H"
 #include "viz/HydrogenBondsCmd.H"
 #include "viz/HydrogensCmd.H"
@@ -1216,9 +1217,16 @@ void ViewerEvtHandler::restoreSettings(wxConfigBase * config)
   wxString style = savedDefaultStyle(config);
   doStyleChange(style);
 
-  // Now override foreground only if set
+  // Now override foreground only if set, and only with a colour that can
+  // be read on the background: a saved white on white hid every label and
+  // the corner text (#1236).
   if (config->Read("Foreground", &buffer, "#000000")) {
      ewxColor fcol(buffer);
+     auto lum = [](double r, double g, double b) {
+       return 0.2126 * r + 0.7152 * g + 0.0722 * b; };
+     const double lb = lum(bcol.Red(), bcol.Green(), bcol.Blue()) / 255.0;
+     const double lf = lum(fcol.Red(), fcol.Green(), fcol.Blue()) / 255.0;
+     if (std::fabs(lb - lf) < 0.3) return;
      Command *cmd = new ForegroundCmd("Foreground", &sg);
      cmd->getParameter("red")->setDouble(fcol.Red()/255.0);
      cmd->getParameter("green")->setDouble(fcol.Green()/255.0);

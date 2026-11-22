@@ -152,6 +152,12 @@ using std::vector;
 #include "viz/AngleEditCmd.H"
 #include "viz/AtomEditCmd.H"
 #include "viz/AtomLabelsCmd.H"
+#include "viz/PBCLayerCmd.H"
+#include "viz/PBCSuperCmd.H"
+#include "viz/PBCReplicateCmd.H"
+#include "viz/LatticeBuildCmd.H"
+#include "viz/GeneratePeptideCmd.H"
+#include "viz/GenerateDNACmd.H"
 #include "viz/BondEditCmd.H"
 #include "viz/CenterCmd.H"
 #include "viz/DistortBondsCmd.H"
@@ -3004,22 +3010,24 @@ bool Builder::execute(Command *cmd, bool batch)
          // display (an MO's grid, then its surface): the view zoomed in
          // and out again while an orbital was computed.
          if (!batch) {
-            //  A display style, the H-bond lines (redrawn on every trace
-            //  step) or a selection (a click in the view) change no
-            //  coordinates: nothing to re-fit, the camera stays (#1260).
-            const bool display = dynamic_cast<PropCmd*>(cmd) ||
-                                 dynamic_cast<CSStyleCmd*>(cmd) ||
-                                 dynamic_cast<HydrogenBondsCmd*>(cmd) ||
-                                 dynamic_cast<SelectCmd*>(cmd) ||
-                                 dynamic_cast<UnselectCmd*>(cmd) ||
-                                 dynamic_cast<SelectAllCmd*>(cmd);
-            if ((isAutoCenter() && !display) ||
+            //  Auto Center re-fits only after a command that replaces or
+            //  rebuilds the structure (a new or loaded structure, cell
+            //  replication); anything else keeps the camera the user chose
+            //  (#1260). An edit that puts atoms outside the view still
+            //  shows the whole structure again (#409).
+            const bool rebuilt = dynamic_cast<NewFragmentCmd*>(cmd) ||
+                                 dynamic_cast<GenerateDNACmd*>(cmd) ||
+                                 dynamic_cast<GeneratePeptideCmd*>(cmd) ||
+                                 dynamic_cast<LatticeBuildCmd*>(cmd) ||
+                                 dynamic_cast<PBCReplicateCmd*>(cmd) ||
+                                 dynamic_cast<PBCSuperCmd*>(cmd) ||
+                                 dynamic_cast<SolvateCmd*>(cmd) ||
+                                 dynamic_cast<PBCLayerCmd*>(cmd) ||
+                                 dynamic_cast<ClusterCutCmd*>(cmd);
+            if ((isAutoCenter() && rebuilt) ||
                   (startNumAtoms == 0 && getSG()->getFragment()->numAtoms() > 0)) {
                center();
-            } else if (didit && !display && !wasOutside &&
-                       atomsOutsideView()) {
-               //  An edit (Add H, a new atom) put atoms outside the view:
-               //  show the whole structure again (#409).
+            } else if (didit && !wasOutside && atomsOutsideView()) {
                center();
             }
          }

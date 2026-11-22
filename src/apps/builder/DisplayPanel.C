@@ -201,6 +201,8 @@ void DisplayPanel::build()
   g = grid();
   p_atomLabels = new wxChoice(this, wxID_ANY);
   for (const char *s : ATOM_LABELS) p_atomLabels->Append(s);
+  // A structure opens without atom labels: show that, not an empty choice.
+  p_atomLabels->SetSelection(0);
   p_atomLabels->Bind(wxEVT_CHOICE, [this](wxCommandEvent&) {
     applyAtomLabel(p_atomLabels->GetSelection());
   });
