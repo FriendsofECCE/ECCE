@@ -1181,34 +1181,60 @@ void SGFragment::getProtein(vector<bool>& atombits, vector<bool>& bondbits)
   }
 }
 
+vector<SGFragment::LigandCandidate> SGFragment::ligandCandidates()
+{
+  vector<LigandCandidate> out;
+  if (numResidues() == 0) return out;
+  map<const Residue*, int> index;
+  for (int i = 0; i < numAtoms(); i++) {
+    const Residue *res = atomRef(i)->getResidue();
+    if (!res) continue;
+    const ResidueClass c = residueClass(res->name());
+    if (c == RES_POLYMER || c == RES_WATER) continue;
+    map<const Residue*, int>::iterator it = index.find(res);
+    if (it == index.end()) {
+      LigandCandidate cand;
+      cand.name = residueKey(res);
+      cand.number = res->number();
+      cand.atoms = 0;
+      cand.firstAtom = i;
+      cand.cls = c;
+      index[res] = out.size();
+      out.push_back(cand);
+      it = index.find(res);
+    }
+    out[it->second].atoms++;
+  }
+  auto rank = [](const LigandCandidate& c) {
+    if (c.cls == RES_ION || c.atoms < 2) return 2;
+    return c.cls == RES_ADDITIVE ? 1 : 0;
+  };
+  std::stable_sort(out.begin(), out.end(),
+      [&rank](const LigandCandidate& a, const LigandCandidate& b) {
+        if (rank(a) != rank(b)) return rank(a) < rank(b);
+        return a.atoms > b.atoms;
+      });
+  return out;
+}
+
 bool SGFragment::getLigand(vector<bool>& atombits, vector<bool>& bondbits,
                            string& message)
 {
   message.clear();
-  if (numResidues() == 0) return false;
-  map<const Residue*, int> size;
-  vector<const Residue*> order;
-  for (int i = 0; i < numAtoms(); i++) {
-    const Residue *res = atomRef(i)->getResidue();
-    if (!res || residueClass(res->name()) != RES_OTHER) continue;
-    if (size[res]++ == 0) order.push_back(res);
-  }
-  const Residue *best = 0;
+  vector<LigandCandidate> cands = ligandCandidates();
+  if (cands.empty() || cands[0].cls != RES_OTHER || cands[0].atoms < 2)
+    return false;
   int others = 0;
-  for (size_t k = 0; k < order.size(); k++) {
-    if (size[order[k]] < 2) continue;       // a lone atom is an ion, not a ligand
-    if (!best || size[order[k]] > size[best]) best = order[k];
-    others++;
-  }
-  if (!best) return false;
-  others--;
+  for (size_t k = 1; k < cands.size(); k++)
+    if (cands[k].cls == RES_OTHER && cands[k].atoms >= 2) others++;
+  const LigandCandidate& best = cands[0];
+  const Residue *bestRes = atomRef(best.firstAtom)->getResidue();
   for (int i = 0; i < numAtoms(); i++)
-    if (atomRef(i)->getResidue() == best)
+    if (atomRef(i)->getResidue() == bestRes)
       selectAtomAndBonds(atomRef(i), atombits, bondbits);
   char buf[160];
-  string name = residueKey(best);
-  snprintf(buf, sizeof buf, "Selected ligand %s %d (%d atoms).", name.c_str(),
-           best->number(), size[best]);
+  snprintf(buf, sizeof buf, "Selected ligand %s %d (%d atoms).",
+           best.name.c_str(), best.number, best.atoms);
   message = buf;
   if (others > 0) {
     snprintf(buf, sizeof buf, " %d other non-polymer residue%s found; the "

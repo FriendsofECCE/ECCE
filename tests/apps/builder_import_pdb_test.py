@@ -16,7 +16,8 @@ import fixture    # noqa: E402
 STRUCTURE = os.path.join(HERE, "..", "fragreaders", "data", "181L.pdb")
 SCRIPT = [
     "wait 2000", "import " + STRUCTURE, "wait 1000", "resatoms", "info", "bondorders",
-    "select_ligand", "selection", "menu Edit|Clear Selection",
+    "select_ligand", "selection", "menu Edit|Clear Selection", "ligands",
+    "ligand 2", "menu Edit|Clear Selection",
     "menu Build|Add Hydrogen", "wait 3000", "resatoms", "info",
     "menu Build|Add Hydrogen", "wait 1000", "info",
     "quit",
@@ -68,6 +69,13 @@ def problemsIn(log):
             problems.append("BNZ atoms after Add Hydrogen: %s, want 12 (6 C + 6 H)"
                             % second.get("BNZ"))
     sel = re.findall(r"BUILDER: selection atoms=(\d+)", log)
+    ligs = re.findall(r"BUILDER: ligands (.*)", log)
+    if not ligs or not ligs[0].startswith("BNZ 400 (6 atoms)") or "HED" not in ligs[0] \
+            or ligs[0].index("HED") > ligs[0].index("CL"):
+        problems.append("ligand menu %s: want BNZ first, additive HED before ions" % ligs)
+    if len(sel) < 2 or sel[1] != "8":
+        problems.append("ligand 2 selected %s atoms, want 8 (HED)" % sel[1:])
+    sel = sel[:1]
     if sel != ["6"]:
         problems.append("Select Ligand selected %s atoms, want [6] (BNZ, not HED)" % sel)
     atoms = [int(m) for m in re.findall(r"BUILDER: atoms=(\d+)", log)]

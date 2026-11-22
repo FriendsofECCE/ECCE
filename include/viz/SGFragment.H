@@ -199,6 +199,16 @@ SoINTERNAL public:
                         string& message);
     bool getLigand(vector<bool>& atombits, vector<bool>& bondbits,
                    string& message);
+    /// Non-polymer, non-water residues, the likely ligand first: bigger
+    /// non-additive residues, then additives, then single atoms and ions.
+    struct LigandCandidate {
+      string name;
+      int number;
+      int atoms;
+      int firstAtom;
+      ResidueClass cls;
+    };
+    vector<LigandCandidate> ligandCandidates();
     void getFullResidue(TAtm *atm, vector<bool>& atombits, vector<bool>& bondbits);
 
     // Methods to get parameters using NWChem string selections

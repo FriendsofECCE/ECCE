@@ -477,6 +477,11 @@ class Builder: public BuilderGUI,
       virtual void OnSelectIonsClick( wxCommandEvent& event );
       virtual void OnSelectProteinClick( wxCommandEvent& event );
       virtual void OnSelectLigandClick( wxCommandEvent& event );
+      virtual void OnSelectLigandItem( wxCommandEvent& event );
+      virtual void OnMenuOpen( wxMenuEvent& event );
+      void fillLigandMenu();
+      bool selectLigandCandidate(int n);
+      vector<int> p_ligandFirstAtoms;
       virtual void OnSelectHeteroClick( wxCommandEvent& event );
       bool selectHeteroatoms();
       virtual void OnUpdateSelectResidueItem( wxUpdateUIEvent& event );

@@ -48,6 +48,7 @@ const wxWindowID BuilderGUI::ID_SELECT_SOLVENT = wxNewId();
 const wxWindowID BuilderGUI::ID_SELECT_IONS = wxNewId();
 const wxWindowID BuilderGUI::ID_SELECT_PROTEIN = wxNewId();
 const wxWindowID BuilderGUI::ID_SELECT_LIGAND = wxNewId();
+const wxWindowID BuilderGUI::ID_LIGAND_FIRST = wxIdManager::ReserveId(16);
 const wxWindowID BuilderGUI::ID_SELECT_HETERO = wxNewId();
 const wxWindowID BuilderGUI::ID_DISTORT_BONDS = wxNewId();
 const wxWindowID BuilderGUI::ID_TAKE_COORDS = wxNewId();
@@ -117,7 +118,8 @@ BEGIN_EVENT_TABLE( BuilderGUI, ewxTool )
     EVT_MENU( ID_SELECT_SOLVENT, BuilderGUI::OnSelectSolventClick )
     EVT_MENU( ID_SELECT_IONS, BuilderGUI::OnSelectIonsClick )
     EVT_MENU( ID_SELECT_PROTEIN, BuilderGUI::OnSelectProteinClick )
-    EVT_MENU( ID_SELECT_LIGAND, BuilderGUI::OnSelectLigandClick )
+    EVT_MENU_RANGE( ID_LIGAND_FIRST, ID_LIGAND_FIRST + 15, BuilderGUI::OnSelectLigandItem )
+    EVT_MENU_OPEN( BuilderGUI::OnMenuOpen )
     EVT_MENU( ID_SELECT_HETERO, BuilderGUI::OnSelectHeteroClick )
     EVT_UPDATE_UI( ID_SELECT_HETERO, BuilderGUI::OnUpdateSelectResidueItem )
     EVT_UPDATE_UI( ID_SELECT_PROTEIN, BuilderGUI::OnUpdateSelectResidueItem )
@@ -223,7 +225,11 @@ void BuilderGUI::CreateControls()
     itemMenu16->Append(ID_SELECT_SOLVENT, _("Select Solvent"), _T(""), wxITEM_NORMAL);
     itemMenu16->Append(ID_SELECT_IONS, _("Select Ions"), _T(""), wxITEM_NORMAL);
     itemMenu16->Append(ID_SELECT_PROTEIN, _("Select Protein"), _T(""), wxITEM_NORMAL);
-    itemMenu16->Append(ID_SELECT_LIGAND, _("Select Ligand"), _T(""), wxITEM_NORMAL);
+    // Refilled by Builder::OnMenuOpen as the Edit menu opens.
+    p_ligandMenu = new wxMenu;
+    p_ligandMenu->Append(ID_LIGAND_FIRST, _("(no ligand candidates)"));
+    p_ligandMenu->Enable(ID_LIGAND_FIRST, false);
+    itemMenu16->Append(ID_SELECT_LIGAND, _("Select Ligand"), p_ligandMenu);
     itemMenu16->Append(ID_SELECT_HETERO, _("Select Heteroatoms (not protein)"), _T(""), wxITEM_NORMAL);
     itemMenu16->Append(ID_SELECT_BACKBONE, _("Select Backbone"), _T(""), wxITEM_NORMAL);
     itemMenu16->Append(ID_SELECT_SIDECHAINS, _("Select Side Chains"), _T(""), wxITEM_NORMAL);

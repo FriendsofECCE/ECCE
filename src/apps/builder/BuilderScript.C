@@ -45,6 +45,8 @@
 //                                of the result as `BUILDER: clusteratom EL X Y Z`
 //    select_protein              Edit > Select Protein (replaces the selection)
 //    select_ligand               Edit > Select Ligand: the largest ligand (replaces the selection)
+//    ligands                     the Select Ligand submenu entries, likely ligand first (#1244)
+//    ligand N                    Select Ligand > Nth entry (from 1)
 //    select_hetero               Edit > Select Heteroatoms (not protein): all but protein and the ligand (#1244)
 //    selectelem A                select the first atom of element A
 //    addelem A                   add the last atom of element A to the selection
@@ -938,6 +940,22 @@ void Builder::runBuilderScript(const std::string& file)
                  w.size() == 1 && frag) {
         if (!selectResidueClass(w[0] == "select_ligand"))
           outcome = "FAIL: nothing selected";
+      } else if (w[0] == "ligands" && w.size() == 1) {
+        //  The Select Ligand submenu as Edit would show it.
+        fillLigandMenu();
+        std::string out;
+        for (size_t k = 0; k < p_ligandMenu->GetMenuItemCount(); k++)
+          out += (k ? "; " : "") + p_ligandMenu->FindItemByPosition(k)->GetItemLabelText().ToStdString();
+        fprintf(stderr, "BUILDER: ligands %s\n", out.c_str());
+      } else if (w[0] == "ligand" && w.size() == 2 && frag) {
+        //  Select Ligand > Nth entry (from 1).
+        fillLigandMenu();
+        if (!selectLigandCandidate(atoi(w[1].c_str()) - 1))
+          outcome = "FAIL: no such ligand candidate";
+        else
+          fprintf(stderr, "BUILDER: selection atoms=%d bonds=%d\n",
+                  (int)frag->m_atomHighLight.size(),
+                  (int)frag->m_bondHighLight.size());
       } else if (w[0] == "select_hetero" && w.size() == 1 && frag) {
         if (!selectHeteroatoms()) outcome = "FAIL: nothing selected";
       } else if (w[0] == "selectelem" && w.size() == 2 && frag) {
@@ -2603,9 +2621,61 @@ void Builder::OnSelectProteinClick(wxCommandEvent&)
   selectResidueClass(false);
 }
 
+//  Select Ligand lists the candidates, the likely ligand first.  The menu
+//  is refilled only as Edit opens: changing a menu while it is open breaks
+//  the item under the pointer (#1239).  Clicking the entry itself (script)
+//  picks the first.
 void Builder::OnSelectLigandClick(wxCommandEvent&)
 {
   selectResidueClass(true);
+}
+
+void Builder::fillLigandMenu()
+{
+  if (!p_ligandMenu) return;
+  SGFragment *frag = p_sgMgr ? getSG()->getFragment() : 0;
+  vector<SGFragment::LigandCandidate> cands;
+  if (frag) cands = frag->ligandCandidates();
+  while (p_ligandMenu->GetMenuItemCount() > 0)
+    p_ligandMenu->Destroy(p_ligandMenu->FindItemByPosition(0));
+  p_ligandFirstAtoms.clear();
+  for (size_t k = 0; k < cands.size() && k < 16; k++) {
+    const SGFragment::LigandCandidate& c = cands[k];
+    wxString label = wxString::Format("%s %d (%d atom%s)", c.name, c.number,
+                                      c.atoms, c.atoms == 1 ? "" : "s");
+    p_ligandMenu->Append(ID_LIGAND_FIRST + (int)k, label);
+    p_ligandFirstAtoms.push_back(c.firstAtom);
+  }
+  if (cands.empty()) {
+    p_ligandMenu->Append(ID_LIGAND_FIRST, _("(no ligand candidates)"));
+    p_ligandMenu->Enable(ID_LIGAND_FIRST, false);
+  }
+}
+
+bool Builder::selectLigandCandidate(int n)
+{
+  SGFragment *frag = getSG()->getFragment();
+  if (!frag || n < 0 || n >= (int)p_ligandFirstAtoms.size()) return false;
+  const int first = p_ligandFirstAtoms[n];
+  SelectCmd *cmd = new SelectCmd("Select Ligand", getSG());
+  cmd->getParameter("clear")->setBoolean(true);
+  cmd->getParameter("full_residue")->setInteger(first);
+  execute(cmd);
+  const Residue *res = frag->atomRef(first)->getResidue();
+  showMessage("Selected " + std::to_string(frag->m_atomHighLight.size()) +
+              " atoms of " + (res ? res->name() : string("the residue")) + ".");
+  return !frag->m_atomHighLight.empty();
+}
+
+void Builder::OnSelectLigandItem(wxCommandEvent& event)
+{
+  selectLigandCandidate(event.GetId() - ID_LIGAND_FIRST);
+}
+
+void Builder::OnMenuOpen(wxMenuEvent& event)
+{
+  if (event.GetMenu() == p_editMenu) fillLigandMenu();
+  event.Skip();
 }
 
 //  Edit > Select Heteroatoms (not protein) (#1244): then Delete leaves the

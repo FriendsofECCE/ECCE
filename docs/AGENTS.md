@@ -61,6 +61,11 @@ them. Script command in `ECCE_BUILDER_SCRIPT`: `select_hetero`.
 
 ## Add Hydrogen on a PDB structure (#1244)
 
+`Edit > Select Ligand` is a submenu of the ligand candidates (non-polymer,
+non-water residues, `BNZ 400 (6 atoms)`), the likely ligand first, additives
+after it, single atoms and ions last; it is refilled when Edit opens. Script
+commands: `ligands` (prints the entries), `ligand N` (select the Nth),
+`select_ligand` (the first). The Vina box's Ligand atoms use the same rule.
 Ligand choice skips crystallisation additives by residue name
 (`SGFragment::residueClass`: GOL, EDO, HED, MPD, SO4, ...), so 181L's ligand is
 BNZ and not the larger HED.
