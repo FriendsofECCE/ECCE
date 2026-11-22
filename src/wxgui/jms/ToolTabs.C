@@ -434,6 +434,11 @@ void attachWindowMenu(wxMenuBar *mb)
 #ifdef __WXOSX__
   menu->Append(ID_NEXT_TAB, _("Next Tab\tCtrl+Shift+]"));
   menu->Append(ID_PREV_TAB, _("Previous Tab\tCtrl+Shift+["));
+#elif defined(__WXGTK__)
+  // GTK refuses Tab as a menu accelerator and wx then drops it: show the
+  // page keys; Ctrl+Tab still works through the key hook.
+  menu->Append(ID_NEXT_TAB, _("Next Tab\tCtrl+PgDn"));
+  menu->Append(ID_PREV_TAB, _("Previous Tab\tCtrl+PgUp"));
 #else
   menu->Append(ID_NEXT_TAB, _("Next Tab\tCtrl+Tab"));
   menu->Append(ID_PREV_TAB, _("Previous Tab\tCtrl+Shift+Tab"));
