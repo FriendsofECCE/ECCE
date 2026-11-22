@@ -17,6 +17,7 @@
 #include <iomanip>
 
 
+#include "util/EcceException.H"
 #include "util/NullPointerException.H"
 #include "util/SFile.H"
 #include "util/STLUtil.H"
@@ -82,6 +83,13 @@ TAtm *FragUtil::addAtLocation
   atom->shapeString(geom);
 
   frag->addAtom(atom,parent);
+  // With residues and none being edited, addAtom leaves the atom out; its
+  // nubs would then have a parent without a residue and crash the Builder.
+  if (frag->numResidues() > 0 && atom->getResidue() == NULL) {
+    delete atom;
+    throw EcceException("Choose a residue to edit, or insert one, before "
+                        "adding an atom away from the residues.", WHERE);
+  }
 
   // Now can add the nubs
   // First we have to get the geometries...

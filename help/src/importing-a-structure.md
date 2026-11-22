@@ -115,6 +115,11 @@ residues that got none (water). A ligand without a template, such as benzene,
 gets its hydrogens from its geometry (aromatic rings are recognised by their
 bond lengths).
 
+A structure with no residues and no free sites, such as heavy atoms read from
+an XYZ or CIF file, gets its hydrogens the same way from its geometry. If you
+draw a fragment with free sites onto a PDB structure, **Add Hydrogen** fills
+those sites and the residues in one step; Ctrl+Z undoes both.
+
 ## Select parts of a system
 
 The **Edit** menu selects parts of a large system, such as a protein in

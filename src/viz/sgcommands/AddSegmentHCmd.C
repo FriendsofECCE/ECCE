@@ -220,6 +220,21 @@ bool AddSegmentHCmd::execute()
 
   SGContainer *sg = dynamic_cast<SGContainer*>(getReceiver());
   SGFragment *frag = sg->getFragment();
+  // Heavy atoms from an XYZ or CIF file have no residues: every bonded
+  // group is filled from its geometry (lone atoms have no direction to
+  // fill and are left alone).
+  if (frag->numAtoms() > 0 && frag->numResidues() == 0 &&
+      getParameter("valence")->getBoolean()) {
+    cloneFragment(frag);
+    set<const Residue*> none;
+    none.insert(static_cast<const Residue*>(0));
+    addValenceHydrogens(frag, none);
+    frag->touchNumbers();
+    sg->touchChemDisplay();
+    Event event("GeomChange");
+    EventDispatcher::getDispatcher().publish(event);
+    return true;
+  }
   if (frag->numAtoms() > 0 && frag->numResidues() > 0) {
     ret = true;
 

@@ -174,6 +174,7 @@
 #include "viz/AtomMeasureTorsion.H"
 
 #include "viz/FindSymmetryCmd.H"
+#include "viz/InsertResidueCmd.H"
 #include "viz/GenerateDNACmd.H"
 #include "wxgui/DiffractionDialog.H"
 #include "wxgui/ewxGrid.H"
@@ -431,6 +432,18 @@ void Builder::runBuilderScript(const std::string& file)
           fprintf(stderr, "BUILDER: fragments:\n%s", Counterpoise::query(*frag).c_str());
         }
       } else if (w[0] == "add" && w.size() == 6) {
+        //  A free-space atom in a structure with residues goes into a new
+        //  residue at the end, as Insert in the GUI's residue prompt does.
+        SGFragment *rf = getSG()->getFragment();
+        if (rf->numResidues() > 0 && rf->editResidueIndex() < 0 &&
+            rf->getAtomHighlight()->empty()) {
+          const int at = rf->numResidues();
+          Command *ins = new InsertResidueCmd("Insert residue", getSG());
+          ins->getParameter("name")->setString("UNK");
+          ins->getParameter("index")->setInteger(at);
+          execute(ins);
+          getSG()->getFragment()->editResidueMode(true, at);
+        }
         interpretCommand("add elem " + w[1] + " geom " + w[2] + " x " + w[3] +
                          " y " + w[4] + " z " + w[5]);
         getViewer().viewAll();
