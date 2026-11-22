@@ -131,7 +131,13 @@ def main():
                                   "details ES.Runtype.Docking.LigandAtoms",
                                   asked, 20) or ""
                         time.sleep(2)
-                    check("LigandAtoms=10-15" in val, "the first candidate fills Ligand atoms: %r" % val)
+                    if not check("LigandAtoms=10-15" in val,
+                                 "the first candidate fills Ligand atoms: %r" % val):
+                        # The dialog's own trace of the default (stderr is
+                        # the editor's, so it lands in calced.log).
+                        for line in open(logpath, errors="replace"):
+                            if "VINADLG" in line or "Traceback" in line or "Error" in line:
+                                say("    " + line.rstrip())
                     ask(cmdfile, logpath, proc, "quit", asked, 60)
                 finally:
                     if proc.poll() is None:

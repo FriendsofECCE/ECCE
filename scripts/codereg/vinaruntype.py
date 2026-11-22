@@ -1,5 +1,12 @@
 from templates import *
 import os
+import sys
+
+
+def trace(msg):
+    # Diagnostics for #1244 while the default ligand is being verified.
+    sys.stderr.write("VINADLG: %s\n" % msg)
+    sys.stderr.flush()
 
 
 class VinaRunTypeFrame(EcceFrame):
@@ -149,27 +156,47 @@ class VinaRunTypePanel(EccePanel):
                     parts = line.rstrip("\n").split("\t")
                     if len(parts) == 2 and parts[0] and parts[1]:
                         mols.append((parts[0], parts[1]))
-        except (OSError, UnicodeDecodeError):
+        except (OSError, UnicodeDecodeError) as e:
             mols = []
+            if not self.molecules:
+                trace("no candidates from %s.molecules: %s" % (EcceGlobals.FdIn, e))
         if mols != self.molecules:
+            trace("candidates from %s.molecules (%s, loop %s): %r"
+                  % (EcceGlobals.FdIn, EcceGlobals.RestoreFlag,
+                     EcceGlobals.EventLoopStarted, mols))
             self.molecules = mols
             self.chooser.Set([m[0] for m in mols] + ["Other (atom numbers)"])
             self.chooserRow.ShowItems(bool(mols))
             self.Layout()
-        # An empty key means the first candidate; a stored one is kept.  Not
-        # before the stored values are restored and the editor has been told
-        # the dialog is initialized (the timer applies it on its first tick),
-        # and not before the widgets OnChanges depends on exist.
-        if mols and EcceGlobals.EventLoopStarted and not self.defaulted and not self.ligand.GetValue().strip():
-            self.defaulted = True
-            self.SetLigandAtoms(mols[0][1])
+        self.DefaultLigand()
         self.SyncChooser()
 
+    def DefaultLigand(self):
+        # An empty key means the first candidate; a stored one is kept.
+        if not self.molecules or self.defaulted or self.ligand.GetValue().strip():
+            return
+        value = self.molecules[0][1]
+        if EcceGlobals.RestoreFlag == "NO_GUIValues":
+            # Values-only run (the run type was just chosen): no window and
+            # no event loop; FinalizeSetting sends every widget's value and
+            # closes, so the field only has to hold it by then.
+            self.defaulted = True
+            self.ligand.SetValue(value)
+            trace("default %s set for the values-only run" % value)
+        elif EcceGlobals.EventLoopStarted:
+            # Shown dialog: only after the stored values are restored and the
+            # editor has #INITIALIZED, so it is sent as an edit.
+            self.defaulted = True
+            trace("default %s sent as an edit" % value)
+            self.SetLigandAtoms(value)
+
     def SetLigandAtoms(self, value):
+        # The same path as a typed edit (EcceTextInput.OnChanges).
         self.ligand.SetValue(value)
         e = wx.CommandEvent()
         e.SetEventObject(self.ligand)
         self.OnChanges(e)
+        trace("sent %s" % self.ligand.ExportSetting())
 
     def SyncChooser(self):
         if not self.molecules:
@@ -190,6 +217,9 @@ class VinaRunTypePanel(EccePanel):
         event.Skip()
 
     def OnNoteTimer(self, event):
+        if not getattr(self, "ticked", False):
+            self.ticked = True
+            trace("first timer tick, loop %s" % EcceGlobals.EventLoopStarted)
         self.ReadMolecules()
         try:
             with open(EcceGlobals.FdIn + ".note", encoding="utf-8") as f:
