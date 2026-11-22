@@ -3,7 +3,8 @@
 
 One-process mode: a Viewer opens on one stored ECCE-QM calculation, its tab
 is closed, then another calculation is selected. By hand the desk then
-stayed empty until the window lost and regained focus. Each step answers
+stayed empty until the window lost and regained focus. A second scenario opens a Viewer and a Calculation Editor and closes both. Each
+step answers `desk` (shown, notebook selection, hidden windows in the chain),
 `refreshtimes` (the pane's last refresh timing and its formula field) and
 `paintlog` (the windows painted on the main window since `paintlog on`).
 """
@@ -85,10 +86,24 @@ def main():
         send("tabs", 2)
         send("tabclose 1", 4)
         send("tabs", 2)
+        send("desk", 2)
         send("paintlog on", 1)
         send("select " + b, 4)
         send("refreshtimes", 2)
+        send("desk", 2)
         send("paintlog", 2)
+        # Two tools, closed last-first and then the other: the desk must be
+        # on screen after each close, above all after the last one.
+        send("select " + a, 3)
+        send("start CalculationViewer " + a, 25)
+        send("start CalculationEditor " + a, 25)
+        send("tabs", 2)
+        send("tabclose 2", 4)
+        send("desk", 2)
+        send("tabclose 1", 4)
+        send("desk", 2)
+        send("select " + b, 4)
+        send("desk", 2)
 
     with xdisplay.Display() as display:
         subprocess.run([os.path.join(apps.INSTALL, "bin", "ecce-gateway-start")],
@@ -116,6 +131,24 @@ def main():
         if m:
             check(m.group(3) not in ("", "none"),
                   "LiF-1 formula field filled: %s" % m.group(3))
+    desks = [l.split("ECCE_TEST_ORGANIZER: desk: ", 1)[1] for l in log.splitlines()
+             if "ECCE_TEST_ORGANIZER: desk: " in l]
+    check(len(desks) == 5, "five desk replies (%d)" % len(desks), log[-3000:])
+    for i, d in enumerate(desks):
+        print("  | desk %d: %s" % (i, d[:300]))
+        m = re.match(r"desk (\d+)x(\d+) shown=(\d) splitter=(\d+)x(\d+) sel=(\S+) pages=(\d+) chain=(.*)", d)
+        if not m:
+            check(False, "desk reply %d parses: %s" % (i, d[:200]))
+            continue
+        w, h, shown, sw, sh, sel = (m.group(k) for k in range(1, 7))
+        check(shown == "1", "desk %d: shown on screen" % i)
+        check(sel != "none", "desk %d: the tool-tab notebook has a selection" % i)
+        check("(hidden)" not in m.group(8), "desk %d: no hidden window in the chain" % i)
+        check(int(w) * 2 >= int(sw) and int(h) * 2 >= int(sh),
+              "desk %d: %sx%s at least half of the splitter %sx%s" % (i, w, h, sw, sh))
+    # The line means the self-repair fired, i.e. the bad state happened.
+    check(not any("ORGANIZER: desk panel" in l for l in log.splitlines()),
+          "no 'ORGANIZER: desk panel' self-repair line", log[-3000:])
     paints = [l for l in log.splitlines() if "ECCE_TEST_ORGANIZER: paintlog: " in l]
     check(bool(paints), "paintlog answered", log[-3000:])
     if paints:

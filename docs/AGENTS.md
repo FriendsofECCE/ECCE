@@ -461,6 +461,12 @@ fresh log of every paint of a window in the main window; `paintlog` answers
 to see what reaches the screen while a tab opens or closes;
 `tests/apps/one_process_test.py --1210-only` runs it for a Viewer tab.
 
+Desk (#1237, `ECCE_TEST_ORGANIZER`): `desk` answers `desk WxH shown=0|1
+splitter=WxH sel=<tool-tab notebook selection or none> pages=N chain=<classes up
+to the top level, "(hidden)" after a hidden one>`. After a tool tab closes it
+must say shown=1, a selection and no hidden window;
+`tests/apps/refresh_after_viewer_test.py` checks that.
+
 **Second start and file types (#1069)**, one-program mode only: a second `ecce`
 for the same user, data folder and server (`ECCE_REALUSERHOME`,
 `ECCE_LOCAL_DATA`, `ECCE_SERVER_SESSION`/`ECCE_REMOTE_SERVER`) raises the
