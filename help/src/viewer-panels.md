@@ -121,6 +121,10 @@ style setting leaves automatic quality active. Previously saved quality values
 are also kept. PNG export and printing use the same scene quality; automatic
 detail can increase for a larger output image.
 
+## Details of the selected atom
+
+With one atom selected, the bottom-left corner of the 3-D view shows its element and number, its x y z in angstrom and its residue name if it has one; with two atoms selected it shows the distance between them.
+
 ## Transparent atoms
 
 In the Display panel (and in **Render > Custom Style...**), the **Atom Opacity** slider (0 to 100 %,

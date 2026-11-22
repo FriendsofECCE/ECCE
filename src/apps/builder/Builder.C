@@ -3602,6 +3602,40 @@ void Builder::updateModeText()
 }
 
 
+// Bottom-left overlay for one or two selected atoms: the atom's element,
+// number, x y z (Angstrom) and residue, or the distance of two atoms.
+string Builder::selectionDetailText()
+{
+  SGFragment *frag = getSG()->getFragment();
+  const vector<int>& sel = frag->m_atomHighLight;
+  char buf[160];
+  buf[0] = 0;
+  if (sel.size() == 1) {
+    TAtm *atm = frag->atomRef(sel[0]);
+    snprintf(buf, sizeof buf, "%s%d  (%.3f, %.3f, %.3f) \u00c5",
+             atm->atomicSymbol().c_str(), atm->index() + 1,
+             atm->coordinates()[0], atm->coordinates()[1],
+             atm->coordinates()[2]);
+    string r = buf;
+    if (!atm->residueName().empty()) r += "  " + atm->residueName();
+    return r;
+  }
+  if (sel.size() == 2) {
+    TAtm *a = frag->atomRef(sel[0]);
+    TAtm *b = frag->atomRef(sel[1]);
+    double d2 = 0;
+    for (int k = 0; k < 3; k++) {
+      const double dx = a->coordinates()[k] - b->coordinates()[k];
+      d2 += dx*dx;
+    }
+    snprintf(buf, sizeof buf, "%s%d - %s%d  %.3f \u00c5",
+             a->atomicSymbol().c_str(), a->index() + 1,
+             b->atomicSymbol().c_str(), b->index() + 1, sqrt(d2));
+  }
+  return buf;
+}
+
+
 void Builder::updateAtomResidueText()
 {
   SGFragment *frag = getSG()->getFragment();
@@ -3620,31 +3654,19 @@ void Builder::updateAtomResidueText()
       sprintf(buf,"%zu atoms", frag->numNonNubs());
     }
   }
-  p_viewer->setLLeftText(buf);
+  // The selection's details take the corner while one or two atoms are selected.
+  const string detail = selectionDetailText();
+  p_viewer->setLLeftText(detail.empty() ? string(buf) : detail);
 }
 
 
 void Builder::updateSelectionText()
 {
-  // Update the selection label info
   SGFragment *frag = getSG()->getFragment();
   char buf[80];
   strcpy(buf,"");
 
-  if (frag->m_atomHighLight.size() == 1) {
-    TAtm *atm = frag->atomRef(frag->m_atomHighLight[0]);
-    if (frag->numResidues() == 0) {
-      sprintf(buf,"%s%d %.2f,%.2f,%.2f",
-              atm->atomicSymbol().c_str(), atm->index() + 1,
-              atm->coordinates()[0], atm->coordinates()[1],
-              atm->coordinates()[2]);
-    } else {
-      sprintf(buf,"%s %s %s",
-              atm->atomicSymbol().c_str(), atm->residueName().c_str(),
-              atm->atomName().c_str());
-    }
-  } else if (frag->m_atomHighLight.size() > 0) {
-    // Could get set of selected residues and if 1 report on it
+  if (frag->m_atomHighLight.size() > 2) {
     int nonnubs = 0;
     int numHighlights = frag->m_atomHighLight.size();
     for (int idx=0; idx<numHighlights; idx++) {
@@ -3654,6 +3676,7 @@ void Builder::updateSelectionText()
     sprintf(buf,"%d atoms selected",nonnubs);
   }
   p_viewer->setLRightText(buf);
+  updateAtomResidueText();
 }
 
 
@@ -7290,6 +7313,9 @@ void Builder::updatePropertyMenus()
           return densityMapCommand(s, w, outdir);
         //  "atomnumbers N [panel]": atom N's number in the status line, label and a table.
         if (w[0] == "atomnumbers") return atomNumbersCommand(s, w);
+        //  "selectoverlay [N [M]]": select atoms N (and M), from 1, and report
+        //  the bottom-left overlay text (#1236); no atoms clears the selection.
+        if (w[0] == "selectoverlay") return selectOverlayCommand(s, w);
         //  Photo hooks (#860): assigncharges, panelfloat, panelsize, shot.
         if (w[0] == "assigncharges" || w[0] == "panelfloat" ||
             w[0] == "panelsize" || w[0] == "shot")

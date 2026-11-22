@@ -32,6 +32,9 @@ dpmode atom
 dpcentre 2
 dpstate
 atomnumbers 2 Mulliken Charges
+selectoverlay 2
+selectoverlay 1 2
+selectoverlay
 hold 1
 """
 
@@ -44,6 +47,8 @@ def check(log):
     sym = re.match(r"[A-Za-z]+", m.group(2))
     sym = sym.group(0) if sym else "?"
     want = sym + "2"
+    if "\u00c5" not in log:
+        p.append("no angstrom overlay text in the log")
     for what, got in (("status line", m.group(1)), ("label", m.group(2))):
         if got != want:
             p.append("%s says %s, atom 2 is %s" % (what, got, want))
@@ -58,6 +63,16 @@ def check(log):
         p.append("Density Profile centre list says %s, not %s" % (cl[-1:] or None, want))
     if len(al) < 2 or al[1] != want:
         p.append("Density Profile 'from' list says %s, not %s" % (al[1:2] or None, want))
+    ov = re.findall(r"^SELOVERLAY: (\d+) \[(.*)\]$", log, re.M)
+    if len(ov) != 3:
+        return p + ["expected 3 SELOVERLAY lines, got %d" % len(ov)]
+    if not re.match(r"^[A-Z][a-z]?2  \(-?\d+\.\d{3}, -?\d+\.\d{3}, -?\d+\.\d{3}\) \u00c5", ov[0][1]):
+        p.append("one-atom overlay is [%s]" % ov[0][1])
+    if not re.match(r"^[A-Z][a-z]?1 - [A-Z][a-z]?2  \d+\.\d{3} \u00c5$", ov[1][1]):
+        p.append("two-atom overlay is [%s]" % ov[1][1])
+    for n in (2,):
+        if re.search(r"\u00c5", ov[n][1]):
+            p.append("%s atoms still show an overlay [%s]" % (ov[n][0], ov[n][1]))
     return p
 
 

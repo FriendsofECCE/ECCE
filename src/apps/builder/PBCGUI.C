@@ -429,7 +429,9 @@ void PBCGUI::CreateControls()
 
     ewxCheckBox* itemCheckBox61 = new ewxCheckBox( p_latticePanel, ID_CHECKBOX_PBC_UNIFORM, _("Uniform"), wxDefaultPosition, wxDefaultSize, wxCHK_2STATE );
     itemCheckBox61->SetValue(true);
-    itemBoxSizer54->Add(itemCheckBox61, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
+    // Own row: a, b, c and Uniform in one row were wider than the pane and
+    // clipped the b spin box.
+    itemStaticBoxSizer53->Add(itemCheckBox61, 0, wxALIGN_CENTER_HORIZONTAL|wxALL, 3);
 
     wxBoxSizer* itemBoxSizer62 = new wxBoxSizer(wxHORIZONTAL);
     itemStaticBoxSizer53->Add(itemBoxSizer62, 0, wxALIGN_CENTER_HORIZONTAL|wxALL, 0);
