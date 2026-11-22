@@ -778,7 +778,11 @@ void Builder::runBuilderScript(const std::string& file)
         std::map<std::string,int> counts;
         for (int i = 0; i < (int)frag->numAtoms(); i++) {
           const Residue *r = frag->atomRef(i)->getResidue();
-          counts[r ? r->name() : std::string("(none)")]++;
+          std::string n = r ? r->name() : std::string("(none)");
+          //  PDB residue names are padded (" CL", "BNZ "); print them bare.
+          n.erase(0, n.find_first_not_of(' '));
+          n.erase(n.find_last_not_of(' ') + 1);
+          counts[n]++;
         }
         std::string out;
         for (auto &kv : counts)

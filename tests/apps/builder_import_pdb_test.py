@@ -15,7 +15,7 @@ import fixture    # noqa: E402
 
 STRUCTURE = os.path.join(HERE, "..", "fragreaders", "data", "181L.pdb")
 SCRIPT = [
-    "wait 2000", "import " + STRUCTURE, "wait 1000", "resatoms", "info", "bondorders",
+    "wait 2000", "import " + STRUCTURE, "wait 1000", "resatoms", "info",
     "select_ligand", "selection", "menu Edit|Clear Selection", "ligands",
     "ligand 2", "menu Edit|Clear Selection",
     "menu Build|Add Hydrogen", "wait 3000", "resatoms", "info",
