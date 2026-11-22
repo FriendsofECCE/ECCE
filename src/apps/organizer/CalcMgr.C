@@ -2122,6 +2122,12 @@ void CalcMgr::runTestCommand(const string& line)
       WxResourceTreeItemData *node = findNode(EcceURL(calcName), true, true);
       if (!node) outcome = "not in the tree";
       else { p_treeCtrl->SelectItem(node->GetId()); outcome = "ok"; }
+    } else if (command == "refreshtimes") {
+      // "refreshtimes": the last details-pane refresh's timing line and the
+      // pane's formula text (#1237)
+      CalculationContextPanel *cp = dynamic_cast<CalculationContextPanel*>(p_contextPanel);
+      outcome = cp ? CalculationContextPanel::lastRefreshTimings() + " formula=[" + cp->fieldText("empiricalFormula") + "]"
+                   : "no calculation pane";
     } else if (command == "selection") {
       WxResourceTreeItemData *n = p_treeCtrl->GetSelection().IsOk() ? dynamic_cast<WxResourceTreeItemData*>(
           p_treeCtrl->GetItemData(p_treeCtrl->GetSelection())) : 0;
@@ -2739,9 +2745,11 @@ void CalcMgr::runTestCommand(const string& line)
     } else if (command == "allocations") {
       // "allocations": opens Tools > Allocations, waits up to 10 s for the
       // answers and prints each row as "ALLOC: machine|account|used|checked".
+      // "allocations refresh" presses Refresh first (opens a login if none).
       AllocationsDialog *d = new AllocationsDialog(winParent()); onHost(d);
       d->Show();
-      for (int i = 0; i < 100 && (i == 0 || d->checking()); i++) {
+      if (calcName == "refresh") d->refresh(true);
+      for (int i = 0; i < 300 && (i == 0 || d->checking()); i++) {
         wxMilliSleep(100);
         wxYield();
       }

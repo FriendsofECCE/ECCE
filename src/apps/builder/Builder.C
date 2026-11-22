@@ -629,8 +629,38 @@ bool Builder::Create( wxWindow* parent, bool standalone, wxWindowID id,
     if (key == WXK_SPACE && dynamic_cast<SoWxRenderArea*>(wxWindow::FindFocus())
         && pauseVibrationKey())
       return;
+    //  Delete reaches the frame here whatever has the focus; the accelerator
+    //  alone is missed when the focused child consumes the key (#1240, #603).
+    //  Editable text keeps it for editing.
+    if ((key == WXK_DELETE || key == WXK_NUMPAD_DELETE) && !ev.HasModifiers()) {
+      wxWindow *f = wxWindow::FindFocus();
+      wxTextEntry *te = dynamic_cast<wxTextEntry*>(f);
+      bool editing = f && f->IsEnabled() &&
+        ((te && te->IsEditable()) || dynamic_cast<wxSpinCtrl*>(f) ||
+         dynamic_cast<wxSpinCtrlDouble*>(f));
+      if (!editing) { deleteSelection(); return; }
+      ev.Skip();
+      return;
+    }
+    //  Ctrl+Z likewise: the canvas takes the key before the accelerator
+    //  table sees it (#1247); editShortcut leaves text fields their own undo.
+    if (key == 'Z' && ev.ControlDown() && !ev.AltDown() && !ev.ShiftDown()) {
+      editShortcut(ID_ACCEL_UNDO);
+      return;
+    }
     if (key != WXK_ESCAPE || !escapeKey()) ev.Skip();
   });
+  //  The Edit > Select commands leave the keyboard in the 3-D view, so
+  //  Delete acts on what they selected (#1240).  Deferred: the closing menu
+  //  gives the focus back to its previous owner.
+  Bind(wxEVT_MENU, [this](wxCommandEvent& ev) { ev.Skip(); focusView(); },
+       ID_SELECT_MOLECULE, ID_SELECT_MOLECULE);
+  for (int id : {(int)wxID_SELECTALL, ID_SELECT_SOLVENT, ID_SELECT_IONS,
+                 ID_SELECT_PROTEIN, ID_SELECT_HETERO, ID_SELECT_BACKBONE,
+                 ID_SELECT_SIDECHAINS, ID_SELECT_REVERSE, ID_UNSELECT})
+    Bind(wxEVT_MENU, [this](wxCommandEvent& ev) { ev.Skip(); focusView(); }, id);
+  Bind(wxEVT_MENU, [this](wxCommandEvent& ev) { ev.Skip(); focusView(); },
+       ID_LIGAND_FIRST, ID_LIGAND_FIRST + 15);
   //  Key events go to the focused child (the 3-D canvas), never the frame,
   //  so Delete is an accelerator: deleteKey leaves editable text fields alone.
   //  The same holds for the File/Select/Mode menu shortcuts (Ctrl+S did
@@ -2475,8 +2505,9 @@ void Builder::toggleModeButton(int modeId)
 
   // Restore tool menu status based on layout info
   for (int i=0; i<p_toolCount; ++i) {
-    wxString label = p_toolMenu->GetLabel(ID_TOOLMENU_ITEM+i);
-    p_toolMenu->Check(ID_TOOLMENU_ITEM+i, p_mgr.GetPane(label).IsShown());
+    wxString label = p_toolNames[i];
+    if (p_toolMenu->FindItem(ID_TOOLMENU_ITEM+i))
+      p_toolMenu->Check(ID_TOOLMENU_ITEM+i, p_mgr.GetPane(label).IsShown());
   }
   // Restore toolbar menu status based on layout info
   for (int i = 0; i < p_toolbarCount; ++i) {
@@ -2506,7 +2537,7 @@ void Builder::saveSettings()
    ewxConfig * config = ewxConfig::getConfig("wxbuilder.ini");
 
    for (int i=0; i<p_toolCount; ++i) {
-     wxString label = p_toolMenu->GetLabel(ID_TOOLMENU_ITEM+i);
+     wxString label = p_toolNames[i];
      WxVizTool* viztool =dynamic_cast<WxVizTool*>(p_mgr.GetPane(label).window);
      if (viztool) {
        viztool->saveSettings(config);
@@ -2675,7 +2706,7 @@ void Builder::restoreSettings()
    
    int i;
    for (i=0; i<p_toolCount; ++i) {
-     wxString label = p_toolMenu->GetLabel(ID_TOOLMENU_ITEM+i);
+     wxString label = p_toolNames[i];
      WxVizTool* viztool =dynamic_cast<WxVizTool*>(p_mgr.GetPane(label).window);
      if (viztool) {
        viztool->restoreSettings(config);
@@ -3360,17 +3391,25 @@ void Builder::deleteKey()
    //  A read-only field (the Log) must not swallow the key; an editable,
    //  enabled one takes it as an edit.
    wxWindow *focus = wxWindow::FindFocus();
+   if (getenv("ECCE_DEBUG_PANELS"))
+      fprintf(stderr, "[BUILDER] delete key: focus %s \"%s\"\n",
+              focus ? (const char*)focus->GetClassInfo()->GetClassName() : "none",
+              focus ? (const char*)focus->GetName().ToUTF8() : "");
    if (focus && focus->IsEnabled()) {
       if (wxTextEntry *te = dynamic_cast<wxTextEntry*>(focus)) {
          if (te->IsEditable()) {
             long from, to;
             te->GetSelection(&from, &to);
+            if (getenv("ECCE_DEBUG_PANELS"))
+               fprintf(stderr, "[BUILDER] delete key taken by a text field\n");
             if (from == to) to = from + 1;
             te->Remove(from, to);
             return;
          }
       } else if (dynamic_cast<wxSpinCtrl*>(focus) ||
                  dynamic_cast<wxSpinCtrlDouble*>(focus)) {
+         if (getenv("ECCE_DEBUG_PANELS"))
+            fprintf(stderr, "[BUILDER] delete key taken by a spin field\n");
          return;
       }
    }
@@ -3453,6 +3492,7 @@ void Builder::eventMCB(const Event& event)
    }
    else if (name == "SyncToggle") {
      wxCommandEvent * evt = (wxCommandEvent *)event.getObject();
+     if (evt->GetEventObject() != this) return;
      int id = evt->GetId();
      bool isChecked = evt->IsChecked();
      toggleTool(id, isChecked);
@@ -4070,7 +4110,7 @@ void Builder::OnSelectSidechainsClick( wxCommandEvent& event )
  */
 void Builder::OnSelectReverseClick( wxCommandEvent& event )
 {
-   Command *cmd = new SelectCmd("Reverse Selection", getSG());
+   Command *cmd = new SelectCmd("Invert Selection", getSG());
    cmd->getParameter("reverse")->setBoolean(true);
    execute(cmd);
 }
@@ -6102,6 +6142,7 @@ bool Builder::readFragmentFromFile(SFile *file, wxString type, wxString ext)
     }
   }
 
+  if (ret) focusView();
   return ret;
 }
 
@@ -6468,7 +6509,6 @@ void Builder::loadDefaultPaneLayout(const wxString& layoutName,
   names.clear();
   if (layoutName == NAME_LAYOUT_READONLY) {
     // All tools are hidden except Atom Table, Selection and Log
-    names.insert(NAME_TOOL_CONTEXT);
     names.insert(NAME_TOOL_ATOM_TABLE);
     names.insert(NAME_TOOL_SELECTION);
     names.insert(NAME_TOOL_LOG);
@@ -6513,7 +6553,7 @@ void Builder::loadDefaultPaneLayout(const wxString& layoutName,
     names.insert(NAME_TOOL_STRUCTLIB);
   }
   for (int i=0; i<p_toolCount; ++i) {
-    name = p_toolMenu->GetLabel(ID_TOOLMENU_ITEM+i);
+    name = p_toolNames[i];
     show = names.find(name) != names.end();
     p_mgr.GetPane(name).Show(show).Show(show);
   }
@@ -7863,6 +7903,20 @@ void Builder::updateReadOnly(const bool& loadPaneFlag)
 {
   bool isReadOnly = this->isReadOnly();
 
+  //  A viewed calculation has one structure, so the Open structures item
+  //  has nothing to offer there (#1242).  The item is looked up by id
+  //  everywhere, so it is taken out and put back, not hidden.
+  {
+    const int id = ID_TOOLMENU_ITEM + p_toolIndex[NAME_TOOL_CONTEXT];
+    wxMenuItem *item = p_toolMenu->FindItem(id);
+    if (isReadOnly && item) {
+      p_mgr.GetPane(NAME_TOOL_CONTEXT).Show(false);
+      p_toolMenu->Delete(id);
+    } else if (!isReadOnly && !item) {
+      p_toolMenu->InsertCheckItem(p_contextMenuPos, id, NAME_TOOL_CONTEXT);
+    }
+  }
+
   if (loadPaneFlag) {
     // before layouts are save/restored
     if (isReadOnly) {
@@ -7921,8 +7975,9 @@ void Builder::updateReadOnly(const bool& loadPaneFlag)
 
   // Restore tool menu status based on layout info
   for (int i=0; i<p_toolCount; ++i) {
-    wxString label = p_toolMenu->GetLabel(ID_TOOLMENU_ITEM+i);
-    p_toolMenu->Check(ID_TOOLMENU_ITEM+i, p_mgr.GetPane(label).IsShown());
+    wxString label = p_toolNames[i];
+    if (p_toolMenu->FindItem(ID_TOOLMENU_ITEM+i))
+      p_toolMenu->Check(ID_TOOLMENU_ITEM+i, p_mgr.GetPane(label).IsShown());
   }
   // Restore toolbar menu status based on layout info
   for (int i = 0; i < p_toolbarCount; ++i) {
@@ -8335,6 +8390,8 @@ void Builder::addToolPanel(wxWindow *panel, const string& name,
     vizTool->connectToolKitFW(this);
 
   p_toolIndex[name] = p_toolCount;
+  p_toolNames.push_back(name);
+  if (name == NAME_TOOL_CONTEXT) p_contextMenuPos = p_toolMenu->GetMenuItemCount();
   if (name != NAME_TOOL_LOG) {
     p_structureNames.insert(name);
   }

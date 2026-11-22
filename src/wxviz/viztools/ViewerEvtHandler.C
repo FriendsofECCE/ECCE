@@ -45,6 +45,11 @@
 #include "viz/GenBondsCmd.H"
 #include "viz/HydrogenBondsCmd.H"
 #include "viz/HydrogensCmd.H"
+#include "viz/AddSegmentHCmd.H"
+#include "viz/SGFragment.H"
+#include "tdat/Residue.H"
+#include <set>
+#include "util/STLUtil.H"
 #include "viz/MeasureAngleCmd.H"
 #include "viz/MeasureDistCmd.H"
 #include "viz/MeasureTorsionCmd.H"
@@ -491,6 +496,11 @@ void ViewerEvtHandler::depthCue(wxCommandEvent & event)
 
   Command *cmd = new DepthCueCmd("Depth Cue", &sg);
   cmd->getParameter("hazeOn")->setBoolean(event.IsChecked());
+  // Haze into the background, not black.
+  SbColor bg = fw.getViewer().getBackgroundColor();
+  cmd->getParameter("red")->setDouble(bg[0]);
+  cmd->getParameter("green")->setDouble(bg[1]);
+  cmd->getParameter("blue")->setDouble(bg[2]);
   fw.execute(cmd);
 
   syncToggle(event);
@@ -808,12 +818,85 @@ void ViewerEvtHandler::delWheelManip(wxCommandEvent & event)
 }
 
 
+namespace {
+int countElement(SGFragment *frag, const char *sym)
+{
+  int n = 0;
+  for (int i = 0; i < (int)frag->numAtoms(); i++)
+    if (frag->atomRef(i)->atomicSymbol() == sym) n++;
+  return n;
+}
+}
+
+// Only nubs become hydrogens.  A structure read from a PDB file has none,
+// so its residues go through the residue templates instead; what has no
+// template (ligands, waters) is named, never skipped silently.
 void ViewerEvtHandler::addHydrogen(wxCommandEvent & event)
 {
-  WxVizToolFW& fw = getFW();
+  addHydrogens(getFW());
+}
+
+
+void ViewerEvtHandler::addHydrogens(WxVizToolFW& fw)
+{
   SGContainer& sg = fw.getSceneGraph();
-  Command *cmd = new HydrogensCmd("Add Hydrogens", &sg);
+  SGFragment *frag = sg.getFragment();
+  if (frag->numAtoms() == 0) return;
+
+  const int nubs = countElement(frag, "Nub");
+  const bool byTemplate = nubs == 0 && frag->numResidues() > 0;
+  auto perResidue = [](SGFragment *f) {
+    vector<int> h(f->numResidues(), 0);
+    for (int i = 0; i < (int)f->numAtoms(); i++) {
+      const Residue *r = f->atomRef(i)->getResidue();
+      if (r && f->atomRef(i)->atomicSymbol() == "H")
+        for (int k = 0; k < (int)h.size(); k++)
+          if (f->residue(k) == r) { h[k]++; break; }
+    }
+    return h;
+  };
+  const int before = countElement(frag, "H");
+  const vector<int> hBefore = byTemplate ? perResidue(frag) : vector<int>();
+  Command *cmd;
+  if (byTemplate) {
+    cmd = new AddSegmentHCmd("Add Hydrogens", &sg);
+    cmd->getParameter("valence")->setBoolean(true);
+  } else {
+    cmd = new HydrogensCmd("Add Hydrogens", &sg);
+  }
   fw.execute(cmd);
+
+  frag = sg.getFragment();
+  const int added = countElement(frag, "H") - before;
+  string msg;
+  if (byTemplate) {
+    const vector<int> hAfter = perResidue(frag);
+    int total = frag->numResidues(), done = 0;
+    std::set<string> skipped;
+    for (int i = 0; i < total && i < (int)hBefore.size(); i++) {
+      if (hAfter[i] > hBefore[i]) {
+        done++;
+      } else {
+        skipped.insert(STLUtil::trim(frag->residue(i)->name()));
+      }
+    }
+    msg = "Added " + std::to_string(added) + " hydrogens to " +
+          std::to_string(done) + " of " + std::to_string(total) + " residues.";
+    if (!skipped.empty()) {
+      msg += " No hydrogens added to:";
+      int shown = 0;
+      for (const string& n : skipped) {
+        if (shown++ == 8) { msg += " ..."; break; }
+        msg += " " + n;
+      }
+      msg += ".";
+    }
+  } else if (added <= 0) {
+    msg = "No hydrogens added: the structure has no open sites (nubs).";
+  } else {
+    msg = "Added " + std::to_string(added) + " hydrogens.";
+  }
+  fw.showMessage(msg, added <= 0);
 }
 
 
@@ -927,6 +1010,9 @@ void ViewerEvtHandler::generateBond(wxCommandEvent & event)
 
 void ViewerEvtHandler::syncToggle(wxCommandEvent & event)
 {
+  // The dispatcher is process-wide: name the owner so only the Builder
+  // whose viewer changed ticks its toolbar and menu.
+  event.SetEventObject(p_parent);
   EventDispatcher::getDispatcher().publish(Event("SyncToggle", "", "",
                                                  (void *)&event));
 }
@@ -1153,6 +1239,7 @@ void ViewerEvtHandler::setBackground(float r, float g, float b)
   cmd->getParameter("green")->setDouble(g);
   cmd->getParameter("blue")->setDouble(b);
   fw.execute(cmd);
+  sg.setDepthCueColor(r, g, b);
 
   // Automatically compute something that contrasts
   SbColor fg = viewer.calculateContrastingColor();
