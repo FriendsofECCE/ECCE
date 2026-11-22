@@ -37,7 +37,9 @@ def check(ok, what, detail=""):
 
 def pages(line):
     """Tab captions of a `tabs` answer (the part before menus=)."""
-    return re.findall(r"\d+:(\S+?)\*? ", line.split("menus=")[0])
+    # Captions may hold spaces ("NWChem Editor"): each runs to the next "N:".
+    return [c.rstrip("*") for c in
+            re.findall(r"\d+:(.+?)(?=\s+\d+:|\s*$)", line.split("menus=")[0])]
 
 
 def run(display):
