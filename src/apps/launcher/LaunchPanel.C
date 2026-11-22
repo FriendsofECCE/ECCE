@@ -208,6 +208,23 @@ void LaunchPanel::createControls()
     p_maxWallTimePanel      =        (ewxPanel *)(FindWindow(ID_PANEL_WXLAUNCHER_MAXWALLTIME));
     p_maxWallTimeStaticText =   (ewxStaticText *)(FindWindow(ID_STATIC_WXLAUNCHER_MAXWALLTIME));
 
+    // In a wide editor the generated layout stretched the text fields and
+    // pushed Machine settings... to the far edge (#1265): the fields get a
+    // fixed width and the button sits next to the machine choice.
+    for (wxWindowID id : {ID_TEXTCTRL_WXLAUNCHER_USERNAME, ID_TEXTCTRL_WXLAUNCHER_CALCDIR,
+                          ID_TEXTCTRL_WXLAUNCHER_SCRATCHDIR, ID_TEXTCTRL_WXLAUNCHER_ALLOCACCT}) {
+      wxWindow *w = FindWindow(id);
+      wxSizer *sz = w ? w->GetContainingSizer() : 0;
+      wxSizerItem *it = sz ? sz->GetItem(w) : 0;
+      if (!it) continue;
+      it->SetFlag(it->GetFlag() & ~wxEXPAND);
+      w->SetMinSize(wxSize(FromDIP(460), -1));
+    }
+    if (wxWindow *m = FindWindow(ID_PANEL_WXLAUNCHER_MACHINE)) {
+      wxSizer *sz = m->GetContainingSizer();
+      if (wxSizerItem *it = sz ? sz->GetItem(m) : 0) it->SetProportion(0);
+    }
+
     p_remShellChoice        =       (ewxChoice *)(FindWindow(ID_CHOICE_WXLAUNCHER_REMSHELL));
     p_shellOpenButton       =       (ewxButton *)(FindWindow(ID_BUTTON_WXLAUNCHER_SHELLOPEN));
 
