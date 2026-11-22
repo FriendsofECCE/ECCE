@@ -478,9 +478,10 @@ void CalculationContextPanel::updateProgress()
     }
   }
 
-  p_progressBox->setStopped(state == ResourceDescriptor::STATE_UNSUCCESSFUL
+  p_progressBox->setStopped(state == ResourceDescriptor::STATE_UNSUCCESSFUL ||
+                            state == ResourceDescriptor::STATE_KILLED
       ? p_itemData->getResource()->getProp(VDoc::getEcceNamespace() + ":runStatusReason")
-      : string());
+      : string(), state == ResourceDescriptor::STATE_KILLED);
   p_progressBox->setWarning(state == ResourceDescriptor::STATE_COMPLETED ||
                             state == ResourceDescriptor::STATE_LOADED
       ? p_itemData->getResource()->getProp(VDoc::getEcceNamespace() + ":runStatusReason")

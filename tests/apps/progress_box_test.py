@@ -13,6 +13,7 @@ hook; "progressbox" prints what the box draws and "snap" saves the window:
   the path the broker message takes): newer lines, the same panel (no
   rebuild), more paints of the box, and no tree or summary update;
 - completed: the plots as they were, the outcome lines below them;
+- killed: the last progress and plots, with the run state and stop reason;
 - a calculation that was never launched: no box.
 
 ECCE_PROGRESS_PNGS=<dir> keeps the window captures there.  Same installed
@@ -208,6 +209,9 @@ def run(display, pngs):
         with open(os.path.join(done, "Props", "VIBFREQ"), "w") as handle:
             handle.write('<vector name="VIBFREQ" rows="5" units="cm-1">'
                          '-0.0 -0.01 -0.9 -50 1200</vector>\n')
+        killed = makeCalc(project, "water-killed", "Killed", STORED.format(**stamp))
+        with open(os.path.join(killed, ".ecce-meta"), "a") as handle:
+            handle.write(".\t%srunStatusReason\t\tTerminated by user\n" % NS)
         fresh = makeCalc(project, "water-new", "Created", None)
         scan = makeCalc(project, "water-scan", "Complete", DONE.format(**stamp))
         with open(os.path.join(scan, "Props", "SCANENERGY"), "w") as handle:
@@ -245,6 +249,8 @@ def run(display, pngs):
                 "summary file://" + done,
                 "progressbox",
                 "snap " + png("progress-completed.png"),
+                "summary file://" + killed,
+                "progressbox",
                 "summary file://" + fresh,
                 "progressbox",
                 "summary file://" + scan,
@@ -299,13 +305,13 @@ def run(display, pngs):
             return
         boxes = answers(log, "progressbox")
         counts = answers(log, "counts")
-        if not check(len(boxes) == 14 and len(counts) == 2,
+        if not check(len(boxes) == 15 and len(counts) == 2,
                      "every command answered (%d boxes, %d counts)" % (len(boxes), len(counts)),
                      run_tests._tail(log, 30)):
             return
         for b in boxes:
             print("      " + b)
-        stored, after, completed, none, scanned, scan1, narrow, scan2, scan3, neb, hess, oomBox, ofreq, ooptfreq = boxes
+        stored, after, completed, terminated, none, scanned, scan1, narrow, scan2, scan3, neb, hess, oomBox, ofreq, ooptfreq = boxes
         check("Incomplete: Out of memory: the scheduler killed the job" in oomBox,
               "an Incomplete job's reason is the last word in the Progress box", oomBox)
 
@@ -317,6 +323,12 @@ def run(display, pngs):
               "Optimisation: step 4" in hess and "converged" in hess and
               "s left" not in hess,
               "ORCA analytic Opt+Freq: the Frequencies stage is shown before the end", hess)
+        check(field(terminated, "shown") == "1" and
+              "Optimisation: step 4" in terminated and
+              "plot SCF:" in terminated and "plot Optimisation:" in terminated and
+              "summary: Killed: Terminated by user" in terminated and
+              "s left" not in terminated and "updated" not in terminated,
+              "killed: last progress and plots, state and reason, no live timing", terminated)
         check(field(stored, "shown") == "1", "running: the box is shown")
         check("Optimisation: step 4" in stored and "max force 4.1e-04 (limit 3e-04) \u2717" in stored
               and "RMS force 8.0e-05 (limit 1e-04) \u2713" in stored,

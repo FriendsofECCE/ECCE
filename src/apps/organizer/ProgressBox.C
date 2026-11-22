@@ -181,8 +181,9 @@ vector<JobProgress::Block> ProgressBox::blocks() const
 vector<string> ProgressBox::outcome(bool shorten) const
 {
   vector<string> out = p_progress.summary(p_completed);
+  if (p_killed && p_stopped.empty()) out.push_back("Killed");
   if (!p_stopped.empty())
-    out.push_back("Incomplete: " +
+    out.push_back(string(p_killed ? "Killed: " : "Incomplete: ") +
                   (shorten ? JobFailureReason::reasonForProgressBox(p_stopped)
                            : p_stopped));
   if (!p_warning.empty()) out.push_back("Warning: " + p_warning);
@@ -230,6 +231,7 @@ string ProgressBox::foldedText() const
   if (outOfContact())
     return JobProgress::noContactText((double)time(0) - p_lastHeard);
   if (p_finished) {
+    if (p_killed) return "Killed";
     vector<string> s = outcome(true);
     if (s.empty()) return string();
     // The whole reason as the one folded line would run wider than the box;

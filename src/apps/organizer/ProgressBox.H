@@ -64,12 +64,13 @@ public:
   // Shown at all: progress to show, or a job out of contact.
   bool wanted() const
   { return hasProgress() || outOfContact() || p_queued ||
-           (p_finished && (!p_finalEnergy.empty() || !p_stopped.empty() ||
+           (p_finished && (p_killed || !p_finalEnergy.empty() || !p_stopped.empty() ||
                            !p_warning.empty())); }
 
-  // Why an Incomplete job stopped (its run status reason), shown after the
-  // outcome so it is found where the run was being followed; "" for none.
-  void setStopped(const std::string& reason) { p_stopped = reason; }
+  // Why an Incomplete or Killed job stopped, shown with the last progress.
+  // A cancelled run still names its state when no reason was recorded.
+  void setStopped(const std::string& reason, bool killed = false)
+  { p_stopped = reason; p_killed = killed; }
   // A finished job's warning (Complete, but the result needs a look); "" for none.
   void setWarning(const std::string& text) { p_warning = text; }
 
@@ -139,6 +140,7 @@ private:
   std::string p_finalValue;
   std::string p_finalUnits;
   std::string p_stopped;
+  bool p_killed = false;
   std::string p_warning;
   bool p_collapsed;
   wxTimer p_timer;
