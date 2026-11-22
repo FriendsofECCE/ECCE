@@ -119,7 +119,9 @@ def main():
     paints = [l for l in log.splitlines() if "ECCE_TEST_ORGANIZER: paintlog: " in l]
     check(bool(paints), "paintlog answered", log[-3000:])
     if paints:
-        check("CalculationContextPanel" in paints[-1] or "ContextPanel" in paints[-1],
+        # The paint log names a window by its wx class: the details pane is
+        # a wxScrolledWindow beside the project tree.
+        check("wxScrolledWindow@" in paints[-1],
               "the details pane was painted after the click: " + paints[-1][-300:])
     shutil.rmtree(work, ignore_errors=True)
     print("FAILED: " + ", ".join(failures) if failures else "PASSED")
