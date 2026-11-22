@@ -64,11 +64,14 @@ def run(display, script=None, name="builder-import-pdb"):
         result = apps.run(display, "builder", args=("-pipe", auth),
                           windowTimeout=60, settle=90,
                           env={"ECCE_BUILDER_SCRIPT": path,
-                               "ECCE_FEEDBACK_STDERR": "1"})
-        if "BUILDER:" not in (result.log or ""):
+                               "ECCE_FEEDBACK_STDERR": "1",
+                               "ECCE_TEST_XYZ_UNITS": "angstrom"})
+        if "BUILDER: atoms=" not in (result.log or ""):
             print("builder: windows=%s rc=%s crashed=%s note=%s"
                   % (result.windows, result.returncode, result.crashed,
                      result.note))
+            print("\n".join("      | " + l for l in
+                            (result.log or "").splitlines()[-25:]))
         return result.log or ""
     finally:
         shutil.rmtree(work, ignore_errors=True)
