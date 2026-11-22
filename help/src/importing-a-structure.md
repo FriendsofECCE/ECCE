@@ -108,6 +108,12 @@ the sites that should be bonded."
 You can draw atoms with **Mode > Atom** (Ctrl+5), and finish with **Build >
 Add Hydrogen** and **Build > Clean**, as in the first calculation.
 
+A structure from a PDB file has no free sites, so **Build > Add Hydrogen**
+adds hydrogens to its amino-acid and nucleotide residues from the residue
+templates. The status line gives the number of hydrogens added and names the
+residues that have no template (ligands, water); those keep the hydrogens the
+file gave them, or none.
+
 ## Select parts of a system
 
 The **Edit** menu selects parts of a large system, such as a protein in

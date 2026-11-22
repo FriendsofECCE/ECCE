@@ -45,6 +45,11 @@
 #include "viz/GenBondsCmd.H"
 #include "viz/HydrogenBondsCmd.H"
 #include "viz/HydrogensCmd.H"
+#include "viz/AddSegmentHCmd.H"
+#include "viz/SGFragment.H"
+#include "tdat/Residue.H"
+#include <set>
+#include "util/STLUtil.H"
 #include "viz/MeasureAngleCmd.H"
 #include "viz/MeasureDistCmd.H"
 #include "viz/MeasureTorsionCmd.H"
@@ -813,12 +818,71 @@ void ViewerEvtHandler::delWheelManip(wxCommandEvent & event)
 }
 
 
+namespace {
+int countElement(SGFragment *frag, const char *sym)
+{
+  int n = 0;
+  for (int i = 0; i < (int)frag->numAtoms(); i++)
+    if (frag->atomRef(i)->atomicSymbol() == sym) n++;
+  return n;
+}
+}
+
+// Only nubs become hydrogens.  A structure read from a PDB file has none,
+// so its residues go through the residue templates instead; what has no
+// template (ligands, waters) is named, never skipped silently.
 void ViewerEvtHandler::addHydrogen(wxCommandEvent & event)
 {
-  WxVizToolFW& fw = getFW();
+  addHydrogens(getFW());
+}
+
+
+void ViewerEvtHandler::addHydrogens(WxVizToolFW& fw)
+{
   SGContainer& sg = fw.getSceneGraph();
-  Command *cmd = new HydrogensCmd("Add Hydrogens", &sg);
+  SGFragment *frag = sg.getFragment();
+  if (frag->numAtoms() == 0) return;
+
+  const int nubs = countElement(frag, "Nub");
+  const int before = countElement(frag, "H");
+  const bool byTemplate = nubs == 0 && frag->numResidues() > 0;
+  Command *cmd = byTemplate ? static_cast<Command*>(
+                                  new AddSegmentHCmd("Add Hydrogens", &sg))
+                            : static_cast<Command*>(
+                                  new HydrogensCmd("Add Hydrogens", &sg));
   fw.execute(cmd);
+
+  frag = sg.getFragment();
+  const int added = countElement(frag, "H") - before;
+  string msg;
+  if (byTemplate) {
+    int total = frag->numResidues(), done = 0;
+    std::set<string> skipped;
+    for (int i = 0; i < total; i++) {
+      Residue *res = frag->residue(i);
+      if (res->residueStatus() == Residue::GENERATABLE) {
+        done++;
+      } else {
+        skipped.insert(STLUtil::trim(res->name()));
+      }
+    }
+    msg = "Added " + std::to_string(added) + " hydrogens to " +
+          std::to_string(done) + " of " + std::to_string(total) + " residues.";
+    if (!skipped.empty()) {
+      msg += " No hydrogens for:";
+      int shown = 0;
+      for (const string& n : skipped) {
+        if (shown++ == 8) { msg += " ..."; break; }
+        msg += " " + n;
+      }
+      msg += " (no residue template).";
+    }
+  } else if (added <= 0) {
+    msg = "No hydrogens added: the structure has no open sites (nubs).";
+  } else {
+    msg = "Added " + std::to_string(added) + " hydrogens.";
+  }
+  fw.showMessage(msg, added <= 0);
 }
 
 

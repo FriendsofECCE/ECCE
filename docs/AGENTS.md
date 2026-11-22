@@ -59,6 +59,18 @@ would pick (the largest non-water, non-ion, non-additive residue); with no
 ligand it selects everything non-protein except water. Delete then removes
 them. Script command in `ECCE_BUILDER_SCRIPT`: `select_hetero`.
 
+## Add Hydrogen on a PDB structure (#1244)
+
+Builder `Build > Add Hydrogen` (and the toolbar button) only turned nubs into
+hydrogens, so a structure imported from a PDB file (no nubs) got nothing. With
+residues and no nubs it now runs the residue-template path (the Residue table's
+Add Hydrogens) and the status line says `Added N hydrogens to M of K residues`,
+naming the residues without a template (ligands, waters). With neither nubs nor
+templates it says `No hydrogens added`. Script commands in
+`ECCE_BUILDER_SCRIPT`: `import FILE` (File > Import of FILE), `resatoms`
+(atoms per residue name), `menu Build|Add Hydrogen`; see
+`tests/apps/builder_import_pdb_test.py`.
+
 ## Scripted total charge and multiplicity
 
 `ECCE_CALCED_SCRIPT` and `ECCE_BUILDER_SCRIPT` accept `charge INTEGER` and
