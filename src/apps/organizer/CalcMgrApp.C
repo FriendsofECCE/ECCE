@@ -808,7 +808,7 @@ void CalcMgrApp::invokeMCB(JMSMessage& msg)
   //  Not from inside the message callback: RequestUserAttention yields with
   //  an event filter, and a close request handled in that yield put the Quit
   //  question in a loop that took no input (#1252).
-  CallAfter([this]() {
+  wxApp::CallAfter([this]() {
     if (!p_calcMgr || p_calcMgr->IsBeingDeleted()) return;
     // The window on screen: the host while the Organizer is a tab.
     wxTopLevelWindow *screen = ToolTabs::screenWindow(p_calcMgr);
