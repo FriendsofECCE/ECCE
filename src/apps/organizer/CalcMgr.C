@@ -41,6 +41,7 @@
 #include <ctime>
 #include <iostream>
 #include "wx/weakref.h"
+#include "wx/aui/auibook.h"
 using std::cerr;
 using std::endl;
 
@@ -4555,11 +4556,33 @@ void CalcMgr::setContextPanel()
     desk->Layout();
     desk->Refresh();
     const wxSize d = desk->GetSize(), sp = p_splitterWindow->GetClientSize();
-    if (d.x < sp.x / 4 || d.y < sp.y / 2 || !desk->IsShownOnScreen())
+    if (d.x < sp.x / 4 || d.y < sp.y / 2 || !desk->IsShownOnScreen()) {
+      // Which window above the desk is hidden; one hidden although its tab
+      // is the selected one kept a new desk panel unmapped until a focus
+      // change (#1237): show it. A page of an unselected tab stays hidden.
+      string chain;
+      wxWindow *hidden = 0;
+      for (wxWindow *w = desk; w; w = w->GetParent()) {
+        chain += string(" ") + wxString(w->GetClassInfo()->GetClassName()).ToStdString() +
+                 (w->IsShown() ? "" : "(hidden)");
+        if (!w->IsShown() && !hidden) hidden = w;
+        if (w->IsTopLevel()) break;
+      }
+      bool unselected = false;
+      if (hidden)
+        if (wxAuiNotebook *nb = wxDynamicCast(hidden->GetParent(), wxAuiNotebook))
+          unselected = nb->GetPageIndex(hidden) != nb->GetSelection();
       std::cerr << "ORGANIZER: desk panel " << d.x << "x" << d.y
                 << " shown=" << desk->IsShownOnScreen() << " in splitter "
                 << sp.x << "x" << sp.y << " sash=" << p_splitterWindow->GetSashPosition()
-                << std::endl;
+                << " chain:" << chain
+                << (hidden && !unselected ? " -> shown again" : "") << std::endl;
+      if (hidden && !unselected && !hidden->IsTopLevel()) {
+        hidden->Show(true);
+        hidden->GetParent()->Layout();
+        desk->Refresh();
+      }
+    }
   });
 
   //  cerr << "\nLeave setContextPanel of: " << p_panelNode->getName() << endl;
