@@ -124,7 +124,7 @@ def main():
                 for style, tag in (("Ball And Stick", "bs"), ("CPK", "cpk")):
                     lines += ["style " + style, "viewall", "wait 800",
                               "shot " + tag]
-            if name == "cu_fcc":
+            if name in ("cu_fcc", "h2o_box"):
                 # Replicate 2x2x2: 32 real atoms; the block's faces get
                 # 2^z - 1 images per atom with z coordinates on a lower face.
                 lines += ["pbc replicate 2 2 2", "wait 1500", "info"]
@@ -138,6 +138,17 @@ def main():
                 bo.check((int(m.group(1)), int(m.group(2))) == (natoms, nimages),
                          "%s: %s atoms and %s images, expected %d and %d"
                          % (name, m.group(1), m.group(2), natoms, nimages))
+            if name == "h2o_box":
+                # Centre lattice is on: after replicating, every atom is
+                # still inside the drawn replicated cell (#1235).
+                ab = re.findall(r"BUILDER: atom_bounds=" + " ".join([r"(\S+)"] * 6), text)
+                dr = re.findall(r"BUILDER: lattice_drawn=" + " ".join([r"(\S+)"] * 6), text)
+                if bo.check(len(ab) > 1 and len(dr) > 1, "h2o_box: bounds before and after replicating"):
+                    a_ = [float(x) for x in ab[1]]
+                    d_ = [float(x) for x in dr[1]]
+                    bo.check(all(a_[k] >= d_[k] - 1e-3 and a_[3 + k] <= d_[3 + k] + 1e-3
+                                 for k in range(3)),
+                             "h2o_box replicated 2x2x2: atoms %s outside the cell %s" % (a_, d_))
             if name == "cu_fcc":
                 r = re.findall(r"BUILDER: atoms=(\d+) .*\n(?:.*\n)*?BUILDER: cell_images=(\d+)", text)
                 got = tuple(int(x) for x in r[1]) if len(r) > 1 else None
