@@ -2054,10 +2054,16 @@ void SGContainer::touchLattice()
    SGLattice *sgl = (SGLattice*)findNode("lattice");
    if (frag && lattice && sgl) {
 
-      // The atoms are the base cell, so its centre is the fragment centre
-      // at any replication; edges and labels must follow the atoms.
+      // The box is drawn once per replicate around the centre of the base
+      // cell, which is the first natoms/(na1*na2*na3) atoms (as in
+      // Fragment::resizeToUnitCell); the centre of all atoms would put the
+      // first box over the middle of the replicated block (#1235).
       {
          int natoms = frag->numAtoms();
+         int na1, na2, na3;
+         lattice->getReplicationFactors(na1, na2, na3);
+         const int nrep = na1 * na2 * na3;
+         if (nrep > 1 && natoms % nrep == 0) natoms /= nrep;
          double cmx = 0.0;
          double cmy = 0.0;
          double cmz = 0.0;

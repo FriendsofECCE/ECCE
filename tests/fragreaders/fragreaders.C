@@ -136,6 +136,29 @@ int main(int argc, char **argv)
   }
 
   {
+    // Crystal structure with a HETATM ligand (benzene) and waters (#1244).
+    string tag = "181L.pdb";
+    Fragment *frag = load(dir + "/181L.pdb", "PDB");
+    if (frag) {
+      int bnz = 0, hoh = 0;
+      for (Residue *r : frag->residues()) {
+        if (r->name().substr(0, 3) == "BNZ") bnz++;
+        if (r->name().substr(0, 3) == "HOH") hoh++;
+      }
+      int bnzAtoms = 0;
+      for (int i = 0; i < frag->numAtoms(); i++) {
+        Residue *r = frag->atomRef(i)->getResidue();
+        if (r && r->name().substr(0, 3) == "BNZ") bnzAtoms++;
+      }
+      check(bnz == 1 && bnzAtoms == 6, tag + ": BNZ with 6 carbons (got "
+            + to_string(bnzAtoms) + ")");
+      check(hoh > 100, tag + ": waters kept (" + to_string(hoh) + ")");
+      cout << "181L atoms " << frag->numAtoms() << endl;
+      delete frag;
+    }
+  }
+
+  {
     string tag = "altloc.pdb";
     Fragment *frag = load(dir + "/altloc.pdb", "PDB", "A");
     if (frag) {

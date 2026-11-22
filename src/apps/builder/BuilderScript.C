@@ -25,6 +25,11 @@
 //                                and press the key; prints the cell and
 //                                whether its editor is still open
 //    residues                    the residue names of the structure, on stderr
+//    undo                        Edit > Undo (the menu event)
+//    ctrlz                       the Ctrl+Z key press, through the frame's key hook (#1247)
+//    focus                       the class of the window with the keyboard focus
+//    resatoms                    atoms per residue name (NAME=N,...), on stderr
+//    import FILE                 File > Import of FILE, as the dialog does (#1244)
 //    menustate NAME              whether Tools > NAME is enabled, on stderr
 //    save                        File > Save
 //    charge INTEGER | mult INTEGER   total charge / spin multiplicity
@@ -43,6 +48,9 @@
 //                                of the result as `BUILDER: clusteratom EL X Y Z`
 //    select_protein              Edit > Select Protein (replaces the selection)
 //    select_ligand               Edit > Select Ligand: the largest ligand (replaces the selection)
+//    ligands                     the Select Ligand submenu entries, likely ligand first (#1244)
+//    ligand N                    Select Ligand > Nth entry (from 1)
+//    select_hetero               Edit > Select Heteroatoms (not protein): all but protein and the ligand (#1244)
 //    selectelem A                select the first atom of element A
 //    addelem A                   add the last atom of element A to the selection
 //    bondkind covalent|metal     the kind of bond Bond mode makes
@@ -769,6 +777,39 @@ void Builder::runBuilderScript(const std::string& file)
         for (int i = 0; i < frag->numResidues(); i++)
           names += (i ? "," : "") + frag->residue(i)->name();
         fprintf(stderr, "BUILDER: residues=%s\n", names.c_str());
+      } else if (w[0] == "undo" && w.size() == 1) {
+        wxCommandEvent ev(wxEVT_MENU, wxID_UNDO);
+        ev.SetEventObject(this);
+        GetEventHandler()->ProcessEvent(ev);
+      } else if (w[0] == "ctrlz" && w.size() == 1) {
+        wxKeyEvent ev(wxEVT_CHAR_HOOK);
+        ev.m_keyCode = 'Z';
+        ev.SetControlDown(true);
+        ev.SetEventObject(this);
+        GetEventHandler()->ProcessEvent(ev);
+      } else if (w[0] == "focus" && w.size() == 1) {
+        wxWindow *f = wxWindow::FindFocus();
+        fprintf(stderr, "BUILDER: focus %s\n",
+                f ? (const char*)wxString(f->GetClassInfo()->GetClassName()).utf8_str() : "none");
+      } else if (w[0] == "resatoms") {
+        std::map<std::string,int> counts;
+        for (int i = 0; i < (int)frag->numAtoms(); i++) {
+          const Residue *r = frag->atomRef(i)->getResidue();
+          std::string n = r ? r->name() : std::string("(none)");
+          //  PDB residue names are padded (" CL", "BNZ "); print them bare.
+          n.erase(0, n.find_first_not_of(' '));
+          n.erase(n.find_last_not_of(' ') + 1);
+          counts[n]++;
+        }
+        std::string out;
+        for (auto &kv : counts)
+          out += (out.empty() ? "" : ",") + kv.first + "=" + std::to_string(kv.second);
+        fprintf(stderr, "BUILDER: resatoms %s\n", out.c_str());
+      } else if (w[0] == "import" && w.size() == 2) {
+        SFile file(w[1]);
+        wxString ext = wxString(file.extension()).Upper();
+        if (!readFragmentFromFile(&file, ext, ext)) outcome = "import cancelled";
+        getViewer().viewAll();
       } else if (w[0] == "save") {
         doSave();
       } else if (w[0] == "context" && w.size() == 2) {
@@ -796,6 +837,18 @@ void Builder::runBuilderScript(const std::string& file)
         fprintf(stderr, "BUILDER: atoms=%d lattice=%s nubs=%d\n",
                 frag ? (int)frag->numAtoms() : -1, lat ? "yes" : "no", nubs);
         fprintf(stderr, "BUILDER: cell_images=%d\n", getSG()->numCellImages());
+        if (frag && frag->numAtoms() > 0) {
+          double alo[3], ahi[3];
+          for (size_t i = 0; i < frag->numAtoms(); i++) {
+            const double *xyz = frag->atomRef(i)->coordinates();
+            for (int k = 0; k < 3; k++) {
+              if (i == 0 || xyz[k] < alo[k]) alo[k] = xyz[k];
+              if (i == 0 || xyz[k] > ahi[k]) ahi[k] = xyz[k];
+            }
+          }
+          fprintf(stderr, "BUILDER: atom_bounds=%.3f %.3f %.3f %.3f %.3f %.3f\n",
+                  alo[0], alo[1], alo[2], ahi[0], ahi[1], ahi[2]);
+        }
         if (lat) {
           MPoint cc = lat->getLatticeCorner();
           fprintf(stderr, "BUILDER: lattice_centered=%d corner=%.3f %.3f %.3f\n",
@@ -908,6 +961,24 @@ void Builder::runBuilderScript(const std::string& file)
                  w.size() == 1 && frag) {
         if (!selectResidueClass(w[0] == "select_ligand"))
           outcome = "FAIL: nothing selected";
+      } else if (w[0] == "ligands" && w.size() == 1) {
+        //  The Select Ligand submenu as Edit would show it.
+        fillLigandMenu();
+        std::string out;
+        for (size_t k = 0; k < p_ligandMenu->GetMenuItemCount(); k++)
+          out += (k ? "; " : "") + p_ligandMenu->FindItemByPosition(k)->GetItemLabelText().ToStdString();
+        fprintf(stderr, "BUILDER: ligands %s\n", out.c_str());
+      } else if (w[0] == "ligand" && w.size() == 2 && frag) {
+        //  Select Ligand > Nth entry (from 1).
+        fillLigandMenu();
+        if (!selectLigandCandidate(atoi(w[1].c_str()) - 1))
+          outcome = "FAIL: no such ligand candidate";
+        else
+          fprintf(stderr, "BUILDER: selection atoms=%d bonds=%d\n",
+                  (int)frag->m_atomHighLight.size(),
+                  (int)frag->m_bondHighLight.size());
+      } else if (w[0] == "select_hetero" && w.size() == 1 && frag) {
+        if (!selectHeteroatoms()) outcome = "FAIL: nothing selected";
       } else if (w[0] == "selectelem" && w.size() == 2 && frag) {
         //  The first atom of element A, as a click on it selects it.
         outcome = "FAIL: no such atom";
@@ -2566,14 +2637,111 @@ bool Builder::selectResidueClass(bool ligand)
   return true;
 }
 
+void Builder::focusView()
+{
+  CallAfter([this]() {
+    if (SoWxRenderArea *area = findViewerArea(p_viewer)) area->SetFocus();
+  });
+  //  After opening a structure the panels are still being built and one of
+  //  their buttons takes the focus; ask once more when that has settled.
+  wxTimer *later = new wxTimer();
+  wxWeakRef<Builder> self(this);
+  later->Bind(wxEVT_TIMER, [self, later](wxTimerEvent&) {
+    SoWxRenderArea *area = self ? findViewerArea(self->p_viewer) : 0;
+    if (area) {
+      wxWindow *f = wxWindow::FindFocus();
+      if (!dynamic_cast<wxTextEntry*>(f)) area->SetFocus();
+    }
+    later->Stop();
+    wxTheApp->CallAfter([later]() { delete later; });
+  });
+  later->StartOnce(400);
+}
+
+
 void Builder::OnSelectProteinClick(wxCommandEvent&)
 {
   selectResidueClass(false);
 }
 
+//  Select Ligand lists the candidates, the likely ligand first.  The menu
+//  is refilled only as Edit opens: changing a menu while it is open breaks
+//  the item under the pointer (#1239).  Clicking the entry itself (script)
+//  picks the first.
 void Builder::OnSelectLigandClick(wxCommandEvent&)
 {
   selectResidueClass(true);
+}
+
+void Builder::fillLigandMenu()
+{
+  if (!p_ligandMenu) return;
+  SGFragment *frag = p_sgMgr ? getSG()->getFragment() : 0;
+  vector<SGFragment::LigandCandidate> cands;
+  if (frag) cands = frag->ligandCandidates();
+  while (p_ligandMenu->GetMenuItemCount() > 0)
+    p_ligandMenu->Destroy(p_ligandMenu->FindItemByPosition(0));
+  p_ligandFirstAtoms.clear();
+  for (size_t k = 0; k < cands.size() && k < 16; k++) {
+    const SGFragment::LigandCandidate& c = cands[k];
+    wxString label = wxString::Format("%s %d (%d atom%s)", c.name, c.number,
+                                      c.atoms, c.atoms == 1 ? "" : "s");
+    p_ligandMenu->Append(ID_LIGAND_FIRST + (int)k, label);
+    p_ligandFirstAtoms.push_back(c.firstAtom);
+  }
+  if (cands.empty()) {
+    p_ligandMenu->Append(ID_LIGAND_FIRST, _("(no ligand candidates)"));
+    p_ligandMenu->Enable(ID_LIGAND_FIRST, false);
+  }
+}
+
+bool Builder::selectLigandCandidate(int n)
+{
+  SGFragment *frag = getSG()->getFragment();
+  if (!frag || n < 0 || n >= (int)p_ligandFirstAtoms.size()) return false;
+  const int first = p_ligandFirstAtoms[n];
+  SelectCmd *cmd = new SelectCmd("Select Ligand", getSG());
+  cmd->getParameter("clear")->setBoolean(true);
+  cmd->getParameter("full_residue")->setInteger(first);
+  execute(cmd);
+  const Residue *res = frag->atomRef(first)->getResidue();
+  showMessage("Selected " + std::to_string(frag->m_atomHighLight.size()) +
+              " atoms of " + (res ? res->name() : string("the residue")) + ".");
+  return !frag->m_atomHighLight.empty();
+}
+
+void Builder::OnSelectLigandItem(wxCommandEvent& event)
+{
+  selectLigandCandidate(event.GetId() - ID_LIGAND_FIRST);
+}
+
+void Builder::OnMenuOpen(wxMenuEvent& event)
+{
+  if (event.GetMenu() == p_editMenu) fillLigandMenu();
+  event.Skip();
+}
+
+//  Edit > Select Heteroatoms (not protein) (#1244): then Delete leaves the
+//  protein and the ligand.
+bool Builder::selectHeteroatoms()
+{
+  SGFragment *frag = getSG()->getFragment();
+  if (!frag || frag->numResidues() == 0) {
+    showMessage("Select Heteroatoms: this structure has no residue "
+                "information.");
+    return false;
+  }
+  SelectCmd *cmd = new SelectCmd("Select Heteroatoms", getSG());
+  cmd->getParameter("clear")->setBoolean(true);
+  cmd->getParameter("heteroatoms")->setBoolean(true);
+  execute(cmd);
+  showMessage(cmd->message());
+  return !frag->m_atomHighLight.empty();
+}
+
+void Builder::OnSelectHeteroClick(wxCommandEvent&)
+{
+  selectHeteroatoms();
 }
 
 //  Greyed, with the reason in the label, while there are no residues; the

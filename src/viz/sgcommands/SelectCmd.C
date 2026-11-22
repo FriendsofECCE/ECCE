@@ -59,6 +59,7 @@ void SelectCmd::init()
    addParameter(new CommandParameter("ions", false));
    addParameter(new CommandParameter("protein", false));
    addParameter(new CommandParameter("ligand", false));
+   addParameter(new CommandParameter("heteroatoms", false));
    addParameter(new CommandParameter("full_residue", -1));
    addParameter(new CommandParameter("reverse", false));
    addParameter(new CommandParameter("NWChemSelection", ""));
@@ -220,6 +221,10 @@ bool SelectCmd::execute()
 
    if (getParameter("ligand")->getBoolean()) {
       frag->getLigand(atombits,bondbits,p_message);
+   }
+
+   if (getParameter("heteroatoms")->getBoolean()) {
+      frag->getHeteroatoms(atombits,bondbits,p_message);
    }
 
    if (getParameter("reverse")->getBoolean()) {
