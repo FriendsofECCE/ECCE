@@ -23,6 +23,7 @@
 #include "wx/dcclient.h"
 #include "wx/frame.h"
 #include "wx/menu.h"
+#include "wx/accel.h"
 #include "wx/panel.h"
 #include "wx/scrolwin.h"
 #include "wx/button.h"
@@ -1657,9 +1658,12 @@ bool ToolTabs::testCommand(const wxString& cmd, const wxString& arg,
     if (it == windowMenus().end()) { outcome = "no window menu"; return true; }
     for (wxMenuItem *item : it->second.menu->GetMenuItems()) {
       if (item->IsSeparator()) { outcome += "-|"; continue; }
-      wxString label = item->GetItemLabel();
-      outcome += wxMenuItem::GetLabelText(label.BeforeFirst('\t'));
-      if (label.Contains("\t")) outcome += "[" + label.AfterFirst('\t') + "]";
+      outcome += wxMenuItem::GetLabelText(item->GetItemLabel().BeforeFirst('\t'));
+      // GTK keeps the shortcut apart from the label text.
+      if (wxAcceleratorEntry *acc = item->GetAccel()) {
+        outcome += "[" + acc->ToString() + "]";
+        delete acc;
+      }
       outcome += wxString(item->IsCheckable() && item->IsChecked() ? "*" : "") + "|";
     }
   } else if (cmd == "charhook") {
