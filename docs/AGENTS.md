@@ -101,8 +101,16 @@ Select mode, runs), `viewall`. Test: `tests/apps/builder_click_camera_test.py`.
 Builder Edit menu: **Invert Selection** (Ctrl+R, formerly Reverse Selection).
 After a structure opens and after every Edit > Select command the 3-D view
 has the keyboard focus, so Delete and Ctrl+Z act at once. Script commands
-`undo`, `ctrlz` (the Ctrl+Z key hook) and `focus` (class of the focused
-window); see `tests/apps/builder_delete_undo_test.py`.
+`undo`, `redo`, `ctrlz` (the Ctrl+Z key hook) and `focus` (class of the
+focused window); see `tests/apps/builder_delete_undo_test.py`. `menuenabled
+<Menu>|<item>` logs `BUILDER: menuenabled ... top=0|1 item=0|1`, whether a
+click could reach a menu-bar item (`menu` sends the item even when greyed).
+
+A PDB opened directly (`ecce-builder FILE.pdb`, as the file manager's Open
+With does) is editable. If it holds records ECCE does not write, File > Save
+goes to Save As instead of overwriting it; under `ECCE_BUILDER_SCRIPT` that
+logs `BUILDER: save goes to Save As` and opens no dialog
+(`tests/apps/builder_pdb_open_test.py`).
 
 ## Scripted total charge and multiplicity
 

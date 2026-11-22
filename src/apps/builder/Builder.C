@@ -5166,6 +5166,15 @@ void Builder::setUnsavedState(bool flag)
  */
 void Builder::doSave()
 {
+  //  Writing back would drop the file's other records (#1259).
+  if (p_calculation && !p_calculation->canSaveInPlace()) {
+    if (getenv("ECCE_BUILDER_SCRIPT")) {   // test hook: no modal dialog
+      fprintf(stderr, "BUILDER: save goes to Save As\n");
+      return;
+    }
+    doSaveAs();
+    return;
+  }
   wxBusyCursor busy;
 
    // Move 'em out prior to save since they cannot be properly handled

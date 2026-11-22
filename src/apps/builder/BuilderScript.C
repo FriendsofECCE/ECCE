@@ -795,6 +795,28 @@ void Builder::runBuilderScript(const std::string& file)
         wxCommandEvent ev(wxEVT_MENU, wxID_UNDO);
         ev.SetEventObject(this);
         GetEventHandler()->ProcessEvent(ev);
+      } else if (w[0] == "redo" && w.size() == 1) {
+        wxCommandEvent ev(wxEVT_MENU, wxID_REDO);
+        ev.SetEventObject(this);
+        GetEventHandler()->ProcessEvent(ev);
+      } else if (w[0] == "menuenabled" && w.size() >= 2) {
+        //  "menuenabled <Menu>|<item>": whether a click could reach the item
+        //  (the "menu" command sends it even when it is greyed out).
+        std::string rest = line.substr(line.find("menuenabled") + 12);
+        size_t bar = rest.find('|');
+        wxMenuBar *mb = GetMenuBar();
+        int top = bar == std::string::npos ? wxNOT_FOUND
+                : mb->FindMenu(wxString(rest.substr(0, bar)));
+        int id = top == wxNOT_FOUND ? wxNOT_FOUND
+               : mb->FindMenuItem(wxString(rest.substr(0, bar)),
+                                  wxString(rest.substr(bar + 1)));
+        if (id == wxNOT_FOUND) {
+          outcome = "FAIL: no menu item " + rest;
+        } else {
+          fprintf(stderr, "BUILDER: menuenabled %s top=%d item=%d\n",
+                  rest.c_str(), mb->IsEnabledTop(top) ? 1 : 0,
+                  mb->IsEnabled(id) ? 1 : 0);
+        }
       } else if (w[0] == "ctrlz" && w.size() == 1) {
         wxKeyEvent ev(wxEVT_CHAR_HOOK);
         ev.m_keyCode = 'Z';

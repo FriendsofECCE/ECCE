@@ -40,6 +40,9 @@ class IPropCalculation
       virtual EcceURL getURL() const = 0;
 
       virtual bool isReadOnly() const = 0;
+      // False when the opened file holds records that a save would lose:
+      // the structure stays editable, and Save asks for a new name.
+      virtual bool canSaveInPlace() const { return true; }
 
       // The scan/IRC point (an index into the per-point orbital tables, as
       // SCANGEOM/IRCGEOM) whose orbitals MO, ORBENG and their companions
