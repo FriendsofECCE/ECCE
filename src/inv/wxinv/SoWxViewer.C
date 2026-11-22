@@ -184,6 +184,7 @@ SbBool SoWxViewer::Create( wxWindow* parent,
   p_camera = NULL;
   p_cameraType = SoPerspectiveCamera::getClassTypeId();
   p_createdCamera = false;
+  p_perspHeightAngle = -1;
   p_viewingFlag = true;
   p_altSwitchBack = false;
   p_cursorEnabledFlag = true;
@@ -1698,17 +1699,36 @@ void SoWxViewer::toggleCameraType()
   // create the camera of the opposite kind and compute the wanted height
   // or heightAngle of the new camera.
   SoCamera *newCam;
+  bool moveEye = false;
+  float newDist = 0;
+  SbVec3f newPos;
   if (p_camera->isOfType(SoPerspectiveCamera::getClassTypeId())) {
     float angle = ((SoPerspectiveCamera *)p_camera)->heightAngle.getValue();
     float height = p_camera->focalDistance.getValue() * tanf(angle/2);
+    p_perspHeightAngle = angle;
     newCam = new SoOrthographicCamera;
     ((SoOrthographicCamera *)newCam)->height = 2 * height;
   }
   else if (p_camera->isOfType(SoOrthographicCamera::getClassTypeId())) {
     float height = ((SoOrthographicCamera *)p_camera)->height.getValue() / 2;
-    float angle = atanf(height / p_camera->focalDistance.getValue());
     newCam = new SoPerspectiveCamera;
-    ((SoPerspectiveCamera *)newCam)->heightAngle = 2 * angle;
+    if (p_perspHeightAngle > 0) {
+      // Keep the old angle and move the eye so the focal plane shows the
+      // ortho height: deriving the angle from the height widened the
+      // perspective on every round trip (#1214).
+      float dist = height / tanf(p_perspHeightAngle / 2);
+      SbVec3f dir;
+      p_camera->orientation.getValue().multVec(SbVec3f(0, 0, -1), dir);
+      SbVec3f focal = p_camera->position.getValue() +
+                      dir * p_camera->focalDistance.getValue();
+      ((SoPerspectiveCamera *)newCam)->heightAngle = p_perspHeightAngle;
+      moveEye = true;
+      newDist = dist;
+      newPos = focal - dir * dist;
+    } else {
+      float angle = atanf(height / p_camera->focalDistance.getValue());
+      ((SoPerspectiveCamera *)newCam)->heightAngle = 2 * angle;
+    }
   }
   else {
 #ifdef DEBUG
@@ -1726,6 +1746,10 @@ void SoWxViewer::toggleCameraType()
   newCam->orientation = p_camera->orientation.getValue();
   newCam->aspectRatio = p_camera->aspectRatio.getValue();
   newCam->focalDistance = p_camera->focalDistance.getValue();
+  if (moveEye) {
+    newCam->position = newPos;
+    newCam->focalDistance = newDist;
+  }
     
   // search for the old camera and replace it by the new camera
   SoSearchAction sa;
