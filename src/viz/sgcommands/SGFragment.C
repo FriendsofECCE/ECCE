@@ -1235,7 +1235,7 @@ void SGFragment::getHeteroatoms(vector<bool>& atombits, vector<bool>& bondbits,
     selectAtomAndBonds(atomRef(i), atombits, bondbits);
     n++;
   }
-  message = "Selected " + to_string(n) + " heteroatoms outside the protein" +
+  message = "Selected " + std::to_string(n) + " heteroatoms outside the protein" +
             (haveLigand ? "; the ligand was left out." : ".");
 }
 
