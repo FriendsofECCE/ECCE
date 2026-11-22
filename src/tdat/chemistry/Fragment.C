@@ -861,10 +861,35 @@ void Fragment::addAtom(TAtm* atom, TAtm *parent)
 
   } else {
     int curResIndex = editResidueIndex();
-    if (curResIndex < 0 && parent == NULL) {
-      // For now this is bad.  Later we'll start a new residue perhaps.
-      EE_ASSERT((curResIndex < 0 && parent == NULL),EE_FATAL,
-          "Should be a residue to edit or parent to add to");
+    Residue *parentRes = parent ? findResidue(parent) : (Residue*)0;
+    if (curResIndex < 0 && parentRes == NULL) {
+      // Nothing to attach to: start a residue at the end, so the atom is
+      // kept. Copies of atoms of one residue share the new residue; name
+      // and chain are taken from the source residue when it is ours.
+      Residue *src = atom->getResidue();
+      bool ours = false;
+      for (Residue *r : p_residueSequence) if (r == src) ours = true;
+      Residue *home = 0;
+      if (ours && src == p_orphanSrc) {
+        for (Residue *r : p_residueSequence) if (r == p_orphanRes) home = r;
+      }
+      if (home == 0) {
+        int num = p_residueSequence.empty() ? 1 :
+                  p_residueSequence.back()->number() + 1;
+        home = new Residue(ours ? src->name().c_str() : "UNK", num);
+        if (ours) {
+          home->chain(src->chain());
+          home->segID(src->segID().c_str());
+          home->couplingInfo(src->couplingInfo());
+        }
+        addResidue(home);
+        p_orphanSrc = ours ? src : (Residue*)0;
+        p_orphanRes = home;
+      }
+      atom->atomResidue(home);
+      atom->index(p_atoms.size());
+      p_atoms.push_back(atom);
+      if (home->firstAtomPtr() == (TAtm*)0) home->firstAtomPtr(atom);
     } else {
 
       // Figure out the beginning and ending atom index of the current

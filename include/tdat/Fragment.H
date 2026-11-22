@@ -359,6 +359,11 @@ class Fragment
       int                            p_editResidueMode;
       int                            p_editResidueIndex;
 
+      // Residue made by addAtom for atoms with no residue to join, and the
+      // source residue it stands for, so one source residue gives one copy.
+      Residue*                       p_orphanSrc = 0;
+      Residue*                       p_orphanRes = 0;
+
       // TResChain object to keep track of chain label usage
       TResChain p_chains;
 
