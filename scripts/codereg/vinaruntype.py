@@ -15,11 +15,23 @@ class VinaRunTypePanel(EccePanel):
         # The split keys are the shared docking layer's (docking.pl), so they
         # are the same as xtb's.  Empty means the smallest molecule.
         dockSizer = EcceBoxSizer(self, label="Receptor and Ligand", cols=1)
+        # The editor lists the structure's ligand candidates in a side file
+        # (<out>.molecules, label TAB atom range); without it (older editor,
+        # no residues) the list stays hidden and only the field is shown.
+        self.molecules = []
+        self.defaulted = False
+        self.chooser = wx.Choice(self, -1, choices=[])
+        self.chooser.Bind(wx.EVT_CHOICE, self.OnChoose)
+        self.chooserLabel = wx.StaticText(self, label="Ligand molecule:")
+        self.chooserRow = wx.BoxSizer(wx.HORIZONTAL)
+        self.chooserRow.Add(self.chooserLabel, 0, EcceGlobals.FlagDefault, 5)
+        self.chooserRow.Add(self.chooser, 0, EcceGlobals.FlagDefault, 0)
+        dockSizer.Add(self.chooserRow)
         self.ligand = EcceTextInput(self,
                                     name="ES.Runtype.Docking.LigandAtoms",
                                     size=(160, -1),
                                     default="",
-                                    label="Ligand atoms (empty: chosen automatically):",
+                                    label="Other (atom numbers; empty: chosen automatically):",
                                     tip="Atom numbers, for example 1-5,9",
                                     export=1)
         dockSizer.AddWidget(self.ligand)
@@ -31,6 +43,7 @@ class VinaRunTypePanel(EccePanel):
         self.noteTimer = wx.Timer(self, 4711)
         self.Bind(wx.EVT_TIMER, self.OnNoteTimer, self.noteTimer, 4711)
         self.noteTimer.Start(1000)
+        self.ReadMolecules()
         self.ShowAutoNote()
         self.lcharge = EcceSpinCtrl(self,
                                     name="ES.Runtype.Docking.LigandCharge",
@@ -128,7 +141,53 @@ class VinaRunTypePanel(EccePanel):
 
         self.AddButtons()
 
+    def ReadMolecules(self):
+        mols = []
+        try:
+            with open(EcceGlobals.FdIn + ".molecules", encoding="utf-8") as f:
+                for line in f:
+                    parts = line.rstrip("\n").split("\t")
+                    if len(parts) == 2 and parts[0] and parts[1]:
+                        mols.append((parts[0], parts[1]))
+        except (OSError, UnicodeDecodeError):
+            mols = []
+        if mols != self.molecules:
+            self.molecules = mols
+            self.chooser.Set([m[0] for m in mols] + ["Other (atom numbers)"])
+            self.chooserRow.ShowItems(bool(mols))
+            self.Layout()
+        # An empty key means the first candidate; a stored one is kept.
+        if mols and not self.defaulted and not self.ligand.GetValue().strip():
+            self.defaulted = True
+            self.SetLigandAtoms(mols[0][1])
+        self.SyncChooser()
+
+    def SetLigandAtoms(self, value):
+        self.ligand.SetValue(value)
+        e = wx.CommandEvent()
+        e.SetEventObject(self.ligand)
+        self.OnChanges(e)
+
+    def SyncChooser(self):
+        if not self.molecules:
+            return
+        current = self.ligand.GetValue().strip()
+        sel = len(self.molecules)
+        for i, m in enumerate(self.molecules):
+            if m[1] == current:
+                sel = i
+                break
+        if self.chooser.GetSelection() != sel:
+            self.chooser.SetSelection(sel)
+
+    def OnChoose(self, event):
+        i = self.chooser.GetSelection()
+        if 0 <= i < len(self.molecules):
+            self.SetLigandAtoms(self.molecules[i][1])
+        event.Skip()
+
     def OnNoteTimer(self, event):
+        self.ReadMolecules()
         try:
             with open(EcceGlobals.FdIn + ".note", encoding="utf-8") as f:
                 self.autoNoteText = f.readline().strip()
@@ -146,6 +205,7 @@ class VinaRunTypePanel(EccePanel):
             self.Layout()
 
     def CheckDependency(self):
+        self.SyncChooser()
         self.ShowAutoNote()
         manual = not self.auto.GetValue()
         for c in self.center + self.size:

@@ -786,6 +786,14 @@ contains `presentation.tsv`, `selection.tsv`, `hover.txt` and
 painted axis labels as `plot-x`, `plot-y` and `scree-y`; all use enclosing
 1–2–5 tick ranges, with equal ranges on the observed/predicted axes.
 
+**Vina ligand.** A script sets the ligand by sending the detail
+`ES.Runtype.Docking.LigandAtoms` (1-based atom range such as `10-15`); in
+Runtype Details the *Ligand molecule* list fills that key from the structure's
+residues (the editor writes them to `<dialog out file>.molecules`, one
+`label<TAB>range` per line, likely ligand first) and an empty key defaults to
+the first. The key can still be typed. The same ranking and range formatter
+are `LigandSelect::ligandCandidates`/`atomRangeString` (`include/tdat/LigandSelect.H`).
+
 **Docking.** Vina calculations (`vina`); `ecce-pdbqt` prepares PDBQT files;
 CREST/xTB docking is a run type of xTB.
 The Builder Poses panel shows cached ligand-only thumbnails for docking.
