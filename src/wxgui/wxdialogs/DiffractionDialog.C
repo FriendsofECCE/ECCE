@@ -1903,24 +1903,12 @@ void DiffractionView::clearTip()
   p_tipText.clear(); p_pinned = false;
 }
 
-void DiffractionView::showTip(wxWindow *canvas, const wxPoint& pos, const wxString& label, bool pin)
+void DiffractionView::showTip(wxWindow *, const wxPoint&, const wxString& label, bool)
 {
-  if (p_pinned && !pin) return;
-  if (label.empty()) { clearTip(); return; }
-  if (p_tip && p_tipText == label && !pin) return;
-  clearTip();
-  p_pinned = pin;
-  p_tipText = label;
-  p_tip = new wxPopupWindow(this, wxBORDER_SIMPLE);
-  p_tip->SetBackgroundColour(wxSystemSettings::GetColour(wxSYS_COLOUR_INFOBK));
-  auto *s = new wxBoxSizer(wxVERTICAL);
-  auto *t = new wxStaticText(p_tip, wxID_ANY, label);
-  t->SetForegroundColour(wxSystemSettings::GetColour(wxSYS_COLOUR_INFOTEXT));
-  t->Wrap(420);
-  s->Add(t, 0, wxALL, 6);
-  p_tip->SetSizerAndFit(s);
-  p_tip->Position(canvas->ClientToScreen(pos + wxPoint(12, 16)), wxSize(0, 0));
-  p_tip->Show();
+  // The readout line under the image is the one place for pointer and click
+  // details; a popup over the pattern repeated it and covered the data.
+  if (label.empty() || p_process || p_debounce.IsRunning()) return;
+  p_pointer->SetLabel(label.BeforeFirst('\n'));
 }
 
 void DiffractionView::selectReflection(double tt, double tolerance)
