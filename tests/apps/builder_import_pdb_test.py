@@ -15,7 +15,7 @@ import fixture    # noqa: E402
 
 STRUCTURE = os.path.join(HERE, "..", "fragreaders", "data", "181L.pdb")
 SCRIPT = [
-    "wait 2000", "import " + STRUCTURE, "wait 1000", "resatoms", "info",
+    "wait 2000", "import " + STRUCTURE, "wait 1000", "resatoms", "info", "bondorders",
     "menu Build|Add Hydrogen", "wait 3000", "resatoms", "info",
     "menu Build|Add Hydrogen", "wait 1000", "info",
     "quit",
@@ -68,6 +68,10 @@ def problemsIn(log):
         problems.append("second Add Hydrogen changed the count %s" % atoms)
     if "Added " not in log or "residues" not in log:
         problems.append("no 'Added N hydrogens to M of K residues' message")
+    #  The ligand's bonds as drawn (no CONECT records for BNZ in the file).
+    for m in re.finditer(r"BUILDER: bond (\d+)-(\d+) (\S+) order=(\S+) drawn=(\d+) len=(\S+)", log):
+        if int(m.group(1)) >= 1290 and int(m.group(2)) >= 1290:
+            print("      bond %s-%s %s order=%s drawn=%s len=%s" % m.groups())
     print("%s  import 181L: %s atoms %s" %
           ("FAIL" if problems else "PASS", counts[:1], atoms))
     return problems
