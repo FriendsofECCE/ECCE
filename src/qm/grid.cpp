@@ -76,8 +76,19 @@ double BeckePartition::weight(const std::array<double, 3>& point, int owner,
   const int na = static_cast<int>(mol_.atoms.size()), nd = 3 * na;
   if (gradient) gradient->assign(nd, 0.0);
   if (na == 1) return 1.0;
-  std::vector<double> dist(na);
-  std::vector<std::array<double, 3>> unit(na);
+  // Calls on each integration thread reuse storage across points and molecules.
+  struct Scratch {
+    std::vector<double> dist, product, cell, dcell, dp, dsum, down;
+    std::vector<int> zeros;
+    std::vector<std::array<double, 3>> unit;
+  };
+  static thread_local Scratch work;
+  auto& dist = work.dist;
+  auto& unit = work.unit;
+  auto& product = work.product;
+  auto& zeros = work.zeros;
+  dist.resize(na); unit.resize(na); product.resize(na); zeros.resize(na);
+  if (gradient) { work.cell.resize(na * na); work.dcell.resize(na * na); }
   for (int i = 0; i < na; ++i) {
     double r2 = 0;
     for (int c = 0; c < 3; ++c) {
@@ -85,37 +96,67 @@ double BeckePartition::weight(const std::array<double, 3>& point, int owner,
       r2 += unit[i][c] * unit[i][c];
     }
     dist[i] = std::sqrt(r2);
-    if (gradient) for (int c = 0; c < 3; ++c)
-      unit[i][c] = dist[i] > 0 ? unit[i][c] / dist[i] : 0.0;
   }
   double sum = 0, own = 0;
-  std::vector<double> dp(gradient ? nd : 0), dsum(dp.size(), 0.0), down(dp.size());
   for (int i = 0; i < na; ++i) {
     double pr = 1;
-    std::fill(dp.begin(), dp.end(), 0.0);
-    for (int j = 0; j < na && pr > 1e-30; ++j) {
+    int nz = 0;
+    for (int j = 0; j < na && (gradient || pr > 1e-30); ++j) {
       if (i == j) continue;
-      const double r = rij_[i * na + j], a = aij_[i * na + j];
+      const int ij = i * na + j;
+      const double r = rij_[ij], a = aij_[ij];
       const double mu = (dist[i] - dist[j]) / r;
       double ds = 0;
       const double s = becke_s(mu + a * (1 - mu * mu), gradient ? &ds : nullptr);
       if (gradient) {
-        for (double& v : dp) v *= s;
-        const double scale = pr * ds * (1 - 2 * a * mu) / r;
-        for (int c = 0; c < 3; ++c) {
-          const double u = (mol_.atoms[i].x[c] - mol_.atoms[j].x[c]) / r;
-          dp[3 * i + c] += scale * (-unit[i][c] - mu * u);
-          dp[3 * j + c] += scale * (unit[j][c] + mu * u);
+        work.cell[ij] = s;
+        work.dcell[ij] = ds * (1 - 2 * a * mu) / r;
+        if (s == 0) {
+          ++nz;
+          // A zero with zero slope, or two zeros, kills the whole product response.
+          if (ds == 0 || nz == 2) { nz = 2; break; }
+          continue;
         }
       }
       pr *= s;
     }
-    sum += pr;
-    if (gradient) for (int k = 0; k < nd; ++k) dsum[k] += dp[k];
-    if (i == owner) { own = pr; down = dp; }
+    product[i] = pr;
+    zeros[i] = nz;
+    const double p = nz ? 0.0 : pr;
+    sum += p;
+    if (i == owner) own = p;
   }
   const double w = sum > 0 ? own / sum : 0.0;
-  if (gradient && sum > 0) {
+  if (!gradient || w == 0 || w == 1) return w;
+
+  auto& dp = work.dp;
+  auto& dsum = work.dsum;
+  auto& down = work.down;
+  dp.resize(nd); dsum.assign(nd, 0.0); down.assign(nd, 0.0);
+  for (int i = 0; i < na; ++i) for (int c = 0; c < 3; ++c)
+    unit[i][c] = dist[i] > 0 ? unit[i][c] / dist[i] : 0.0;
+  for (int i = 0; i < na; ++i) {
+    if (zeros[i] > 1) continue;
+    std::fill(dp.begin(), dp.end(), 0.0);
+    for (int j = 0; j < na; ++j) {
+      if (i == j) continue;
+      const int ij = i * na + j;
+      const double s = work.cell[ij];
+      // dP = P sum(ds/s); with one zero, only that factor contributes,
+      // multiplied by all nonzero factors. Two zeros give dP = 0.
+      if (zeros[i] && s != 0) continue;
+      const double scale = (zeros[i] ? product[i] : product[i] / s) * work.dcell[ij];
+      const double r = rij_[ij], mu = (dist[i] - dist[j]) / r;
+      for (int c = 0; c < 3; ++c) {
+        const double u = (mol_.atoms[i].x[c] - mol_.atoms[j].x[c]) / r;
+        dp[3 * i + c] += scale * (-unit[i][c] - mu * u);
+        dp[3 * j + c] += scale * (unit[j][c] + mu * u);
+      }
+    }
+    for (int k = 0; k < nd; ++k) dsum[k] += dp[k];
+    if (i == owner) std::copy(dp.begin(), dp.end(), down.begin());
+  }
+  if (sum > 0) {
     for (int k = 0; k < nd; ++k) (*gradient)[k] = (down[k] - w * dsum[k]) / sum;
     // The point follows its centre: d/dr = -sum_A d/dR_A at fixed r.
     for (int c = 0; c < 3; ++c) {

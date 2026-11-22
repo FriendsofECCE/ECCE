@@ -2,7 +2,8 @@
 type: pitfall
 title: "ECCE-QM XC gradients differentiate both the Becke partition and moving grid points"
 area: codereg
-paths: ["src/qm/grid.cpp", "src/qm/grid.hpp", "src/qm/xc.cpp", "src/qm/xc.hpp", "tests/qm/grid_weights_test.py"]
+paths: ["src/qm/grid.cpp", "src/qm/grid.hpp", "src/qm/xc.cpp", "src/qm/xc.hpp", "tests/qm/grid_weights_test.py",
+        "tests/qm/unit_test.cpp", "tests/qm/molecules.py", "tests/qm/grid_weights_benchmark.cpp"]
 issues: [1250, 1124]
 ---
 The quadrature point belongs to an atom and moves rigidly with it. Its
@@ -12,8 +13,13 @@ through the spatial permutation in `XcIntegrator`.
 
 `BeckePartition::weight` differentiates the three polynomial smoothing
 passes, the size-adjusted elliptic coordinate, interatomic distances, product
-weights and normalisation. Products are differentiated without dividing by
-pair weights, which can be zero. The point's motion is added using
+weights and normalisation. Product derivatives use `P_i * sum_j ds_ij/s_ij`
+with sparse contributions on atoms i and j, so the work per point is O(N²).
+Products with one zero factor use the product of the remaining factors times
+that factor's derivative; two zeros (or a zero with zero slope) give zero
+response. Own weights rounded to zero or one skip the derivative. Scratch
+arrays are thread-local and reused; the XC loop also keeps its output buffer
+for the whole thread. The point's motion is added using
 `d/dr = -sum_A d/dR_A`. `XcIntegrator::gradient` adds both `rho*exc*dw`
 and the density's spatial derivative on the point's owner. Both are needed
 for agreement with energy differences; subtracting a mean force alone
@@ -37,6 +43,12 @@ checks every gradient component against central energy differences (1e-4
 bohr, < 1e-5 Eh/bohr) on the default grid, and translates the whole molecule
 to check energy and gradient invariance. `qm_gradient` also covers LDA,
 other GGAs, unrestricted/restricted-open shells and solvent.
+`qm_unit` checks moving-point partition derivatives against differences of
+rebuilt partitions, saturated weights, and scratch resizing across molecule
+sizes. The manual `qm_grid_weights_benchmark` target times one full
+`scf_gradient` call separately from SCF; use B3LYP/6-31G*, pruned 99/590,
+three threads and the water, hexane (20 atoms) and dodecane (38 atoms)
+geometries in `tests/qm/molecules.py` for comparable timings.
 
 The analytic DFT **Hessian still holds the grid fixed**. This fix makes
 finite differences of gradients include grid response; it does not add

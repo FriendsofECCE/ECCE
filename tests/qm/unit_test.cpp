@@ -33,6 +33,45 @@ int main(int argc, char** argv) {
   std::string bdir = argc > 1 ? argv[1] : "";
   BasisLibrary lib(bdir);
 
+  // Differentiate the normalised weight with a rebuilt partition and a point
+  // that follows its owner, including saturated cells and buffer resizing.
+  for (int count : {4, 20, 1, 4}) {
+    Molecule m;
+    for (int i = 0; i < count; ++i)
+      m.atoms.push_back({i % 3 ? 1 : 8, {2.1 * i, 0.4 * (i % 2), 0.3 * (i % 3)}});
+    const BeckePartition partition(m);
+    double error = 0, sum_error = 0;
+    bool finite = true, saturated = false;
+    std::vector<double> dw;
+    const auto& last = m.atoms.back();
+    for (const std::array<double, 3>& point :
+         {std::array<double, 3>{0.9, -0.5, 0.8}, std::array<double, 3>{0, 0, 0},
+          std::array<double, 3>{last.x[0], last.x[1], last.x[2]}}) {
+      double sum = 0;
+      for (int owner = 0; owner < count; ++owner) {
+        const double w = partition.weight(point, owner, &dw);
+        sum += w;
+        saturated |= w == 0 || w == 1;
+        for (int a = 0; a < count; ++a) for (int c = 0; c < 3; ++c) {
+          constexpr double step = 1e-5;
+          Molecule plus = m, minus = m;
+          plus.atoms[a].x[c] += step;
+          minus.atoms[a].x[c] -= step;
+          auto pp = point, pm = point;
+          if (a == owner) { pp[c] += step; pm[c] -= step; }
+          const double fd = (BeckePartition(plus).weight(pp, owner) -
+                             BeckePartition(minus).weight(pm, owner)) / (2 * step);
+          finite &= std::isfinite(dw[3 * a + c]);
+          error = std::max(error, std::abs(dw[3 * a + c] - fd));
+          if (w == 0 || w == 1) finite &= dw[3 * a + c] == 0;
+        }
+      }
+      sum_error = std::max(sum_error, std::abs(sum - 1));
+    }
+    check(finite && saturated && error < 1e-8 && sum_error < 1e-14,
+          "Becke moving-point derivative vs finite difference N=" + std::to_string(count), error);
+  }
+
   // Lebedev: integral of x^2 y^2 z^2 over the unit sphere / 4pi = 1/105 (needs degree 6).
   {
     Molecule m;

@@ -358,7 +358,7 @@ void XcIntegrator::gradient(const Mat& Da, const Mat& Db, bool closed, std::vect
     for (int id : spec_.libxc_ids) fs.emplace_back(new Func(id, pol));
     std::vector<double> gt(3 * natm, 0.0);
     AoValues ao;
-    std::vector<double> xyz(3 * blk);
+    std::vector<double> xyz(3 * blk), dw(3 * natm);
 #pragma omp for schedule(dynamic)
     for (int ib = 0; ib < nblk; ++ib) {
       const Impl::Batch& B = impl_->batches[ib];
@@ -451,7 +451,6 @@ void XcIntegrator::gradient(const Mat& Da, const Mat& Db, bool closed, std::vect
       }
       spin_term(ta, tda, vra, gva, closed ? 2.0 : 1.0);
       if (!closed) spin_term(tb, tdb, vrb, gvb, 1.0);
-      std::vector<double> dw;
       for (int g = 0; g < n; ++g) {
         const size_t k = g0 + g;
         partition.weight({grid_.x[k], grid_.y[k], grid_.z[k]}, grid_.atom[k], &dw);

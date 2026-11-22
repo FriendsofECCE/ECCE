@@ -41,6 +41,19 @@ def _ch3oh():
     return [("C", -0.0467, 0.6636, 0.0), ("O", -0.0467, -0.7559, 0.0), ("H", -1.0850, 0.9775, 0.0),
             ("H", 0.4402, 1.0680, 0.8903), ("H", 0.4402, 1.0680, -0.8903), ("H", 0.8589, -1.0620, 0.0)]
 
+def _alkane(n):
+    """All-trans tetrahedral chain, C-C 1.54 and C-H 1.09 angstrom."""
+    dx, dy = 1.54 * math.sqrt(2 / 3), 1.54 / math.sqrt(3)
+    hx, hy, hz = 1.09 * math.sqrt(2 / 3), 1.09 / math.sqrt(3), 1.09 * math.sqrt(2 / 3)
+    atoms = []
+    for i in range(n):
+        x, y, sign = i * dx, (i % 2) * dy, 1 if i % 2 else -1
+        atoms.append(("C", x, y, 0))
+        atoms.extend(("H", x, y + sign * hy, z) for z in (-hz, hz))
+        if i in (0, n - 1):
+            atoms.append(("H", x + (-hx if i == 0 else hx), y - sign * hy, 0))
+    return atoms
+
 # name -> (charge, multiplicity, atoms)
 MOLECULES = {
     "h2o": (0, 1, _h2o()),
@@ -57,4 +70,6 @@ MOLECULES = {
     "nh3+": (1, 2, _nh3()),
     "hf": (0, 1, _diatomic("H", "F", 0.917)),
     "hcl": (0, 1, _diatomic("H", "Cl", 1.275)),
+    "hexane": (0, 1, _alkane(6)),
+    "dodecane": (0, 1, _alkane(12)),
 }
