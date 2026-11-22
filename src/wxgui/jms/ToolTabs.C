@@ -1286,6 +1286,14 @@ void ToolTabs::release(wxTopLevelWindow *tlw, bool showFrame)
   moveClient(tp->body(), tool, t->mgr);
   tp->giveStatusBar(tool);
   if (idx != wxNOT_FOUND) s_book->DeletePage(idx);
+  // Closing the last tool tab could leave the notebook with no selection,
+  // so nothing showed the Organizer's page again: its desk stayed blank
+  // until a focus change (#1237). Select a page and make sure it is shown.
+  if (s_book->GetPageCount() > 0) {
+    if (s_book->GetSelection() == wxNOT_FOUND) s_book->SetSelection(0);
+    wxWindow *shown = s_book->GetPage(s_book->GetSelection());
+    if (shown && !shown->IsShown()) shown->Show();
+  }
   placeMenus(activeTab());
   if (t->menubar) {
     tool->SetMenuBar(t->menubar);

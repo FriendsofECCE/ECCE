@@ -4571,7 +4571,8 @@ void CalcMgr::setContextPanel()
       bool unselected = false;
       if (hidden)
         if (wxAuiNotebook *nb = wxDynamicCast(hidden->GetParent(), wxAuiNotebook))
-          unselected = nb->GetPageIndex(hidden) != nb->GetSelection();
+          unselected = nb->GetSelection() != wxNOT_FOUND &&
+                       nb->GetPageIndex(hidden) != nb->GetSelection();
       std::cerr << "ORGANIZER: desk panel " << d.x << "x" << d.y
                 << " shown=" << desk->IsShownOnScreen() << " in splitter "
                 << sp.x << "x" << sp.y << " sash=" << p_splitterWindow->GetSashPosition()
