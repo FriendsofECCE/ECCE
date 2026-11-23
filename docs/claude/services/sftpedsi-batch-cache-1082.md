@@ -8,8 +8,10 @@ issues: [1082]
 - Every SftpEDSI read is one remote script (a round trip), so a folder click
   cost 130+ scripts (per child metadata, per calculation a depth-1 and a
   depth-1000 mirror, Props probes for the energy column).
-- `SftpEDSI::Batch` (RAII, per thread, nests) is held in `Resource::getChildren`
-  and `ProjectContextPanel::initialize`. Inside it the first depth-1 `mirror`
+- `SftpEDSI::Batch` (RAII, per thread, nests) is held in `Resource::getChildren`,
+  `ProjectContextPanel::initialize` and around both in
+  `CalcMgr::onSelectionChange` (two sibling Batches each list the folder
+  again, #1273); `folderStamp` reads the folder's mtime from a live Batch. Inside it the first depth-1 `mirror`
   of a path sends one fill script: the folder at depth 1, each child folder
   at depth 1, and each child whose `.ecce-meta` says `virtual_document` in
   full, plus base64 of its `Props/*` files up to 64 kB. The raw output is kept

@@ -62,7 +62,9 @@ thread_local int gBatchDepth = 0;
 // Prompts are only for the Organizer's connect step.  Every other process
 // (job store, monitor, editors) rides the session's master or fails, so a
 // launch never stops on a hidden password prompt.
-bool gInteractive = false;
+// A count, not a flag: start-up connects probe on a worker while the user
+// may connect another server, and one probe ending must not silence the other.
+int gInteractive = 0;
 
 // host is the URL's authority, host[:port]: a login (and its master and
 // stored password) belongs to one port.
@@ -404,6 +406,8 @@ class SftpOp {
       if (!p_scratch.empty()) { std::error_code ec; fs::remove_all(p_scratch, ec); }
     }
     bool ok() const { return p_ok; }
+    bool noCache() const { return p_noCache; }
+    string key() const { return p_user + "@" + p_host; }
     const string& path() const { return p_path; }
     string local(const string& remote) const { return p_scratch + remote; }
 
@@ -752,7 +756,7 @@ SftpEDSI::Batch::Batch() { if (!getenv("ECCE_SFTP_NOBATCH")) gBatchDepth++; else
 SftpEDSI::Batch::~Batch() { if (!p_off && --gBatchDepth == 0) gCache.clear(); }
 unsigned SftpEDSI::scriptCount() { return gScripts; }
 
-void SftpEDSI::setInteractive(bool on) { std::lock_guard<std::mutex> g(gMutex); gInteractive = on; }
+void SftpEDSI::setInteractive(bool on) { std::lock_guard<std::mutex> g(gMutex); gInteractive += on ? 1 : (gInteractive > 0 ? -1 : 0); }
 
 SftpEDSI::Probe SftpEDSI::probe(const string& user, const string& host,
                                 const string& folder, bool create, string& message)
@@ -824,9 +828,20 @@ string SftpEDSI::folderStamp()
   {
     string user, host, path;
     parseURL(getURL().toString(false), user, host, path);
-    std::lock_guard<std::mutex> g(gMutex);
+    // A login running on a worker holds the lock: skip, never wait for it.
+    std::unique_lock<std::mutex> g(gMutex, std::try_to_lock);
+    if (!g.owns_lock()) return "";
     auto it = gLogins.find(user + "@" + host);
     if (it == gLogins.end() || !it->second || !it->second->isOpen()) return "";
+  }
+  // A listing just taken in this Batch (a folder selection) has the stamp:
+  // the same %Y the stat below prints, without a second round trip.
+  if (BatchCache *c = op.noCache() ? 0 : liveCache(op.key())) {
+    auto it = c->e.find(op.path());
+    if (it != c->e.end() && it->second.kind == 'd') {
+      const size_t sp = it->second.st.find(' ');
+      if (sp != string::npos) return it->second.st.substr(sp + 1);
+    }
   }
   string p = q(op.path());
   if (!op.run("stat -c '%Y' -- " + p + " 2>/dev/null || stat -f '%m' -- " + p + " 2>/dev/null\n", out, 20, false))

@@ -277,7 +277,7 @@ WxResourceTreeItemData * WxResourceTreeCtrl::addServerRoot(const string& name,
 // An added SSH folder: its tree starts at the folder itself.  ref is its
 // sftp:// address; connected is whether this session has logged in to it.
 WxResourceTreeItemData * WxResourceTreeCtrl::addSshRoot(const string& name,
-    const string& address, bool connected)
+    const string& address, bool connected, bool connecting)
 {
   string label = name + " (SSH)";
   WxResourceTreeItemData * node = 0;
@@ -287,7 +287,7 @@ WxResourceTreeItemData * WxResourceTreeCtrl::addSshRoot(const string& name,
   }
   if (!node) {
     node = new WxResourceTreeItemData();
-    label += " (not connected)";
+    label += connecting ? " (connecting...)" : " (not connected)";
   }
   node->setServer(name, address);
   wxTreeItemId itemId = AppendItem(GetRootItem(), label, -1, -1, node);

@@ -440,6 +440,13 @@ separator).  A connected root offers `Disconnect;Remove from list;-;` and
 then its folder's items (#1221).  `ECCE_SSH_TIMING=1` writes
 `ecce-ssh-timing <ms> [tid] <step>` lines to stderr for each ssh process and
 each step of a login, to find where a slow connection waits (#1220).
+SSH folders marked to connect at start log in on a worker thread after the
+window is up (#1272): `server roots` lists them as `NAME (SSH)
+(connecting...)` until the login returns (their context menu shows a greyed
+`Connecting...`), folders on one host share one login, and a refused or
+cancelled login is not asked again for the host's next folder.  Connect from
+the Servers menu or the root's menu waits behind a cancellable "Connecting
+to HOST..." dialog while the window keeps answering.
 
 Start feedback (#1071, `ECCE_TEST_ORGANIZER`): `start TOOL [URL]` shows a busy
 cursor, "Opening the <tool> for <calculation>..." in the status line, a "Starting

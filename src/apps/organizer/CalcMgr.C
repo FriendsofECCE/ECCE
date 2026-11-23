@@ -208,6 +208,9 @@ static string progressKey(const EcceURL & url);
 #include <chrono>
 #include <set>
 #include <map>
+#include <mutex>
+#include <thread>
+#include <tuple>
 
 // The example set (folder name) the first start imports.
 static const char *const kFirstStartSet = "getting-started";
@@ -546,6 +549,7 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
   // appear first.
   (new OnceTimer([this]() {
     Update();
+    relayoutAfterStart();
     cerr << "Organizer: window shown" << endl;
     importExamplesOnce();
   }))->StartOnce(300);
@@ -3120,10 +3124,20 @@ void CalcMgr::runTestCommand(const string& line)
       WxResourceTreeItemData *node = p_treeCtrl->findNode(EcceURL(calcName), true, true);
       if (!node) outcome = "no node";
       else {
+        // select= and menu= are milliseconds: the selection's desk and the
+        // menu as a right-click builds it, a server root's items first (#1273).
+        wxStopWatch clock;
         p_treeCtrl->SelectItem(node->GetId());
+        const long selectMs = clock.Time();
         for (int i = 0; i < 20; ++i) { wxYield(); wxMilliSleep(25); }
         wxMenu menu;
+        clock.Start();
+        if (rememberedServer(node->serverRef())) {
+          serverRootMenu(menu, node->serverRef());
+          menu.AppendSeparator();
+        }
         getContextMenu(menu);
+        const long menuMs = clock.Time();
         std::function<void(wxMenu*, const string&)> dump =
             [&](wxMenu *m, const string& prefix) {
           for (wxMenuItem *it : m->GetMenuItems()) {
@@ -3133,7 +3147,8 @@ void CalcMgr::runTestCommand(const string& line)
             if (it->GetSubMenu()) dump(it->GetSubMenu(), prefix + label + "/");
           }
         };
-        outcome = "menu";
+        outcome = "menu select=" + std::to_string(selectMs) +
+                  " menu=" + std::to_string(menuMs);
         dump(&menu, "");
       }
     } else if (command == "exportmenu") {
@@ -3982,10 +3997,16 @@ void CalcMgr::initializeTreeData()
   p_treeCtrl->mountServerList(p_serverListEditor);
   syncServerRoots();
   CallAfter([this]() {
+    vector<string> ssh;
     for (const ServerEntry& entry : ServerList::load()) {
       const string ref = entry.type == "ssh" ? entry.address : ServerList::refOf(entry.address);
-      if (entry.connectAtStart && rememberedServer(ref)) connectServer(ref);
+      if (!entry.connectAtStart || !rememberedServer(ref)) continue;
+      // An ssh login lasts as long as the user's password prompt (#1272):
+      // it runs on a worker while the window draws and answers.
+      if (entry.type == "ssh") ssh.push_back(ref);
+      else connectServer(ref);
     }
+    if (!ssh.empty()) connectSshInBackground(ssh);
   });
   p_treeCtrl->SetFocus();
   if (!p_serverTimer) {
@@ -4036,8 +4057,10 @@ void CalcMgr::serverRootMenu(wxMenu& menu, const string& ref)
 {
   if (!rememberedServer(ref)) return;
   bool connected = !ServerList::loginFor(ref).empty();
+  const bool connecting = p_sshConnecting.count(ref) > 0;
   int toggle = wxWindow::NewControlId(), remove = wxWindow::NewControlId();
-  menu.Append(toggle, connected ? _("Disconnect") : _("Connect"));
+  menu.Append(toggle, connecting ? _("Connecting...") : connected ? _("Disconnect") : _("Connect"));
+  if (connecting) menu.Enable(toggle, false);
   menu.Append(remove, _("Remove from list"));
   menu.Bind(wxEVT_MENU, [this, ref, connected](wxCommandEvent&) {
     CallAfter([this, ref, connected]() {
@@ -4125,7 +4148,8 @@ void CalcMgr::syncServerRoots()
   for (size_t i = 0; i < list.size(); i++) {
     if (list[i].type == "ssh") {
       p_treeCtrl->addSshRoot(list[i].name, list[i].address,
-                             !ServerList::loginFor(list[i].address).empty());
+                             !ServerList::loginFor(list[i].address).empty(),
+                             p_sshConnecting.count(list[i].address) > 0);
       continue;
     }
     if (list[i].type != "ecce") continue;
@@ -4199,16 +4223,49 @@ bool CalcMgr::connectSsh(const string& address)
   for (size_t i = 0; i < list.size(); i++)
     if (list[i].type == "ssh" && list[i].address == address) name = list[i].name;
   if (!ServerList::parseSsh(address, user, host, folder)) return false;
+  if (p_sshConnecting.count(address)) {
+    setMessage(name + " is still connecting.", WxFeedback::WARNING);
+    return false;
+  }
   ecceSshTiming("connectSsh " + address + ": probe");
-  SftpEDSI::Probe p = SftpEDSI::probe(user, host, folder, false, message);
-  ecceSshTiming("connectSsh: probe done (" + std::to_string((int)p) + ")");
+  int p = probeSsh(user, host, folder, false, message);
+  ecceSshTiming("connectSsh: probe done (" + std::to_string(p) + ")");
   if (p == SftpEDSI::PROBE_MISSING && !getenv("ECCE_TEST_ORGANIZER")) {
     ewxMessageDialog ask(this, ("The folder " + folder + " does not exist on " + host +
                                 ".  Create it?").c_str(), "Create folder",
                          wxYES_NO | wxICON_QUESTION, wxDefaultPosition);
     if (ask.ShowModal() == wxID_YES)
-      p = SftpEDSI::probe(user, host, folder, true, message);
+      p = probeSsh(user, host, folder, true, message);
   }
+  return applySshProbe(address, name, user, p, message);
+}
+
+// The probe's login may wait on the user's password prompt (#1272): it runs
+// on a worker, and the window keeps answering behind a cancellable dialog.
+int CalcMgr::probeSsh(const string& user, const string& host,
+                      const string& folder, bool create, string& message)
+{
+  RCommand::applyDeferredPassCache();
+  auto known = std::make_shared<RCommand::PassCacheDeferral>();
+  RCommand::prefetchPassCache(*known, "ssh", host, user.empty() ? string(Ecce::realUser()) : user);
+  auto out = std::make_shared<std::pair<int, string>>(SftpEDSI::PROBE_NO_LOGIN, "");
+  bool ran = false;
+  if (!ReconnectSelected::runRemote(this, 0, "Connecting to " + host + "...",
+        [known, out, user, host, folder, create]() {
+          RCommand::deferPassCache(known.get());
+          out->first = SftpEDSI::probe(user, host, folder, create, out->second);
+          return true;
+        }, ran)) {
+    message = "the connect was cancelled.";
+    return SftpEDSI::PROBE_NO_LOGIN;
+  }
+  message = out->second;
+  return out->first;
+}
+
+bool CalcMgr::applySshProbe(const string& address, const string& name,
+                            const string& user, int p, const string& message)
+{
   if (p != SftpEDSI::PROBE_OK) {
     ServerList::setLogin(address, "");
     setMessage("Not connected to " + name + ": " + message, WxFeedback::ERROR);
@@ -4219,6 +4276,108 @@ bool CalcMgr::connectSsh(const string& address)
   syncServerRoots();
   ecceSshTiming("connectSsh: tree root made");
   return true;
+}
+
+namespace {
+struct SshStartConnect {
+  std::mutex mu;
+  bool done = false;
+  vector<std::tuple<string, int, string>> results;   // address, probe, message
+};
+}
+
+// Start-up connects of remembered SSH folders (#1272): one worker probes
+// them in turn, a host's folders together so they share one login, and a
+// timer applies each result here.  The roots say "connecting" meanwhile.
+void CalcMgr::connectSshInBackground(const vector<string>& addresses)
+{
+  RCommand::applyDeferredPassCache();
+  auto known = std::make_shared<RCommand::PassCacheDeferral>();
+  vector<string> order;
+  std::map<string, vector<string>> byLogin;
+  for (const string& a : addresses) {
+    string user, host, folder;
+    if (!ServerList::parseSsh(a, user, host, folder) || p_sshConnecting.count(a)) continue;
+    const string key = user + "@" + host;
+    if (!byLogin.count(key)) {
+      order.push_back(key);
+      RCommand::prefetchPassCache(*known, "ssh", host,
+                                  user.empty() ? string(Ecce::realUser()) : user);
+    }
+    byLogin[key].push_back(a);
+    p_sshConnecting.insert(a);
+  }
+  if (order.empty()) return;
+  vector<vector<string>> groups;
+  for (const string& key : order) groups.push_back(byLogin[key]);
+  syncServerRoots();
+  auto st = std::make_shared<SshStartConnect>();
+  std::thread([st, groups, known]() {
+    RCommand::deferPassCache(known.get());
+    for (const vector<string>& group : groups) {
+      string failed;   // a refused or cancelled login is not asked again
+      for (const string& a : group) {
+        string user, host, folder, message;
+        ServerList::parseSsh(a, user, host, folder);
+        int p = SftpEDSI::PROBE_NO_LOGIN;
+        if (!failed.empty()) message = failed;
+        else {
+          p = SftpEDSI::probe(user, host, folder, false, message);
+          if (p == SftpEDSI::PROBE_NO_LOGIN) failed = message;
+        }
+        std::lock_guard<std::mutex> lock(st->mu);
+        st->results.emplace_back(a, p, message);
+      }
+    }
+    RCommand::deferPassCache(0);
+    std::lock_guard<std::mutex> lock(st->mu);
+    st->done = true;
+  }).detach();
+  wxTimer *timer = new wxTimer();   // deleted with this window
+  p_hookTimers.push_back(timer);
+  timer->Bind(wxEVT_TIMER, [this, st, timer](wxTimerEvent&) {
+    vector<std::tuple<string, int, string>> ready;
+    bool done;
+    {
+      std::lock_guard<std::mutex> lock(st->mu);
+      ready.swap(st->results);
+      done = st->done;
+    }
+    for (const auto& r : ready) {
+      const string& a = std::get<0>(r);
+      p_sshConnecting.erase(a);
+      if (!rememberedServer(a)) continue;
+      string name = a, user, host, folder;
+      for (const ServerEntry& e : ServerList::load())
+        if (e.type == "ssh" && e.address == a) name = e.name;
+      ServerList::parseSsh(a, user, host, folder);
+      // Creating a missing folder asks first, with the user's own connect.
+      if (std::get<1>(r) == SftpEDSI::PROBE_MISSING && !getenv("ECCE_TEST_ORGANIZER"))
+        CallAfter([this, a]() { connectSsh(a); });
+      else
+        applySshProbe(a, name, user, std::get<1>(r), std::get<2>(r));
+    }
+    if (!ready.empty()) syncServerRoots();
+    if (!done) return;
+    timer->Stop();
+    RCommand::applyDeferredPassCache();
+    relayoutAfterStart();
+  });
+  timer->Start(200);
+}
+
+// Lays the frame out once start-up work has returned (#1272): content that
+// missed its size while the loop was held stayed unallocated at 1x1.
+void CalcMgr::relayoutAfterStart()
+{
+  wxTopLevelWindow *screen = ToolTabs::screenWindow(this);
+  if (screen && screen != this) {
+    screen->SendSizeEvent();
+    screen->Layout();
+  }
+  SendSizeEvent();
+  Layout();
+  if (ToolTabs::enabled()) ToolTabs::allocate(screen ? screen : this);
 }
 
 
@@ -11380,7 +11539,11 @@ void CalcMgr::getContextMenu(wxMenu & menu)
   if (itemData && itemData->getResource()) {
     const EcceURL here = itemData->getResource()->getURL();
     const EcceURL folder = isCalculationNode ? here.getParent() : here;
-    if (EDSIFactory::getResource(folder.getChild("host"))) {
+    // Off this machine a lookup is a round trip on the GUI thread, so an
+    // SSH or server folder answers from what the tree has listed (#1273).
+    const EcceURL host = folder.getChild("host");
+    if (here.getProtocol() == "file" ? EDSIFactory::getResource(host) != 0
+                                     : findNode(host, false, false) != 0) {
       int id = wxWindow::NewControlId();
       menu.AppendSeparator();
       menu.Append(id, _("Site Screening Results"), _("E - E(host) of the finished site "
@@ -15859,6 +16022,9 @@ void CalcMgr::onSelectionChange(bool selectInTree)
   WxResourceTreeItemData *itemData = 0;
 
   if (selectInTree) {
+    // One Batch for the tree's listing, the desk and the auto-refresh stamp:
+    // on an SSH folder they share one remote script instead of three (#1273).
+    SftpEDSI::Batch sftpBatch;
     // Start disabler since loading children may take some time.
     startDisabler();
 
