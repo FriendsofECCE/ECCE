@@ -3,7 +3,7 @@ type: pitfall
 title: "A host that accepts TCP but never sends the ssh banner: bounded connect, no libssh retry, never on the GUI thread"
 area: services
 paths: [src/comm/rcommand/RCommand.C, src/comm/rcommand/SshTransport.C, src/comm/rcommand/OpenSshTransport.C, src/apps/organizer/ReconnectSelected.C, src/apps/organizer/CalcMgr.C, src/comm/commxt/JobCatchUp.C, src/comm/commtools/RunMgmt.C, tests/transport/testSilentHost.C, tests/launch/silent_host_catchup_test.py]
-issues: [780]
+issues: [780, 1272]
 ---
 A machine whose sshd hangs (port 22 accepts, no banner) costs the full
 connect timeout per login: OpenSSH's `ConnectTimeout` covers the banner,
@@ -27,6 +27,15 @@ Both are `RCommand::connectTimeout()` (60 s, `ECCE_SSH_CONNECT_TIMEOUT`).
   `JobCatchUp::reconnect` logs in *before* deleting the old properties and
   output files, so a host that does not answer leaves them in place.
   Before: one frozen minute or two per job, Cancel only between jobs.
+- **SSH folders too** (#1272). Start-up connects of remembered `sftp://`
+  folders run `SftpEDSI::probe` on one worker (`connectSshInBackground`),
+  a host's folders in turn so the second rides the first login; a timer
+  applies results, then `relayoutAfterStart` re-lays the frame. User
+  connects use `ReconnectSelected::runRemote`. `SftpEDSI`'s `gMutex` is
+  held over a whole login, so GUI-thread SFTP calls wait on it:
+  `folderStamp` only try-locks; `setInteractive` is a count.
+  Test: `tests/apps/start_slow_ssh_server_test.py` (fake `ssh` on PATH,
+  `.invalid` host: `localhost` is run locally without ssh).
 - **The work after the login is off the GUI thread too** (#666). Reconnect,
   Reconnect Selected and the catch-up run `moveJobMonitoringFiles` and the
   job store's `chmod` (`Launch::prepareJobStore`) through

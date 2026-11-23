@@ -72,7 +72,7 @@ public:
   WxResourceTreeItemData * addServerRoot(const string& name, const string& ref,
                                          const string& user);
   WxResourceTreeItemData * addSshRoot(const string& name, const string& address,
-                                      bool connected);
+                                      bool connected, bool connecting = false);
   void removeServerRoots();
   vector<string> rootLabels();
 

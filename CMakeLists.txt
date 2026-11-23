@@ -3721,6 +3721,13 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_advanced_prefs PROPERTIES TIMEOUT 600
                        SKIP_RETURN_CODE 77)
+  # Remembered ssh servers log in on a worker; the window draws first (#1272).
+  add_test(NAME apps_start_slow_ssh_server
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/start_slow_ssh_server_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_start_slow_ssh_server PROPERTIES TIMEOUT 600
+                       SKIP_RETURN_CODE 77)
   # Preferences > Codes hides unticked codes from new calculations (#1049).
   add_test(NAME apps_code_choice
            COMMAND ${PYTHON3_EXECUTABLE}
