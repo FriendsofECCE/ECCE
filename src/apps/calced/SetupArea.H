@@ -75,6 +75,10 @@ public:
   // Save state changed: the preview reloads the deck.
   void statusChanged();
   Kind current() const { return p_kind; }
+  // Folds this area's content away to its header button (the editor column
+  // keeps its width); opening any view unfolds it.
+  void fold(bool on);
+  bool folded() const { return !p_foldHidden.empty(); }
   wxString describe() const;
   std::string previewText() const;
   static const char *kindName(Kind k);
@@ -87,6 +91,7 @@ private:
   // Details open in their own window (INPUT when none).
   Kind p_external = INPUT;
   wxButton *p_fold;
+  std::vector<wxWindow*> p_foldHidden;   // what fold() hid, to show again
   wxTextCtrl *p_input;
   wxWindow *p_body;
   wxTimer *p_timer;

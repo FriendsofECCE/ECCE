@@ -1517,8 +1517,7 @@ void LaunchPanel::compactLayout()
     for (wxWindow *c : p_calcDrctyPanel->GetChildren())
         if (wxStaticText *t = dynamic_cast<wxStaticText*>(c))
             if (t->GetLabel() == "*") t->SetLabel("");
-    // The fixed width the Launcher tab gives these fields (#1265) left them
-    // all different here: they fill the area's column instead.
+    // One width for all of them; a path needs room to be read.
     for (wxWindowID id : {ID_TEXTCTRL_WXLAUNCHER_USERNAME, ID_TEXTCTRL_WXLAUNCHER_CALCDIR,
                           ID_TEXTCTRL_WXLAUNCHER_SCRATCHDIR, ID_TEXTCTRL_WXLAUNCHER_ALLOCACCT}) {
       wxWindow *w = FindWindow(id);
@@ -1526,7 +1525,7 @@ void LaunchPanel::compactLayout()
       wxSizerItem *it = sz ? sz->GetItem(w) : 0;
       if (!it) continue;
       it->SetFlag(it->GetFlag() | wxEXPAND);
-      w->SetMinSize(FromDIP(wxSize(60, -1)));
+      w->SetMinSize(FromDIP(wxSize(540, -1)));
     }
     SetMinSize(wxDefaultSize);   // set to the width of the first layout
     Layout();
