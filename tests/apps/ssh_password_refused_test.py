@@ -135,11 +135,11 @@ def run(display):
         check(not empty, "no empty password reached the server", empty)
 
         p, a = auth(users["Good"])
-        check(out.get("Good") == "connected" and len(p) == 1 and len(a) == 1
+        check((out.get("Good") or "").endswith(": connected") and len(p) == 1 and len(a) == 1
               and a[0].endswith("'secret'"),
               "connect with the right password: one prompt, connected", (out.get("Good"), p, a))
         p, a = auth(users["Quiet"])
-        check(out.get("QuietConnect") == "connected" and len(p) == 1 and len(a) == 1,
+        check((out.get("QuietConnect") or "").endswith(": connected") and len(p) == 1 and len(a) == 1,
               "after its master is gone, a background login asks nothing and sends nothing",
               (out.get("QuietConnect"), p, a))
         p, a = auth(users["Cancel"])
