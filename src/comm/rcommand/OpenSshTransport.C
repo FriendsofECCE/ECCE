@@ -666,7 +666,7 @@ bool OpenSshTransport::nextOverflowMaster(const TransportResult& r)
       writeSmall(base + ".idx", std::to_string((cur + 1) % (kMaxOverflow + 1)) + "\n");
   }
   // A master another process opened is joined; otherwise open one.
-  return masterAlive() || (!p_askpass.empty() && openMaster());
+  return masterAlive() || (!p_askpass.empty() && !promptsSuppressed() && openMaster());
 }
 
 bool OpenSshTransport::sharedConnection() const
@@ -684,7 +684,12 @@ std::mutex gMasterMu;
 std::map<std::string, time_t> gMasterFailed;
 std::set<std::string> gMasterCancelled;   // of those, the ones the user cancelled
 const int kRetryAfterSec = 120;
+thread_local int tNoPrompt = 0;
 }  // namespace
+
+OpenSshTransport::NoPrompt::NoPrompt(bool on) : p_on(on) { if (p_on) ++tNoPrompt; }
+OpenSshTransport::NoPrompt::~NoPrompt() { if (p_on) --tNoPrompt; }
+bool OpenSshTransport::promptsSuppressed() { return tNoPrompt > 0; }
 
 void OpenSshTransport::forgetMasterAttempts()
 {
@@ -740,7 +745,8 @@ bool OpenSshTransport::masterAlive() const
 
 bool OpenSshTransport::wantsMaster(const TransportResult& r) const
 {
-  if (p_askpass.empty() || r.status != 255 || r.timedOut) return false;
+  if (p_askpass.empty() || promptsSuppressed() || r.status != 255 || r.timedOut)
+    return false;
   const std::string low = lower(r.err);
   // The probe got as far as a login: the host answers now, whatever a recent
   // "unreachable" outcome says.
@@ -952,7 +958,7 @@ bool OpenSshTransport::openMaster()
   if (haveState) {
     unlink((stateDir + "/password").c_str());
     unlink((stateDir + "/cancelled").c_str());
-    for (const char* f : {"answer", "fed", "refused", "asked"})
+    for (const char* f : {"answer", "fed", "refused", "asked", "typed"})
       unlink((stateDir + "/" + f).c_str());
     rmdir(stateDir.c_str());
   }

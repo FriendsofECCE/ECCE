@@ -2,22 +2,69 @@
 # Stand-in for ssh in tests: runs the remote command on this machine after
 # the delay in $FAKE_SSH_DELAY_FILE (seconds), so a test sees a slow link
 # without contacting any host. Each command is appended to $FAKE_SSH_LOG.
+#
+# With FAKE_SSH_PASSWORD set the host wants that password, as a
+# password-only sshd does: a BatchMode=yes connection without a master
+# ("master" file per login in $FAKE_SSH_MASTERS) is denied; a BatchMode=no
+# one asks $SSH_ASKPASS up to three times and, as OpenSSH does, sends ""
+# when askpass fails.  Each prompt and each answer the "server" received
+# is appended to $FAKE_SSH_AUTH_LOG.
 delay=$(cat "$FAKE_SSH_DELAY_FILE" 2>/dev/null || echo 0)
-mode=run host= cmd=
+mode=run host= cmd= op= batch=yes user=
 while [ $# -gt 0 ]; do
   case "$1" in
     -G) mode=G; shift ;;
-    -O) mode=O; shift 2 ;;
+    -O) mode=O; op=$2; shift 2 ;;
     -N) mode=N; shift ;;
-    -[BbcDEeFIiJLlmopQRSWw]) shift 2 ;;
+    -o) case "$2" in BatchMode=no) batch=no ;; BatchMode=yes) batch=yes ;; esac; shift 2 ;;
+    -l) user=$2; shift 2 ;;
+    -[BbcDEeFIiJLmpQRSWw]) shift 2 ;;
     -*) shift ;;
     *) if [ -z "$host" ]; then host=$1; shift; else cmd="$*"; break; fi ;;
   esac
 done
+case $host in *@*) user=${host%@*}; host=${host#*@} ;; esac
+who=${user:-${USER:-ecce}}@$host
+master=${FAKE_SSH_MASTERS:+$FAKE_SSH_MASTERS/$who}
 case $mode in
   G) printf 'controlmaster false\ncontrolpath none\nproxycommand none\n'; exit 0 ;;
-  O) exit 0 ;;
+  O) [ -n "$FAKE_SSH_PASSWORD" ] || exit 0
+     case $op in
+       check) [ -e "$master" ] && exit 0
+              echo "Control socket connect($host): No such file or directory" >&2; exit 255 ;;
+       *) rm -f "$master"; exit 0 ;;
+     esac ;;
 esac
+if [ -n "$FAKE_SSH_PASSWORD" ] && [ ! -e "$master" ]; then
+  if [ $batch = yes ]; then
+    echo "$who: Permission denied (publickey,password)." >&2
+    exit 255
+  fi
+  alog=${FAKE_SSH_AUTH_LOG:-/dev/null}
+  out=$(mktemp)
+  i=0
+  while [ $i -lt 3 ]; do
+    i=$((i + 1))
+    echo "prompt $who $i" >> "$alog"
+    # Run directly (not in $(...)) so that askpass's parent is this process.
+    "$SSH_ASKPASS" "$who's password: " > "$out"
+    st=$?
+    ans=$(sed -n 1p "$out")
+    [ $st -eq 0 ] || ans=
+    echo "answer $who $i st=$st '$ans'" >> "$alog"
+    if [ "$ans" = "$FAKE_SSH_PASSWORD" ]; then
+      rm -f "$out"; : > "$master"
+      [ $mode = N ] && exit 0
+      break
+    fi
+    echo "Permission denied, please try again." >&2
+  done
+  rm -f "$out"
+  if [ ! -e "$master" ]; then
+    echo "$who: Permission denied (publickey,password)." >&2
+    exit 255
+  fi
+fi
 sleep "$delay"
 [ -n "$FAKE_SSH_LOG" ] && printf '%s delay=%s %.60s\n' "$(date +%T.%N)" "$delay" "$(printf %s "$cmd" | tr '\n' ' ')" >> "$FAKE_SSH_LOG"
 [ $mode = N ] || [ -z "$cmd" ] && exit 0
