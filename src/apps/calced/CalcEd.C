@@ -1460,6 +1460,8 @@ wxString CalcEd::setupCommand(const wxString& arg)
   wxWindow *charge = FindWindow(ID_COMBOBOX_CALCED_CHARGE);
   wxString chargeSpin = wxString(" chargespin=") +
       (charge && charge->IsShown() ? "shown" : "hidden");
+  wxWindow *sym = FindWindow(ID_CHECKBOX_CALCED_USE_SYMMETRY);
+  chargeSpin += wxString(" symmetry=") + (sym && sym->IsShown() ? "shown" : "hidden");
   return p_setupArea->describe() + chargeSpin +
          (col ? columnOverlaps(col) : wxString());
 }
@@ -5017,6 +5019,10 @@ void CalcEd::showChemSysFields()
   FindWindow(ID_STATIC_CALCED_OPEN_SHELLS)->Show(chargeSpin);
   FindWindow(ID_STATICTEXT_CALCED_OPEN_SHELLS)->Show(chargeSpin &&
           getOpenShells() >= 0);
+  bool symmetry = !p_code || p_code->usesSymmetry();
+  FindWindow(ID_STATIC_CALCED_SYMMETRY_LABEL)->Show(symmetry);
+  FindWindow(ID_STATICTEXT_CALCED_SYMMETRY)->Show(symmetry);
+  FindWindow(ID_CHECKBOX_CALCED_USE_SYMMETRY)->Show(symmetry);
 }
 
 

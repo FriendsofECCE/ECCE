@@ -86,6 +86,8 @@ def check_preview(s, url, display, tmpdir, wrappers):
             # Vina takes no total charge or spin; the editor hides them (#1276).
             check("chargespin=hidden" in info.split(),
                   "Charge, Spin Mult. and Open Shells are hidden for Vina: %r" % info)
+            check("symmetry=hidden" in info.split(),
+                  "Symmetry and Use symmetry are hidden for Vina: %r" % info)
             ask_org(cmds, logpath, proc, "setup input", 1, 30)
             text = ""
             count = 0

@@ -69,6 +69,7 @@ const wxWindowID CalcEdGUI::ID_BUTTON_CALCED_GUESS_DEFAULT = wxNewId();
 const wxWindowID CalcEdGUI::ID_STATICTEXT_CALCED_VERIFY_LIGHT = wxNewId();
 const wxWindowID CalcEdGUI::ID_STATICTEXT_CALCED_OPEN_SHELLS = wxNewId();
 const wxWindowID CalcEdGUI::ID_STATIC_CALCED_OPEN_SHELLS = wxNewId();
+const wxWindowID CalcEdGUI::ID_STATIC_CALCED_SYMMETRY_LABEL = wxNewId();
 const wxWindowID CalcEdGUI::ID_STATICTEXT_CALCED_FUNCTIONS = wxNewId();
 const wxWindowID CalcEdGUI::ID_STATICTEXT_CALCED_FORMULA = wxNewId();
 const wxWindowID CalcEdGUI::ID_STATICTEXT_CALCED_SYMMETRY = wxNewId();
@@ -338,7 +339,7 @@ void CalcEdGUI::CreateControls()
     wxFlexGridSizer* itemFlexGridSizer38 = new wxFlexGridSizer(2, 2, 0, 2);
     itemBoxSizer29->Add(itemFlexGridSizer38, 0, wxALIGN_TOP, 5);
 
-    ewxNonBoldLabel* itemStaticText39 = new ewxNonBoldLabel( p_chemSysInner, wxID_STATIC, _("Symmetry:"), wxDefaultPosition, wxDefaultSize, 0 );
+    ewxNonBoldLabel* itemStaticText39 = new ewxNonBoldLabel( p_chemSysInner, ID_STATIC_CALCED_SYMMETRY_LABEL, _("Symmetry:"), wxDefaultPosition, wxDefaultSize, 0 );
     itemFlexGridSizer38->Add(itemStaticText39, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 0);
 
     //  The point group the search found, and immediately beside it the
