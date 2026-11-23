@@ -189,8 +189,11 @@ void DetailsPanel::build()
         s->Bind(wxEVT_SPINCTRL, [cb](wxCommandEvent&) { cb(); });
         s->Bind(wxEVT_KILL_FOCUS, [cb](wxFocusEvent& ev) { cb(); ev.Skip(); });
       } else {
+        // A free-text entry (atom lists, keywords) gets room to be read; a
+        // number keeps the narrow field.
         wxTextCtrl *t = new wxTextCtrl(this, wxID_ANY,
-            wxString::FromUTF8(it.value), wxDefaultPosition, wxSize(80, -1),
+            wxString::FromUTF8(it.value), wxDefaultPosition,
+            FromDIP(wxSize(k == "text" ? 240 : 80, -1)),
             wxTE_PROCESS_ENTER, wxDefaultValidator, nm);
         w.w = t;
         auto cb = [this, i, t]() {
