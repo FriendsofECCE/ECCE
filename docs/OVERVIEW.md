@@ -10,15 +10,15 @@ input, output and parsed properties, in projects in the Organizer.
 
 ## How ECCE is organised
 
-![Two ways to run ECCE. With an ECCE server (the default on one computer, or a central server for a lab or class): the client saves to and loads from the server, which holds the data server and message broker. On its own (optional): the client keeps its data in a local folder with its own broker, and there is no ECCE server. In both, the client's job agent submits jobs over ssh to a compute machine and follows them.](images/ecce-architecture.svg)
+![Two ways to run ECCE. With an ECCE server (on one computer, or a central server for a lab or class): the client saves to and loads from the server, which holds the data server and message broker. On its own (the default): the client keeps its data in a local folder with its own broker, and there is no ECCE server. In both, the client's job agent submits jobs over ssh to a compute machine and follows them.](images/ecce-architecture.svg)
 
-The **client** (`ecce-client`) is the windows you work in, plus a job agent
+The **client** (`ecce-client`) is the window you work in (the Organizer and the tools as tabs; `ECCE_ONE_PROCESS=0 ecce` opens one window per tool), plus a job agent
 that submits and follows jobs. Normally it works with an **ECCE server**
 (`ecce-server`: a data server and a message broker) that stores projects
 and results. The client can instead run **on its own**, keeping its data
-in a folder on your disk (Edit → Preferences → Data folder; off by default
-on Linux, the default on macOS and Windows); it still starts a private
-message broker, ECCE's own, but no ECCE server. Neither
+in a folder on your disk (Edit → Preferences → Data folder; the default for a new installation);
+it still starts a private message broker, ECCE's own (`eccebroker`, no
+Mosquitto needed), but no ECCE server. Neither
 server nor client runs calculations, except ECCE-QM on the client's own
 computer: they run on a **compute machine**, a workstation or an HPC
 cluster, where the client submits each job over ssh.
@@ -77,7 +77,7 @@ There are three deployment modes:
   Ubuntu 24.04, RHEL/Rocky 9 and Fedora (built on those systems, not
   tested).
 * **Windows 10 and 11**: client, as an installer or zip.
-* **macOS 11 or newer**, Apple silicon and Intel: client, experimental.
+* **macOS**, Apple silicon (macOS 11 or newer) and Intel (macOS 10.13 or newer): client, experimental.
 
 ## Capabilities
 

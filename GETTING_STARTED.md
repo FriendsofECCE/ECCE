@@ -412,11 +412,11 @@ isolation).
 There are three. Which one a session uses is decided by the site's
 configuration, in this order: `siteconfig/SharedBroker` (mode 3), then
 `ecce -remote` (mode 2), otherwise mode 1. In mode 1 the broker is ECCE's
-own (`eccebroker`, since 9.5.3; on Windows inside the Organizer); in modes
+own (`eccebroker`, since 9.6.0; on Windows inside the Organizer); in modes
 2 and 3 it is Mosquitto, never the system's own `mosquitto.service`
 (Debian runs that one on port 1883; ECCE does not use it and it can be
 disabled). `ECCE_BROKER=mosquitto` set before `ecce` makes a local session
-start the per-user Mosquitto as before 9.5.3. Nothing changes for a
+start the per-user Mosquitto as before 9.6.0. Nothing changes for a
 central server or a shared-broker installation: the server account's
 broker (marked by `~/.ECCE/mosquitto.server`) is still Mosquitto, started
 the same way.
