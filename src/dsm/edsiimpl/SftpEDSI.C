@@ -404,6 +404,8 @@ class SftpOp {
       if (!p_scratch.empty()) { std::error_code ec; fs::remove_all(p_scratch, ec); }
     }
     bool ok() const { return p_ok; }
+    bool noCache() const { return p_noCache; }
+    string key() const { return p_user + "@" + p_host; }
     const string& path() const { return p_path; }
     string local(const string& remote) const { return p_scratch + remote; }
 
@@ -827,6 +829,15 @@ string SftpEDSI::folderStamp()
     std::lock_guard<std::mutex> g(gMutex);
     auto it = gLogins.find(user + "@" + host);
     if (it == gLogins.end() || !it->second || !it->second->isOpen()) return "";
+  }
+  // A listing just taken in this Batch (a folder selection) has the stamp:
+  // the same %Y the stat below prints, without a second round trip.
+  if (BatchCache *c = op.noCache() ? 0 : liveCache(op.key())) {
+    auto it = c->e.find(op.path());
+    if (it != c->e.end() && it->second.kind == 'd') {
+      const size_t sp = it->second.st.find(' ');
+      if (sp != string::npos) return it->second.st.substr(sp + 1);
+    }
   }
   string p = q(op.path());
   if (!op.run("stat -c '%Y' -- " + p + " 2>/dev/null || stat -f '%m' -- " + p + " 2>/dev/null\n", out, 20, false))
