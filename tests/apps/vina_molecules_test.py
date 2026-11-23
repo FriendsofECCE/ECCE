@@ -7,7 +7,10 @@ dialog's <out>.molecules side file (label TAB atom range, likely ligand
 first) and the dialog fills Ligand atoms with the first one.  Before any
 Save the preview shows Vina's config, and pressing Runtype Details changes
 the editor's controls and note once each (#1261).  The editor hides
-Charge and Spin Mult. for Vina (#1276).
+Charge and Spin Mult. for Vina (#1276).  In the Organizer's editor tab
+Runtype Details opens in the Set-up area (vinaruntype.dlg), with the
+ligand-molecule list, and its settings are saved under the same keys
+(#1277).
 
     tests/apps/vina_molecules_test.py [--build build-cmake] [--keep]
 
@@ -15,6 +18,7 @@ Exit status 77 (skip) without Xvfb, vina or the build.
 """
 import argparse
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -99,6 +103,7 @@ def check_preview(s, url, display, tmpdir, wrappers):
             check("no theory" not in text, "the preview does not say 'no theory': %r" % text[:300])
             check("receptor = receptor.pdbqt" in text and "center_x" in text,
                   "the preview shows Vina's config: %r" % text[:300])
+            check_embedded(s, cmds, logpath, proc)
         finally:
             if proc.poll() is None:
                 try:
@@ -106,6 +111,50 @@ def check_preview(s, url, display, tmpdir, wrappers):
                     proc.wait(timeout=20)
                 except (OSError, subprocess.TimeoutExpired):
                     pass
+
+
+def stored_lines(s, key):
+    """Lines of the local data store that mention key."""
+    found = []
+    for root, _d, files in os.walk(s.localData()):
+        for f in files:
+            try:
+                text = open(os.path.join(root, f), errors="replace").read()
+            except OSError:
+                continue
+            found += [ln.strip() for ln in text.splitlines() if key in ln]
+    return found
+
+
+def check_embedded(s, cmds, logpath, proc):
+    """Runtype Details fills the Set-up area, lists the ligand molecules,
+    and an edit there is saved under the dialog's key (#1277)."""
+    say("  setup runtype: %s" % ask_org(cmds, logpath, proc, "setup runtype", 1, 30))
+    info = ""
+    count = 0
+    end = time.time() + 30
+    while time.time() < end and "ligandpick=" not in info:
+        count += 1
+        time.sleep(2)
+        info = ask_org(cmds, logpath, proc, "setup info", 1 + count, 30) or ""
+    say("  setup info: %s" % info)
+    check("area=runtype" in info.split(),
+          "Runtype Details opens in the Set-up area: %r" % info[:200])
+    picks = [w for w in info.split() if w.startswith("ligandpick=")]
+    check(picks and int(picks[0].split("=")[1]) >= 1,
+          "the ligand-molecule list has the candidates: %r" % picks)
+    got = ask_org(cmds, logpath, proc, "setup set ES.Runtype.Vina.NumPoses 7", 1, 30)
+    say("  setup set: %s" % got)
+    say("  setup save: %s" % ask_org(cmds, logpath, proc, "setup save", 1, 60))
+    lines = []
+    end = time.time() + 30
+    while time.time() < end:
+        lines = stored_lines(s, "ES.Runtype.Vina.NumPoses")
+        if any(re.search(r"NumPoses\W+7\b", ln) for ln in lines):
+            break
+        time.sleep(1)
+    check(any(re.search(r"NumPoses\W+7\b", ln) for ln in lines),
+          "Number of poses 7 is saved as ES.Runtype.Vina.NumPoses: %r" % lines[:3])
 
 
 def check_details_open(cmdfile, logpath, proc, asked):

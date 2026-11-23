@@ -231,10 +231,98 @@ void Model::enable(int index, bool on)
   if (was != on && sendsOnEnable(it)) changed(index);
 }
 
+bool Model::usesSideFiles() const
+{
+  for (const Item& it : items_)
+    if (!it.file.empty() && !it.isSetting()) return true;
+  return false;
+}
+
+// Side files sit next to the restore file; the editor rewrites them after
+// each Save.  True if what they say changed.
+bool Model::readSideFiles()
+{
+  bool any = false;
+  for (size_t i = 0; i < items_.size(); i++) {
+    Item& it = items_[i];
+    if (it.file.empty() || it.isSetting()) continue;
+    std::ifstream f(par_.restoreFile + "." + it.file);
+    string line;
+    if (it.kind == "filenote") {
+      string text;
+      if (f && std::getline(f, line)) text = trim(line);
+      if (text == it.label) continue;
+      it.label = text;
+    } else {
+      // label TAB atom range per line; the list ends with the "other" entry
+      Strings labels, ranges;
+      while (f && std::getline(f, line)) {
+        if (!line.empty() && line.back() == '\r') line.pop_back();
+        size_t tab = line.find('\t');
+        if (tab == string::npos || line.find('\t', tab + 1) != string::npos)
+          continue;
+        string a = line.substr(0, tab), b = line.substr(tab + 1);
+        if (a.empty() || b.empty()) continue;
+        labels.push_back(a);
+        ranges.push_back(b);
+      }
+      labels.push_back(it.first);
+      ranges.push_back("");
+      if (labels == it.choices && ranges == it.urls) continue;
+      it.choices = labels;
+      it.urls = ranges;
+      it.shown = ranges.size() > 1;
+      if (!isIn(it.choices, it.value)) it.value = it.first;
+    }
+    any = true;
+    touch((int)i);
+  }
+  return any;
+}
+
+// An empty target takes the first candidate, once.  Values-only runs set it
+// before the batch; a shown dialog sends it as an edit after #INITIALIZED.
+void Model::defaultPicks(bool asEdit)
+{
+  for (size_t i = 0; i < items_.size(); i++) {
+    Item& it = items_[i];
+    if (it.kind != "ligandpick" || it.defaulted || it.urls.size() < 2) continue;
+    int t = find(it.target);
+    if (t < 0) continue;
+    it.defaulted = true;
+    if (!trim(items_[t].value).empty()) continue;
+    if (asEdit) userEdit(t, it.urls[0]);
+    else items_[t].value = it.urls[0];
+    touch(t);
+  }
+}
+
+// The list shows the candidate whose range is in the target, else "other".
+void Model::syncPicks()
+{
+  for (size_t i = 0; i < items_.size(); i++) {
+    Item& it = items_[i];
+    if (it.kind != "ligandpick" || it.urls.size() < 2) continue;
+    int t = find(it.target);
+    string cur = t < 0 ? "" : trim(items_[t].value), sel = it.first;
+    for (size_t k = 0; k + 1 < it.urls.size(); k++)
+      if (it.urls[k] == cur) { sel = it.choices[k]; break; }
+    if (sel != it.value) { it.value = sel; touch((int)i); }
+  }
+}
+
+void Model::pollSideFiles()
+{
+  if (!loopStarted_ || !readSideFiles()) return;
+  defaultPicks(true);
+  checkDependency();
+}
+
 void Model::checkDependency()
 {
   if (depth_ > 8) return;
   depth_++;
+  syncPicks();
   for (size_t s = 0; s < steps_.size(); s++) {
     Step& st = steps_[s];
     if (st.type == Step::ItemRule) {
@@ -274,6 +362,21 @@ void Model::checkDependency()
 void Model::userEdit(int index, const string& text)
 {
   Item& it = items_[index];
+  if (it.kind == "ligandpick") {
+    // Not a setting: a candidate is an edit of the target; "other" waits
+    // for the user to type the atoms.
+    size_t k = std::find(it.choices.begin(), it.choices.end(), text) -
+               it.choices.begin();
+    int t = find(it.target);
+    if (k + 1 < it.urls.size() && t >= 0) {
+      userEdit(t, it.urls[k]);
+      touch(t);
+    } else if (k < it.choices.size()) {
+      it.value = text;
+      touch(index);
+    }
+    return;
+  }
   if (it.kind == "float") {
     double v;
     if (!toNumber(text, v)) {
@@ -341,6 +444,7 @@ void Model::close()
 
 void Model::initialize()
 {
+  readSideFiles();
   std::vector<int> notRestored;
   bool legacyDispersion = false, legacyGrid = false;
   // The Python dialog reports a widget it disables right after creating it,
@@ -434,6 +538,7 @@ void Model::initialize()
       enable(i, active == "1");
     }
   }
+  if (par_.restoreFlag == "NO_GUIValues") defaultPicks(false);
   for (size_t i = 0; i < items_.size(); i++) {
     if (!items_[i].isSetting()) continue;
     save(items_[i]);
@@ -454,6 +559,7 @@ void Model::initialize()
     close();
   } else {
     loopStarted_ = true;
+    defaultPicks(true);
     if (view_) { view_->resetEnabled(anyNotDefault()); view_->layoutChanged(); }
   }
 }
@@ -462,7 +568,8 @@ bool Model::build(string& error)
 {
   Lookup argv = [this](const string& n, string& v) { return lookupVar(n, v); };
   static const char *kinds[] = {"check", "radiopair", "combo", "calcpick",
-                                "int", "float", "text", "note"};
+                                "int", "float", "text", "note",
+                                "ligandpick", "filenote"};
   int curBox = -1;
   bool boxOn = false;
   for (const Line& L : desc_.lines) {
@@ -495,7 +602,7 @@ bool Model::build(string& error)
       st.text = L.get("text");
       st.when = L.get("when");
       steps_.push_back(st);
-    } else if (std::find(kinds, kinds + 8, c) != kinds + 8) {
+    } else if (std::find(kinds, kinds + 10, c) != kinds + 10) {
       if (curBox < 0 || !boxOn || !eval(L.get("when"), false)) continue;
       Item it;
       it.kind = c;
@@ -514,6 +621,14 @@ bool Model::build(string& error)
       it.first = L.get("first");
       it.second = L.get("second");
       it.def = L.get("default");
+      it.target = L.get("target");
+      it.file = L.get("file");
+      if (c == "ligandpick") {
+        it.first = L.get("other", "Other");
+        it.choices.assign(1, it.first);
+        it.urls.assign(1, "");
+        it.shown = false;
+      }
       Strings clauses = split(L.get("default_if"), ';');
       for (const string& cl : clauses) {
         size_t arrow = cl.find("=>");
@@ -560,6 +675,10 @@ bool Model::build(string& error)
           it.choices.push_back(p[0] + " (" + p[2] + " structure)");
         }
         it.def = "";
+      } else if (c == "ligandpick") {
+        it.def = it.first;
+      } else if (c == "filenote") {
+        it.label.clear();
       } else if (c == "check") {
         it.def = it.def == "1" ? "1" : "0";
       } else if (c == "radiopair") {

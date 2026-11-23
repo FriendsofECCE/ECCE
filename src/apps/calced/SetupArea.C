@@ -580,6 +580,10 @@ wxString SetupArea::describe() const
       for (wxWindow *c : w->GetChildren()) todo.push_back(c);
     }
     out += wxString::Format(" controls=%d", shown);
+    // Candidates in a ligand-molecule list (its "other" entry not counted).
+    for (const details::Item& it : p_emb->model->items())
+      if (it.kind == "ligandpick")
+        out += wxString::Format(" ligandpick=%d", (int)it.urls.size() - 1);
   }
   // What the editor's summary under the Details buttons shows.
   for (wxSizer *sz : {p_ed->p_theoryDetailsSizer, p_ed->p_runtypeDetailsSizer}) {

@@ -50,6 +50,7 @@ private:
   wxTextCtrl *msg_ = 0;
   wxButton *resetBtn_ = 0;
   wxTimer *colorTimer_ = 0, *messageTimer_ = 0;
+  wxTimer sideTimer_;
   std::string helpURL_;
 
   void build();
