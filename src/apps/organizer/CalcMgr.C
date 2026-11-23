@@ -3756,7 +3756,8 @@ void CalcMgr::runTestCommand(const string& line)
                command == "livecount" || command == "paintlog" ||
                command == "tabtips" || command == "nexttab" ||
                command == "prevtab" || command == "tabkey" ||
-               command == "windowitems") {
+               command == "windowitems" || command == "snapshot" ||
+               command == "tabrect") {
       // Tools as tabs (#983): list, select, Open in Window, Move to Tabs,
       // the Windows and tabs setting, the tab's right-click menu.
       wxString result;

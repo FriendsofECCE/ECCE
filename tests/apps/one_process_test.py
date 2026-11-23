@@ -55,6 +55,10 @@ if "--panels-only" in sys.argv:
 if "--1210-only" in sys.argv:
     sys.argv.remove("--1210-only")
     os.environ["ECCE_1210_ONLY"] = "1"
+# --1210-frames: only runTabFrames (as ECCE_1210_FRAMES=1).
+if "--1210-frames" in sys.argv:
+    sys.argv.remove("--1210-frames")
+    os.environ["ECCE_1210_FRAMES"] = "1"
 # --1088-only: only runTabs1088 (as ECCE_1088_ONLY=1).
 # --1256-only: only runTabIdentity (as ECCE_1256_ONLY=1).
 if "--1256-only" in sys.argv:
@@ -2351,6 +2355,90 @@ def runTabPaint(display):
         shutil.rmtree(work, ignore_errors=True)
 
 
+def runTabFrames(display):
+    """#1210: what reaches the screen while tabs open and close, sampled from
+    outside every ~10 ms (screenframes.Sampler).  A state of the page area
+    that is neither the picture before the change nor the finished picture
+    after it is half-drawn.  Each case runs with the tab-change picture off
+    (as before the fix) and on; with it on there must be none."""
+    import screenframes
+    data = tempfile.mkdtemp(prefix="ecce-oneproc-data-")
+    work = tempfile.mkdtemp(prefix="ecce-oneproc-")
+    try:
+        project = os.path.join(data, "users", "local", "oneproc")
+        os.makedirs(project)
+        shutil.copy(pb.PROJECT_META, os.path.join(project, ".ecce-meta"))
+        calc = os.path.join(project, "f_etcl_sn2_irc")
+        shutil.copytree(os.path.join(
+            HERE, "..", "..", "data", "client", "examples", "organic",
+            "substitution-vs-elimination", "ecceqm-f_etcl_sn2_irc", "stored",
+            "f_etcl_sn2_irc"), calc, symlinks=True)
+        url = "file://" + calc
+        cmds = os.path.join(work, "commands")
+        rectFile = os.path.join(work, "rect")
+        open(cmds, "w").close()
+        results = []
+
+        def append(line, wait):
+            with open(cmds, "a") as handle:
+                handle.write(line + "\n")
+            time.sleep(wait)
+
+        def inspect(disp):
+            name = disp.env()["DISPLAY"]
+            append("tabrect " + rectFile, 3)
+            try:
+                rect = [int(v) for v in open(rectFile).read().split()]
+            except (OSError, ValueError):
+                return
+            cases = (("open Viewer", "start CalculationViewer " + url, 20),
+                     ("close Viewer onto Organizer", "tabclose 1", 6),
+                     ("open Editor", "start CalculationEditor " + url, 15),
+                     ("open Viewer over Editor",
+                      "start CalculationViewer " + url, 20),
+                     ("close Viewer onto Editor", "tabclose 2", 6),
+                     ("close Editor onto Organizer", "tabclose 1", 6))
+            for mode in ("off", "on"):
+                append("snapshot " + mode, 1)
+                for what, command, wait in cases:
+                    sampler = screenframes.Sampler(name, rect).start()
+                    time.sleep(0.5)
+                    append(command, wait)
+                    states = sampler.stop()
+                    bad, samples, worst = screenframes.halfDrawn(states)
+                    results.append((mode, what, len(states), bad, samples,
+                                    worst))
+                append("snapshot", 1)
+
+        setLayout(display, "normal")
+        result = apps.run(display, "organizer", windowTimeout=60, settle=20,
+                          env={"ECCE_ONE_PROCESS": "1",
+                               "ECCE_TEST_ORGANIZER": cmds,
+                               "ECCE_LOCAL_DATA": data},
+                          inspect=inspect)
+        log = result.log or ""
+        check(not result.crashed, "the Organizer ran without a crash",
+              result.signalName or log[-1500:])
+        check(len(results) == 12, "every case was sampled",
+              "%d of 12; tabrect: %s" % (len(results),
+                                         pb.answers(log, "tabrect")))
+        for mode, what, n, bad, samples, worst in results:
+            print("frames picture=%s %-28s states=%3d half-drawn=%d "
+                  "(%d samples, worst %.0f%% off)"
+                  % (mode, what + ":", n, bad, samples, 100 * worst))
+        for info in pb.answers(log, "snapshot"):
+            if info.startswith("enabled="):
+                print("snapshot: " + info)
+        for mode, what, n, bad, samples, worst in results:
+            if mode == "on":
+                check(bad == 0, "no half-drawn state: " + what,
+                      "%d states, %d samples, worst %.0f%%"
+                      % (bad, samples, 100 * worst))
+    finally:
+        shutil.rmtree(data, ignore_errors=True)
+        shutil.rmtree(work, ignore_errors=True)
+
+
 def runReopenViewer(display):
     """#1209: a Viewer opened, closed and opened again on the same
     finished calculation draws its structure the second time too."""
@@ -2669,6 +2757,11 @@ def main():
             return
         if os.environ.get("ECCE_UTILS_ONLY") == "1":
             runUtilityWindows(display)
+            if failures:
+                results.fail("one-process", "; ".join(failures))
+            return
+        if os.environ.get("ECCE_1210_FRAMES") == "1":
+            runTabFrames(display)
             if failures:
                 results.fail("one-process", "; ".join(failures))
             return

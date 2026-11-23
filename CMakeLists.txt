@@ -3816,6 +3816,14 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_basis_contractions PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
+  # No half-drawn page reaches the screen while tool tabs open and close (#1210).
+  add_test(NAME apps_tab_switch_frames
+           COMMAND ${CMAKE_COMMAND} -E env ECCE_1210_FRAMES=1
+                   ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/one_process_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_tab_switch_frames PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
   # A second start brings the running window to the front (#1069).
   add_test(NAME apps_organizer_single_instance
            COMMAND ${CMAKE_COMMAND} -E env ECCE_SINGLE_ONLY=1
