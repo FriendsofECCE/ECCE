@@ -61,6 +61,7 @@ static std::string s_registerMessage;
 
 #include "util/LocalData.H"
 #include "util/ServerList.H"
+#include "wxgui/ewxModalGuard.H"
 #include "wxgui/AddServerDialog.H"
 #include "wx/uiaction.h"
 #include "wx/dcscreen.h"
@@ -3799,6 +3800,12 @@ void CalcMgr::runTestCommand(const string& line)
                    (w->IsBeingDeleted() ? "(deleting)" : "");
       }
       outcome += " progressdialogs=" + std::to_string(dialogs);
+      // Frames GTK has painted per shown window: a stale screen (#1249)
+      // shows as a counter that stops while the window's content changes.
+      for (wxWindow *w : wxTopLevelWindows)
+        if (w->IsShown())
+          outcome += string(" frames['") + w->GetLabel().utf8_str().data() +
+                     "']=" + std::to_string(ewxModalGuard::frameCounter(w));
     } else if (command == "start") {
       // "start TOOL [URL]": what a tool button does (startApp), e.g.
       // "start CalculationEditor <calc url>".
