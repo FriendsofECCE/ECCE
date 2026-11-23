@@ -353,6 +353,88 @@ static void inventory()
   CHECK(j.find("\"enabled\": false") != string::npos);   // Core, before Flag
 }
 
+// ligandpick + filenote read side files next to the restore file (#1277).
+static void sideFiles()
+{
+  const char *dlg =
+      "box label=L\n"
+      "ligandpick name=Pick label=\"Ligand:\" target=T.Lig file=molecules other=\"Other\"\n"
+      "text name=T.Lig default=\"\" export=1\n"
+      "filenote name=Note file=note show_if=\"!T.Lig\"\n";
+  Description d;
+  std::istringstream in(dlg);
+  CHECK(d.parse(in));
+  string rf = "grammar_side.tmp";
+  { std::ofstream f(rf); f << "END_GUIValues\n"; }
+  { std::ofstream f(rf + ".molecules");
+    f << "LIG 101 (6 atoms)\t10-15\nbad line\nNA 301 (1 atom)\t27\n"; }
+  { std::ofstream f(rf + ".note"); f << "Automatic: residue LIG 101\n"; }
+  Params p = params();
+  p.restoreFile = rf;
+
+  // values-only: the first candidate is in the batch, the pick never is
+  Params q = p;
+  q.restoreFlag = "NO_GUIValues";
+  Recorder r0;
+  Model m0(d, q);
+  string err;
+  CHECK(m0.build(err));
+  m0.attach(&r0, &r0);
+  m0.initialize();
+  CHECK_EQ(r0.lines[0], "T.Lig|10-15||1|1|text_input");
+  for (const string& l : r0.lines) CHECK(l.compare(0, 5, "Pick|") != 0);
+
+  // shown dialog: the default is an edit after #INITIALIZED
+  Recorder r;
+  Model m(d, p);
+  CHECK(m.build(err));
+  m.attach(&r, &r);
+  m.initialize();
+  int pick = 0, lig = m.find("T.Lig"), note = 2;
+  CHECK(m.find("Pick") < 0);                               // not a setting
+  CHECK_EQ(r.lines[r.lines.size() - 2], "#INITIALIZED");
+  CHECK_EQ(r.lines.back(), "T.Lig|10-15||1|1|text_input");
+  CHECK(m.items()[pick].choices.size() == 3 && m.items()[pick].shown);
+  CHECK_EQ(m.items()[pick].value, "LIG 101 (6 atoms)");
+  CHECK_EQ(m.items()[note].label, "Automatic: residue LIG 101");
+  CHECK(!m.items()[note].shown);                           // field not empty
+
+  // the list follows a typed value; choosing a candidate edits the target
+  m.userEdit(lig, "27");
+  CHECK_EQ(m.items()[pick].value, "NA 301 (1 atom)");
+  m.userEdit(lig, "1-3");
+  CHECK_EQ(m.items()[pick].value, "Other");
+  r.lines.clear();
+  m.userEdit(pick, "LIG 101 (6 atoms)");
+  CHECK_EQ(r.lines.size() ? r.lines[0] : "", "T.Lig|10-15||1|1|text_input");
+  m.userEdit(lig, "");                                     // no second default
+  CHECK_EQ(m.items()[lig].value, "");
+  CHECK(m.items()[note].shown);
+
+  // the poll picks up rewritten side files
+  { std::ofstream f(rf + ".note"); f << "Automatic: residue NA 301\n"; }
+  { std::ofstream f(rf + ".molecules"); f << "NA 301 (1 atom)\t27\n"; }
+  m.pollSideFiles();
+  CHECK_EQ(m.items()[note].label, "Automatic: residue NA 301");
+  CHECK(m.items()[pick].choices.size() == 2);
+  CHECK_EQ(m.items()[lig].value, "");
+  remove((rf + ".molecules").c_str());
+  m.pollSideFiles();
+  CHECK(!m.items()[pick].shown);                           // no candidates
+
+  // no side file at the start: list hidden, nothing defaulted
+  remove((rf + ".note").c_str());
+  Recorder r2;
+  Model m2(d, p);
+  m2.build(err);
+  m2.attach(&r2, &r2);
+  m2.initialize();
+  CHECK(!m2.items()[pick].shown);
+  CHECK_EQ(m2.items()[m2.find("T.Lig")].value, "");
+  CHECK_EQ(r2.lines.back(), "#INITIALIZED");
+  remove(rf.c_str());
+}
+
 int main()
 {
   expressions();
@@ -365,6 +447,7 @@ int main()
   calcpick();
   restore();
   inventory();
+  sideFiles();
   if (failures) { fprintf(stderr, "%d failure(s)\n", failures); return 1; }
   printf("details_unit: ok\n");
   return 0;

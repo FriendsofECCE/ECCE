@@ -1,0 +1,35 @@
+# AutoDock Vina Runtype Details for the native engine, the same settings as
+# vinaruntype.py (kept for the standalone editor's separate window).  Keep
+# the keys, units and ranges of the two in step.
+
+dialog title="ECCE Vina Editor: Runtype Details"
+
+# The split keys are the shared docking layer's (docking.pl), as xTB's.
+# The editor writes the structure's ligand candidates to <out>.molecules and,
+# while Ligand atoms is empty, what the generator chose to <out>.note.
+box label="Receptor and Ligand"
+ligandpick name=LigandMolecule label="Ligand molecule:" target=ES.Runtype.Docking.LigandAtoms file=molecules other="Other (atom numbers)"
+text name=ES.Runtype.Docking.LigandAtoms label="Other (atom numbers; empty: chosen automatically):" default="" export=1
+filenote name=LigandNote file=note show_if="!ES.Runtype.Docking.LigandAtoms"
+int name=ES.Runtype.Docking.LigandCharge label="Ligand charge:" default=0 hard="[-10..10]" export=1
+
+# ai.vina computes the box from the ligand atoms while BoxAuto is on; the
+# margin is also the Builder's Docking Box Around Selection margin.
+box label="Search Box"
+check name=ES.Runtype.Vina.BoxAuto label=" Centre the box on the ligand" default=1 export=1
+float name=ES.Runtype.Vina.BoxMargin label="Margin around the atoms:" unit=A default=5.0 hard="[0..)" soft="[2..10]" export=1
+float name=ES.Runtype.Vina.BoxCenterX label="Centre X:" unit=A default=0.0 export=1 enable_if="!ES.Runtype.Vina.BoxAuto"
+float name=ES.Runtype.Vina.BoxCenterY label="Centre Y:" unit=A default=0.0 export=1 enable_if="!ES.Runtype.Vina.BoxAuto"
+float name=ES.Runtype.Vina.BoxCenterZ label="Centre Z:" unit=A default=0.0 export=1 enable_if="!ES.Runtype.Vina.BoxAuto"
+float name=ES.Runtype.Vina.BoxSizeX label="Size X:" unit=A default=20.0 hard="(0..)" soft="[8..60]" export=1 enable_if="!ES.Runtype.Vina.BoxAuto"
+float name=ES.Runtype.Vina.BoxSizeY label="Size Y:" unit=A default=20.0 hard="(0..)" soft="[8..60]" export=1 enable_if="!ES.Runtype.Vina.BoxAuto"
+float name=ES.Runtype.Vina.BoxSizeZ label="Size Z:" unit=A default=20.0 hard="(0..)" soft="[8..60]" export=1 enable_if="!ES.Runtype.Vina.BoxAuto"
+
+box label="Search"
+int name=ES.Runtype.Vina.Exhaustiveness label="Exhaustiveness:" default=8 hard="[1..]" export=1
+int name=ES.Runtype.Vina.NumPoses label="Number of poses:" default=9 hard="[1..100]" export=1
+float name=ES.Runtype.Vina.EnergyRange label="Energy range:" unit=kcal/mol default=3.0 hard="(0..)" soft="[1..10]" export=1
+int name=ES.Runtype.Vina.Seed label="Random seed (0: random):" default=0 hard="[0..]" export=1
+
+box label="Preparation"
+check name=ES.Runtype.Vina.FlexibleAmides label=" Amide bonds of the ligand may rotate" default=0 export=1

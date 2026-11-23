@@ -492,7 +492,7 @@ each tool's row (Builder / Viewer, Calculation Editor, Basis Set Tool, MD
 editors, MD Prepare) to Tab or Window, which makes the layout Custom. Under
 Normal the Calculation Editor's tab is the Set-up tab: a detail area right
 of the editor shows the Theory or Runtype Details (codes with a `.dlg`
-description: ECCE-QM, ORCA, xTB, Gaussian 16, MOPAC; others open the Python
+description: ECCE-QM, ORCA, xTB, Gaussian 16, MOPAC, Vina Runtype; others open the Python
 dialog's window) or, with no detail chosen, the input file (after an
 unsaved change, a dry run of the generator with the editor's settings,
 500 ms after the last change; the calculation is not written). MOPAC now has
@@ -502,7 +502,7 @@ windows, `ECCE_NATIVE_DIALOGS=1` selects native MOPAC dialogs and
 settings keys and units as the Python dialogs. The window
 is widened to 1100 px within the work area. Hook `setup info|theory|runtype|basis|launch|launch info|launch go|launch get WHAT|launch notify machreg|launch notify state STATE|input|fold|unfold|save|preview|text|width N|set KEY VALUE|find TEXT` on the
 active Set-up tab (`area=input|theory|runtype title=... folded=0|1
-controls=N marked=<button> chargespin=shown|hidden overlaps=N more="none|+N hidden"`, where `chargespin` says whether the editor shows Charge, Spin Mult. and Open Shells (hidden for a code whose .edml has `<ChargeAndSpin>false</ChargeAndSpin>`, Vina), `overlaps` counts shown controls of the editor's column whose rectangles intersect (0 is right) and `more` is the code bar's hidden-codes button; `width N` resizes the Organizer's window to N px; `preview` prints `shown=<len:fnv> file=<len:fnv>`; `text` prints the note above the preview, ` || `, and the preview itself with newlines as `|`
+controls=N ligandpick=N marked=<button> chargespin=shown|hidden overlaps=N more="none|+N hidden"`, where `chargespin` says whether the editor shows Charge, Spin Mult. and Open Shells (hidden for a code whose .edml has `<ChargeAndSpin>false</ChargeAndSpin>`, Vina), `overlaps` counts shown controls of the editor's column whose rectangles intersect (0 is right) and `more` is the code bar's hidden-codes button; `width N` resizes the Organizer's window to N px; `preview` prints `shown=<len:fnv> file=<len:fnv>`; `text` prints the note above the preview, ` || `, and the preview itself with newlines as `|`
 (the standalone CalcEd's ECCE_TEST_CALCED and ECCE_CALCED_SCRIPT command files both take `setup WHAT` and `watch`; `watch start` samples the Theory/Runtype choices and Details buttons and the preview note every 10 ms, and `watch` reports `theory=offN/onM runtype=... theory-details=... runtype-details=... notes=K |note1 |note2 ...`, what a user saw change, e.g. while `details runtype` opens);
 `launch get WHAT` reads the embedded Launcher panel (`machines`, `machine`, `state`, ...; `greyed` is how many times the editor's window was disabled during the last launch, 0 when the log lines go out without greying it); `launch notify machreg|state STATE` publishes the broker notice the panel follows (machine registration changed; the calculation's state, read from its stored metadata);
 `set` edits a field of the embedded dialog as a user would, `find` says
@@ -861,7 +861,7 @@ residues (the editor writes them to `<dialog out file>.molecules`, one
 `label<TAB>range` per line, likely ligand first) and an empty key defaults to
 the first. The key can still be typed. The same ranking and range formatter
 are `LigandSelect::ligandCandidates`/`atomRangeString` (`include/tdat/LigandSelect.H`).
-`ECCE_VINA_TRACE=1` makes the dialog print how it chose the default (`VINADLG:` lines on the editor's stderr).
+In the Organizer's editor tab Runtype Details opens in the Set-up area (`setup runtype`; `setup info` reports `ligandpick=N`, the candidates listed, and `setup set ES.Runtype.Docking.LigandAtoms 10-15` sets the key); the standalone editor runs the Python dialog. `ECCE_VINA_TRACE=1` makes the Python dialog print how it chose the default (`VINADLG:` lines on the editor's stderr).
 
 **Docking.** Vina calculations (`vina`); `ecce-pdbqt` prepares PDBQT files;
 CREST/xTB docking is a run type of xTB.

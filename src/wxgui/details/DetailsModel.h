@@ -44,11 +44,18 @@ struct Item {
   bool startDisabled = false;                // disabled when built (wx Enable(False) in the constructor)
   bool exp = false;                          // float: power of ten only
   int box = -1;
+  // ligandpick: the setting it fills; ligandpick/filenote: the side file's
+  // suffix (restore file + "." + file), written by the Calculation Editor
+  std::string target, file;
+  bool defaulted = false;                    // ligandpick: default given once
   // run time
   std::string value, saved;
   double savedNum = 0;
   bool enabled = true, shown = true;
-  bool isSetting() const { return kind != "note"; }
+  bool isSetting() const
+  {
+    return kind != "note" && kind != "ligandpick" && kind != "filenote";
+  }
 };
 
 struct Box {
@@ -97,6 +104,9 @@ public:
   void checkDependency();
   // Sets a value the way wx SetValue does: no event, no line.
   void setValue(int index, const std::string& text);
+  // ligandpick/filenote read side files; the view polls them once a second.
+  bool usesSideFiles() const;
+  void pollSideFiles();
 
 private:
   const Description& desc_;
@@ -136,6 +146,9 @@ private:
   std::string typeName(const Item& it) const;
   std::string unitOf(const Item& it) const;
   void dbg(const std::string& m) const;
+  bool readSideFiles();
+  void defaultPicks(bool asEdit);
+  void syncPicks();
 };
 
 }  // namespace details
