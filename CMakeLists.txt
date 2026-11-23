@@ -3831,6 +3831,14 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_launch_button PROPERTIES TIMEOUT 600
                        SKIP_RETURN_CODE 77)
+  # The release workflow scripts W1-W6 (wiki Release-9.6.0) in one run;
+  # launches real jobs, so label long.
+  add_test(NAME releaseround
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/releaseround/run_round.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/releaseround)
+  set_tests_properties(releaseround PROPERTIES TIMEOUT 9000
+                       SKIP_RETURN_CODE 77 LABELS long)
   # Busy cursor, status line and slow-start window while a tool starts (#1071).
   add_test(NAME apps_organizer_tool_start
            COMMAND ${PYTHON3_EXECUTABLE}
