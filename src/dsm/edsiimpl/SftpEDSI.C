@@ -31,15 +31,6 @@
 
 // The mirror keeps the server's modification times; utime() is the call
 // MinGW has as well (utimes() is POSIX only).
-static void putEnv(const char* name, const char* value)
-{
-#ifdef _WIN32
-  _putenv_s(name, value ? value : "");   // "" removes it on Windows
-#else
-  if (value) setenv(name, value, 1); else unsetenv(name);
-#endif
-}
-
 static void setMtime(const std::string& path, long t)
 {
   struct utimbuf ub;
@@ -62,9 +53,10 @@ thread_local int gBatchDepth = 0;
 // Prompts are only for the Organizer's connect step.  Every other process
 // (job store, monitor, editors) rides the session's master or fails, so a
 // launch never stops on a hidden password prompt.
-// A count, not a flag: start-up connects probe on a worker while the user
-// may connect another server, and one probe ending must not silence the other.
-int gInteractive = 0;
+// Per thread, not ECCE_ASKPASS=/bin/false in the environment: that answered
+// every password prompt with "" (ssh sends it, three tries burn the server's
+// MaxAuthTries) and leaked into logins on other threads.
+thread_local int tInteractive = 0;
 
 // host is the URL's authority, host[:port]: a login (and its master and
 // stored password) belongs to one port.
@@ -73,17 +65,10 @@ RCommand* newLogin(const string& authority, const string& user)
   string host;
   int port = 22;
   if (!ServerList::splitHostPort(authority, host, port)) host = authority;
-  string saved;
-  const char* e = getenv("ECCE_ASKPASS");
-  const bool had = e != 0;
-  if (e) saved = e;
-  if (!gInteractive) putEnv("ECCE_ASKPASS", "/bin/false");
+  OpenSshTransport::NoPrompt quiet(tInteractive == 0);
   ecceSshTiming("SftpEDSI login to " + user + "@" + authority + " begins");
   RCommand* rc = new RCommand(host, "ssh", "bash", user, "", "", "", "", "", "",
                               port == 22 ? 0 : port);
-  if (!gInteractive) {
-    putEnv("ECCE_ASKPASS", had ? saved.c_str() : 0);
-  }
   ecceSshTiming(string("SftpEDSI login ") + (rc->isOpen() ? "open" : "failed"));
   return rc;
 }
@@ -173,6 +158,7 @@ bool runRemote(const string& user, const string& host, const string& script,
   ecceSshTiming("runRemote waits for the lock: " + script.substr(0, script.find('\n')));
   std::lock_guard<std::mutex> g(gMutex);
   ecceSshTiming("runRemote has the lock");
+  OpenSshTransport::NoPrompt quiet(tInteractive == 0);
   const string key = user + "@" + host;
   for (int attempt = 0; attempt < 2; attempt++) {
     RCommand *&rc = gLogins[key];
@@ -207,6 +193,7 @@ bool copyRemote(const string& user, const string& host, bool put,
                 const string& local, const string& remote, string& err)
 {
   std::lock_guard<std::mutex> g(gMutex);
+  OpenSshTransport::NoPrompt quiet(tInteractive == 0);
   const string key = user + "@" + host;
   RCommand *&rc = gLogins[key];
   if (!rc || !rc->isOpen()) {
@@ -756,7 +743,7 @@ SftpEDSI::Batch::Batch() { if (!getenv("ECCE_SFTP_NOBATCH")) gBatchDepth++; else
 SftpEDSI::Batch::~Batch() { if (!p_off && --gBatchDepth == 0) gCache.clear(); }
 unsigned SftpEDSI::scriptCount() { return gScripts; }
 
-void SftpEDSI::setInteractive(bool on) { std::lock_guard<std::mutex> g(gMutex); gInteractive += on ? 1 : (gInteractive > 0 ? -1 : 0); }
+void SftpEDSI::setInteractive(bool on) { tInteractive += on ? 1 : (tInteractive > 0 ? -1 : 0); }
 
 SftpEDSI::Probe SftpEDSI::probe(const string& user, const string& host,
                                 const string& folder, bool create, string& message)

@@ -95,7 +95,7 @@ class SftpEDSI : public EDSI
     class Batch { public: Batch(); ~Batch(); private: Batch(const Batch&); Batch& operator=(const Batch&); bool p_off = false; };
     // Remote scripts run so far in this process (tests count round trips).
     static unsigned scriptCount();
-    // Prompts are off except while probe() runs.
+    // Prompts are off except on a thread inside probe().
     static void setInteractive(bool on);
     static bool parseURL(const string& url, string& user, string& host,
                          string& path);

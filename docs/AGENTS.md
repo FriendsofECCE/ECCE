@@ -1008,6 +1008,17 @@ hosts or one-time codes). A machine reached through a port-forward must not be
 registered as `localhost`: give it an alias in `~/.ssh/config` and register
 the alias (#144).
 
+A password the host refused is never sent again without a dialog: the next
+dialog says "The password was refused. Please try again.", and after Cancel
+ECCE ends that ssh instead of letting it send empty passwords. Only a connect
+(Servers menu, the root's menu, start-up) asks for an SSH folder's login;
+listing, refreshing or opening a folder whose login has gone fails quietly
+and asks nothing (#1274). Test hooks: `ECCE_TEST_AUTH_ANSWER` answers
+passdialog without showing it (`cancel` cancels), `ECCE_TEST_AUTH_LOG=FILE`
+then appends `Type<TAB>host<TAB>user<TAB>note=<text>` per dialog;
+`tests/apps/fakessh/ssh` with `FAKE_SSH_PASSWORD` plays a password-only
+host (`FAKE_SSH_MASTERS`, `FAKE_SSH_AUTH_LOG`: every prompt and answer).
+
 Machines ECCE cannot log in to (two-factor): `noRemoteAccess: true` in
 `CONFIG.<machine>` or the `dummy` machine: ECCE writes the input and job script
 locally and stops; the user copies them over, submits, and imports the output
