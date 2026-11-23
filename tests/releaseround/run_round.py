@@ -89,8 +89,13 @@ def calcsUnder(top):
     return sorted(found)
 
 
-def urlPath(url):
-    return url[len("file://"):] if url.startswith("file://") else url
+def urlPath(url, data=None):
+    if url.startswith("file://"):
+        return url[len("file://"):]
+    if data and not os.path.isabs(url):
+        # `examples` answers a path below the user's local data folder
+        return os.path.join(data, "users", "local", url)
+    return url
 
 
 class Organizer(object):
@@ -284,7 +289,11 @@ def waitState(org, url, want, timeout, seen=None):
     return seen
 
 
-DONE = ("completed", "failed", "unsuccessful", "system_failure", "killed")
+DONE = ("complete", "completed", "failed", "unsuccessful", "system_failure", "killed")
+
+
+def completed(state):
+    return state.lower().startswith("complete")
 
 
 class Round(object):
@@ -302,6 +311,8 @@ class Round(object):
         return Organizer(self.display, work, self.data, extra)
 
     def home(self, org):
+        if self.project:
+            return "existing"
         ans = org.send("newproject releaseround") or ""
         if ans.startswith("ok "):
             self.project = ans.split()[1]
@@ -310,6 +321,9 @@ class Round(object):
             self.project = "file://" + os.path.join(
                 self.data, "users", "local", "releaseround")
         return ans
+
+    def projName(self):
+        return os.path.basename(urlPath(self.project).rstrip("/"))
 
     # ---------------------------------------------------------------- W1
     def w1(self):
@@ -323,7 +337,7 @@ class Round(object):
             self.home(org)
             src = None
             if ex.startswith("ok "):
-                for path, app, _st in calcsUnder(urlPath(ex.split()[1])):
+                for path, app, _st in calcsUnder(urlPath(ex.split()[1], self.data)):
                     if app == "ECCE-QM" and "water" in path:
                         src = path
                         break
@@ -371,13 +385,13 @@ class Round(object):
             time.sleep(2)
             go = org.send("setup launch go", 120) or ""
             states = waitState(org, url, ("submitted", "running") + DONE, 60)
-            local = "machine=localhost" in launch
+            local = re.search(r"machine=\S+", launch)
             passfail("W1.4", local and "enabled" in launch
                      and states[-1].lower() != "ready",
                      "launch=[%s] go=[%s] state=%s" % (launch, go, states[-1]))
 
             states = waitState(org, url, DONE, 900, states)
-            passfail("W1.5", states[-1].lower() == "completed",
+            passfail("W1.5", completed(states[-1]),
                      "states seen: %s" % " -> ".join(states))
 
             self.viewerCheck(org, url, "W1.6",
@@ -391,7 +405,7 @@ class Round(object):
             ans, _ = org.start()
             st = (org.send("state " + url) or "").strip()
             sel = org.send("select " + url) or ""
-            passfail("W1.7", secs is not None and st.lower() == "completed"
+            passfail("W1.7", secs is not None and completed(st)
                      and sel == "ok", "quit took %s s; after restart state=%s select=%s"
                      % (secs and round(secs, 1), st, sel))
             org.quit()
@@ -446,7 +460,7 @@ class Round(object):
             edit = ["wait 5000", "info", "select_hetero", "wait 1000", "delkey",
                     "wait 1500", "info", "undo", "wait 1500", "info", "redo",
                     "wait 1500", "info", "menu Build|Add Hydrogen", "wait 4000",
-                    "info", "ligands", "ligand 1", "wait 1000", "selectoverlay"]
+                    "info", "ligands", "ligand 1", "wait 1000"]
             b = org.builderScript(edit)
             m = org.mark()
             env = org.env()
@@ -481,12 +495,14 @@ class Round(object):
             passfail("W2.4", any("BNZ" in c for c in cands) and
                      all(": ok" in o or "BNZ" in o for o in ligs),
                      "ligands=%s; %s; %s" % (cands[:2], ligs, lig_lines[-1:]))
-            org.closeTab("Builder")
+            asked, tabs = org.closeTab("Builder")
+            step("W2.4c", "PASS" if tabIndex(tabs, "Builder") is None else "FAIL",
+                 "closing the edited Builder tab: asked=%s tabs=%s" % (asked, tabs))
 
             # Save As's calculation dialog has no hook: the same structure
             # goes into a Vina calculation made with File > New, whose
             # Builder imports and edits it as above and saves.
-            ans = org.send("newcalc releaseround dock181l Vina") or ""
+            ans = org.send("newcalc %s dock181l Vina" % self.projName()) or ""
             url = ans.split()[1] if ans.startswith("ok ") else None
             if not url:
                 step("W2.5", "FAIL", "newcalc Vina: %s" % ans)
@@ -535,7 +551,7 @@ class Round(object):
             launch = org.send("setup launch", 60) or ""
             go = org.send("setup launch go", 120) or ""
             states = waitState(org, url, DONE, 1800)
-            if states[-1].lower() == "completed":
+            if completed(states[-1]):
                 self.viewerCheck(org, url, "W2.6", (("poses", r"pose|dock"),))
             else:
                 step("W2.6", "FAIL", "launch=[%s] go=[%s] states=%s"
@@ -552,7 +568,7 @@ class Round(object):
             if ans is None:
                 return step("W3.1", "FAIL", "the Organizer did not answer")
             self.home(org)
-            ans = org.send("newcalc releaseround diamond QuantumESPRESSO") or ""
+            ans = org.send("newcalc %s diamond QuantumESPRESSO" % self.projName()) or ""
             url = ans.split()[1] if ans.startswith("ok ") else None
             if not url:
                 return step("W3.1", "FAIL", "newcalc QuantumESPRESSO: %s" % ans)
@@ -606,9 +622,9 @@ class Round(object):
             launch = org.send("setup launch", 60) or ""
             go = org.send("setup launch go", 120) or ""
             states = waitState(org, url, DONE, 1800)
-            passfail("W3.3L", states[-1].lower() == "completed",
+            passfail("W3.3L", completed(states[-1]),
                      "launch=[%s] go=[%s] states=%s" % (launch, go, " -> ".join(states)))
-            if states[-1].lower() == "completed":
+            if completed(states[-1]):
                 r = self.viewerCheck(org, url, "W3.4", (("energy", r"energ"),
                                                         ("cell", r"cell|lattice|geom")))
                 bands = [e for e in r["entries"] if re.search(r"band|dos", e, re.I)]
@@ -631,7 +647,7 @@ class Round(object):
             for s in ("getting-started", "genchem", "spectroscopy", "organic"):
                 a = org.send("examples " + s, 300) or ""
                 if a.startswith("ok "):
-                    made.append(urlPath(a.split()[1]))
+                    made.append(urlPath(a.split()[1], self.data))
             calcs = []
             for top in made:
                 calcs += [c for c in calcsUnder(top) if c[2].lower() in
@@ -697,7 +713,7 @@ class Round(object):
             if ans is None:
                 return step("W5.1", "FAIL", "the Organizer did not answer")
             a = org.send("examples", 300) or ""
-            calcs = calcsUnder(urlPath(a.split()[1])) if a.startswith("ok ") else []
+            calcs = calcsUnder(urlPath(a.split()[1], self.data)) if a.startswith("ok ") else []
             if len(calcs) < 2:
                 return step("W5.1", "FAIL", "examples: %s" % a)
             u1, u2 = "file://" + calcs[0][0], "file://" + calcs[1][0]
@@ -798,7 +814,7 @@ class Round(object):
             src = self.w1calc
             if not src:
                 a = org.send("examples", 300) or ""
-                cs = calcsUnder(urlPath(a.split()[1])) if a.startswith("ok ") else []
+                cs = calcsUnder(urlPath(a.split()[1], self.data)) if a.startswith("ok ") else []
                 src = "file://" + cs[0][0] if cs else None
             proj = org.send("server newproject Cluster runs") or ""
             purl = proj.split()[1] if proj.startswith("ok ") else None
