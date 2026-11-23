@@ -73,12 +73,12 @@ std::map<wxDialog*, Shown> g_shown;
 #ifdef __WXGTK3__
 // GTK 3 on X11 freezes a top-level window's frame clock after each frame
 // until the compositor answers with _NET_WM_FRAME_DRAWN, with no timeout.
-// Mutter under XWayland does not always answer, and the window then stops
-// repainting: input arrives, nothing is drawn (dialogs, the Builder view).
+// Mutter does not always answer, under XWayland and on a loaded Xorg
+// session alike, and the window then stops repainting until something such
+// as a focus change makes Mutter redraw it: input arrives, nothing is drawn.
 // Without frame sync GTK paints on its own clock and still tells the
 // compositor through the sync counter when a frame is complete.
-// XWayland only (its XWAYLAND extension); ECCE_FRAME_SYNC=1 keeps GTK's
-// default, =0 turns it off on any X server.
+// Off on every X server; ECCE_FRAME_SYNC=1 keeps GTK's default.
 bool frameSyncOff()
 {
   static int off = -1;
@@ -87,13 +87,7 @@ bool frameSyncOff()
   GdkDisplay *display = gdk_display_get_default();
   if (!display || !GDK_IS_X11_DISPLAY(display)) return false;
   const char *force = getenv("ECCE_FRAME_SYNC");
-  if (force && *force) {
-    off = force[0] == '0' ? 1 : 0;
-  } else {
-    int opcode, event, error;
-    off = XQueryExtension(GDK_DISPLAY_XDISPLAY(display), "XWAYLAND", &opcode,
-                          &event, &error) ? 1 : 0;
-  }
+  off = force && force[0] == '1' ? 0 : 1;
   return off == 1;
 }
 
