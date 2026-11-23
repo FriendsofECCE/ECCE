@@ -33,3 +33,10 @@ X11 only (`GDK_IS_X11_DISPLAY`); on Wayland, Windows and macOS there is no
 picture and tabs change as before.  `snapshot off|on` / `ECCE_TAB_SNAPSHOT=0`
 switch it; `one_process_test.py --1210-frames` measures what reaches the
 screen with it off and on.
+
+Not yet sufficient (first measurement, Xvfb): with it on, the half-drawn
+time fell (open Viewer 140 -> 36 samples, open Editor 27 -> 45 but at 3 %
+off the old page, which may be the Organizer's own "starting" status), but
+closing onto the Editor still showed a mostly flat page for ~280 ms after
+the picture went. Ending on "no wxEVT_PAINT" misses native GTK widgets, which
+draw without a wx paint event, so the picture can go before they are drawn.
