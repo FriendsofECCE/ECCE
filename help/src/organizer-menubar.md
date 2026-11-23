@@ -335,8 +335,10 @@ greyed out.
   settings would give, half a second after the last change, with a note
   that Save writes it (a change of structure or basis set shows once
   saved). If the window is narrower than about 1100 pixels, opening the
-  Set-up tab widens it, within the screen. The ◀ button at the top of the area hides the
-  editor column and ▶ brings it back; the divider between them can be
+  Set-up tab widens it, within the screen. The ◀ button at the top of the area folds the
+  area's content away to the left and ▶ opens it again; the editor keeps
+  its width either way, and Launch or another set-up view opens the area
+  too. The divider between them can be
   dragged. The **Basis Set** button shows the basis panel in the same area:
   the basis-set library as a list you narrow by typing in the filter box,
   the chosen set's elements (the ones of your chemical system it does not

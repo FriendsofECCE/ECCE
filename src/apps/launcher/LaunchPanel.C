@@ -1517,8 +1517,16 @@ void LaunchPanel::compactLayout()
     for (wxWindow *c : p_calcDrctyPanel->GetChildren())
         if (wxStaticText *t = dynamic_cast<wxStaticText*>(c))
             if (t->GetLabel() == "*") t->SetLabel("");
-    p_calcDrctyTextCtrl->SetMinSize(FromDIP(wxSize(60, -1)));
-    p_scratchDrctyTextCtrl->SetMinSize(FromDIP(wxSize(60, -1)));
+    // One width for all of them; a path needs room to be read.
+    for (wxWindowID id : {ID_TEXTCTRL_WXLAUNCHER_USERNAME, ID_TEXTCTRL_WXLAUNCHER_CALCDIR,
+                          ID_TEXTCTRL_WXLAUNCHER_SCRATCHDIR, ID_TEXTCTRL_WXLAUNCHER_ALLOCACCT}) {
+      wxWindow *w = FindWindow(id);
+      wxSizer *sz = w ? w->GetContainingSizer() : 0;
+      wxSizerItem *it = sz ? sz->GetItem(w) : 0;
+      if (!it) continue;
+      it->SetFlag(it->GetFlag() | wxEXPAND);
+      w->SetMinSize(FromDIP(wxSize(540, -1)));
+    }
     SetMinSize(wxDefaultSize);   // set to the width of the first layout
     Layout();
 }

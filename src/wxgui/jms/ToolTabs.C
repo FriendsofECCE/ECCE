@@ -51,6 +51,7 @@
 
 static void allocateChildren(wxWindow *body);
 static void fitScrollBody(wxWindow *body);
+static void allocateNeverSized(wxWindow *parent);
 
 namespace {
 
@@ -991,6 +992,12 @@ bool ToolTabs::adoptMain(wxFrame *org)
                        dotFor("Organizer"), "", {}, true});
   s_book->AddPage(page, _("Organizer"), true);
   hookTabCtrls();
+  // Once per idle, over every shown window (see allocateNeverSized).
+  wxTheApp->Bind(wxEVT_IDLE, [](wxIdleEvent& ev) {
+    for (wxWindow *tlw : wxTopLevelWindows)
+      if (tlw->IsShown()) allocateNeverSized(tlw);
+    ev.Skip();
+  });
   s_book->Bind(wxEVT_AUINOTEBOOK_PAGE_CHANGED, onPageChanged);
   s_book->Bind(wxEVT_AUINOTEBOOK_PAGE_CLOSE, onPageClose);
   s_book->Bind(wxEVT_AUINOTEBOOK_TAB_RIGHT_UP, onTabRightUp);
@@ -1186,6 +1193,35 @@ static void allocateChildren(wxWindow *body)
   if (any) body->Refresh();
 #else
   (void)body;
+#endif
+}
+
+
+// GTK sizes a widget only when its parent is size-allocated: one created,
+// reparented or shown inside a parent whose size then stays the same keeps
+// GTK's 1x1 and draws nothing, though wx has laid it out (a desk built while
+// its tab was in the background, Launch fields after a machine change).
+// Each site that hit this was patched alone; this pass covers them all.
+static void allocateNeverSized(wxWindow *parent)
+{
+#ifdef __WXGTK__
+  for (wxWindow *w : parent->GetChildren()) {
+    if (w->IsTopLevel() || !w->IsShown()) continue;
+    GtkWidget *wd = w->m_widget;
+    if (!wd || !gtk_widget_get_visible(wd)) continue;
+    GtkAllocation a;
+    gtk_widget_get_allocation(wd, &a);
+    const wxSize sz = w->GetSize();
+    if (a.width <= 1 && a.height <= 1 && sz.x > 1 && sz.y > 1) {
+      const wxPoint pos = w->GetPosition();
+      GtkAllocation na = {pos.x, pos.y, sz.x, sz.y};
+      gtk_widget_size_allocate(wd, &na);
+      w->Refresh();
+    }
+    allocateNeverSized(w);
+  }
+#else
+  (void)parent;
 #endif
 }
 

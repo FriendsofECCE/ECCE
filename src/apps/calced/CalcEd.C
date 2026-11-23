@@ -1439,7 +1439,7 @@ wxString CalcEd::setupCommand(const wxString& arg)
   } else if (arg == "input") {
     p_setupArea->showInput();
   } else if (arg == "fold" || arg == "unfold") {
-    ToolTabs::fold(this, arg == "fold" ? 1 : 0);
+    p_setupArea->fold(arg == "fold");
   } else if (arg == "save") {
     enableSave();
     doSave();

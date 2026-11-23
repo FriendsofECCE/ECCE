@@ -97,13 +97,11 @@ SetupArea::SetupArea(wxWindow *parent, CalcEd *editor)
 {
   wxBoxSizer *top = new wxBoxSizer(wxVERTICAL);
   wxBoxSizer *head = new wxBoxSizer(wxHORIZONTAL);
+  // The arrow points where the area goes: ◀ folds it to the left, ▶ opens it.
   p_fold = new wxButton(this, wxID_ANY, wxT("◀"), wxDefaultPosition,
                         wxDefaultSize, wxBU_EXACTFIT);
-  p_fold->SetToolTip("Hide or show the editor column");
-  p_fold->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
-    bool folded = ToolTabs::fold(p_ed, ToolTabs::fold(p_ed, -1) ? 0 : 1);
-    p_fold->SetLabel(folded ? wxT("▶") : wxT("◀"));
-  });
+  p_fold->SetToolTip("Fold this area away");
+  p_fold->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { fold(!folded()); });
   p_title = new wxStaticText(this, wxID_ANY, "");
   wxFont bold = p_title->GetFont();
   bold.SetWeight(wxFONTWEIGHT_BOLD);
@@ -176,6 +174,7 @@ void SetupArea::mark()
 
 bool SetupArea::showDetails(Kind kind, const string& cmd)
 {
+  fold(false);   // a view asked for is shown
   vector<string> words = splitCommand(cmd);
   if (words.size() < 19) return false;
   string dlg = words[1];
@@ -233,6 +232,7 @@ bool SetupArea::showDetails(Kind kind, const string& cmd)
 
 void SetupArea::showBasis()
 {
+  fold(false);   // a view asked for is shown
   if (p_kind == BASIS && p_basisPanel) return;
   drop();
   p_input->Hide();
@@ -259,6 +259,7 @@ void SetupArea::showBasis()
 
 bool SetupArea::showLaunch()
 {
+  fold(false);   // a view asked for is shown
   if (!LaunchEmbed::maker()) return false;
   if (p_kind == LAUNCH && p_launch) return true;
   drop();
@@ -275,8 +276,9 @@ bool SetupArea::showLaunch()
         else fb->setMessage(text, (WxFeedback::Severity)sev, false, false);
       }));
   wxWindow *w = p_launch->window();
-  // Natural width, as in the Launcher tab (#1265).
-  p_body->GetSizer()->Add(w, 1, wxALIGN_LEFT);
+  // Its fields stretch with the area, so folding the editor away gives
+  // paths room.
+  p_body->GetSizer()->Add(w, 1, wxEXPAND);
   p_kind = LAUNCH;
   p_title->SetLabel("Launch");
   p_note->SetLabel("");
@@ -485,8 +487,26 @@ std::string SetupArea::previewText() const
 }
 
 
+void SetupArea::fold(bool on)
+{
+  if (on == folded()) return;
+  if (on) {
+    for (wxWindow *w : GetChildren())
+      if (w != p_fold && w->IsShown()) { w->Hide(); p_foldHidden.push_back(w); }
+  } else {
+    for (wxWindow *w : p_foldHidden) w->Show();
+    p_foldHidden.clear();
+  }
+  p_fold->SetLabel(on ? wxT("▶") : wxT("◀"));
+  p_fold->SetToolTip(on ? "Open this area" : "Fold this area away");
+  Layout();
+  Refresh();
+}
+
+
 void SetupArea::showInput()
 {
+  fold(false);   // a view asked for is shown
   drop();
   p_kind = INPUT;
   p_input->Show();
@@ -535,7 +555,7 @@ void SetupArea::statusChanged()
 wxString SetupArea::describe() const
 {
   wxString out = wxString::Format("area=%s title=\"%s\" folded=%d",
-      kindName(p_kind), p_title->GetLabel(), (int)ToolTabs::fold(p_ed, -1));
+      kindName(p_kind), p_title->GetLabel(), (int)folded());
   wxSize sz = p_body->GetSize();
   out += wxString::Format(" size=%dx%d", sz.x, sz.y);
   wxSize win = wxGetTopLevelParent(const_cast<SetupArea*>(this))->GetSize();
