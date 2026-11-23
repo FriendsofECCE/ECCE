@@ -474,6 +474,16 @@ to the top level, "(hidden)" after a hidden one>`. After a tool tab closes it
 must say shown=1, a selection and no hidden window;
 `tests/apps/refresh_after_viewer_test.py` checks that.
 
+Release round (#1279): `tests/releaseround/run_round.py [--only W1,...]
+[--keep]` runs the release workflow scripts W1-W6 headlessly through the
+hooks above (an isolated HOME and data folder, one fresh Organizer per
+workflow) and prints one `W1.3 PASS|FAIL|MANUAL|SKIP <evidence>` line per
+step, then a summary; exit 1 on a FAIL. ctest `releaseround` (label
+`long`); offload: `run-offload.sh <sha> apptest
+tests/releaseround/run_round.py`. Steps without a hook (a drag, the
+pointer over a menu, a Slurm submit) are listed as MANUAL;
+`tests/releaseround/README.md` maps each step to its hook.
+
 **Second start and file types (#1069)**, one-program mode only: a second `ecce`
 for the same user, data folder and server (`ECCE_REALUSERHOME`,
 `ECCE_LOCAL_DATA`, `ECCE_SERVER_SESSION`/`ECCE_REMOTE_SERVER`) raises the
