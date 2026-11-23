@@ -2420,8 +2420,9 @@ def runTabFrames(display):
         check(not result.crashed, "the Organizer ran without a crash",
               result.signalName or log[-1500:])
         check(len(results) == 12, "every case was sampled",
-              "%d of 12; tabrect: %s" % (len(results),
-                                         pb.answers(log, "tabrect")))
+              "%d of 12; hooks: %s" % (len(results), "\n".join(
+                  ln for ln in log.splitlines()
+                  if "ECCE_TEST_ORGANIZER" in ln)[-3000:] or log[-3000:]))
         for mode, what, n, bad, samples, worst in results:
             print("frames picture=%s %-28s states=%3d half-drawn=%d "
                   "(%d samples, worst %.0f%% off)"

@@ -468,6 +468,17 @@ fresh log of every paint of a window in the main window; `paintlog` answers
 to see what reaches the screen while a tab opens or closes;
 `tests/apps/one_process_test.py --1210-only` runs it for a Viewer tab.
 
+Tab-change picture (#1210, `ECCE_TEST_ORGANIZER`, one-program mode, X11):
+around each tab change a picture of the page area covers the notebook until
+the new page has drawn. `snapshot on|off` switches it for the session
+(`ECCE_TAB_SNAPSHOT=0` at start turns it off); `snapshot` answers
+`enabled=0|1 up=0|1 shown=N quiet=N timeout=N modal=N skipped=N
+lastskip=<why> lastms=N` (how many pictures were shown, and how each ended).
+`tabrect [file]` answers the selected page's screen rectangle `x y w h` and
+writes it to the file. `tests/apps/one_process_test.py --1210-frames` samples
+that rectangle from outside every 10 ms (`tests/apps/screenframes.py`) while
+tabs open and close, and counts half-drawn states with the picture off and on.
+
 Desk (#1237, `ECCE_TEST_ORGANIZER`): `desk` answers `desk WxH shown=0|1
 splitter=WxH sel=<tool-tab notebook selection or none> pages=N chain=<classes up
 to the top level, "(hidden)" after a hidden one>`. After a tool tab closes it
