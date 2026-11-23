@@ -71,10 +71,6 @@ struct CalcScript {
   wxLongLong notBefore, waitUntil;
   std::string waitingFor, dir;
   bool theoryDirty, runtypeDirty, restarted;   // gui/guiw changed a dialog's values
-  // "watch": what a user sees change while details open (#1261).
-  wxTimer *watchTimer = 0;
-  std::map<std::string, int> watchLast, watchOff, watchOn;
-  std::vector<std::string> watchNotes;
   CalcScript() : theoryDirty(false), runtypeDirty(false), restarted(false), next(0), notBefore(0), waitUntil(0) {}
 };
 
@@ -337,50 +333,7 @@ void CalcEd::runCalcEdScript(const string& file)
         // the Set-up tab's hook ("setup text", "setup input", ...)
         outcome = std::string(setupCommand(wxString::FromUTF8(rest(1).c_str())).utf8_str());
       } else if (w[0] == "watch") {
-        // "watch start" samples the Theory/Runtype controls and the preview
-        // note every 10 ms, as a user sees them; "watch" reports how often
-        // each went off and on and the notes shown in turn.
-        const struct { const char *name; wxWindowID id; } ctl[] = {
-          {"theory", ID_CHOICE_CALCED_THEORY},
-          {"runtype", ID_CHOICE_CALCED_RUNTYPE},
-          {"theory-details", ID_BUTTON_CALCED_THEORY},
-          {"runtype-details", ID_BUTTON_CALCED_RUNTYPE}};
-        if (w.size() == 2 && w[1] == "start") {
-          st->watchLast.clear();
-          st->watchOff.clear();
-          st->watchOn.clear();
-          st->watchNotes.clear();
-          if (!st->watchTimer) {
-            st->watchTimer = ewxWindowTimer(this);
-            st->watchTimer->Bind(wxEVT_TIMER, [this, st, ctl](wxTimerEvent&) {
-              for (auto& c : ctl) {
-                wxWindow *x = FindWindow(c.id);
-                int on = x && x->IsEnabled();
-                auto it = st->watchLast.find(c.name);
-                if (it == st->watchLast.end()) st->watchLast[c.name] = on;
-                else if (it->second != on) {
-                  (on ? st->watchOn : st->watchOff)[c.name]++;
-                  it->second = on;
-                }
-              }
-              std::string n = p_setupArea ?
-                  std::string(p_setupArea->note().utf8_str()) : "";
-              if (st->watchNotes.empty() || st->watchNotes.back() != n)
-                st->watchNotes.push_back(n);
-            });
-          }
-          st->watchTimer->Start(10);
-        } else {
-          outcome = "ok";
-          for (auto& c : ctl)
-            outcome += std::string(" ") + c.name + "=off" +
-                std::to_string(st->watchOff[c.name]) + "/on" +
-                std::to_string(st->watchOn[c.name]);
-          outcome += " notes=" + std::to_string(st->watchNotes.size());
-          for (const std::string& n : st->watchNotes)
-            outcome += " |" + n.substr(0, 70);
-          for (char& c : outcome) if (c == '\n') c = ' ';
-        }
+        outcome = watchCommand(rest(1));
 #ifdef __WXMSW__
       } else if (w[0] == "wmcommand" && w.size() == 2) {
         // the WM_COMMAND a click on a popup menu item with that id sends
