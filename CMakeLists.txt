@@ -3940,6 +3940,14 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_xwayland_paint PROPERTIES TIMEOUT 600
                        SKIP_RETURN_CODE 77)
+  # The same on Xvfb with a stand-in compositor that never answers frame
+  # sync (#1249): the Starting window and the Viewer tab still paint.
+  add_test(NAME apps_frame_sync_x11
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/frame_sync_x11_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_frame_sync_x11 PROPERTIES TIMEOUT 600
+                       SKIP_RETURN_CODE 77)
   # Preferences > Colours run-state icon style reaches the Organizer's tree.
   add_test(NAME apps_state_icon_style
            COMMAND ${PYTHON3_EXECUTABLE}
