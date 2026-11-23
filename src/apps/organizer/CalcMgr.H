@@ -612,6 +612,13 @@ protected:
   void syncServerRoots();
   bool connectServer(const string& ref);
   bool connectSsh(const string& address);
+  int probeSsh(const string& user, const string& host, const string& folder,
+               bool create, string& message);
+  bool applySshProbe(const string& address, const string& name,
+                     const string& user, int probe, const string& message);
+  void connectSshInBackground(const vector<string>& addresses);
+  std::set<string> p_sshConnecting;   // start-up connects still on the worker
+  void relayoutAfterStart();
   bool rememberedServer(const string& ref) const;
   void disconnectServer(const string& ref);
   void serverRootMenu(wxMenu& menu, const string& ref);

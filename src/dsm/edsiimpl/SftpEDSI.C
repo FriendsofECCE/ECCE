@@ -62,7 +62,9 @@ thread_local int gBatchDepth = 0;
 // Prompts are only for the Organizer's connect step.  Every other process
 // (job store, monitor, editors) rides the session's master or fails, so a
 // launch never stops on a hidden password prompt.
-bool gInteractive = false;
+// A count, not a flag: start-up connects probe on a worker while the user
+// may connect another server, and one probe ending must not silence the other.
+int gInteractive = 0;
 
 // host is the URL's authority, host[:port]: a login (and its master and
 // stored password) belongs to one port.
@@ -752,7 +754,7 @@ SftpEDSI::Batch::Batch() { if (!getenv("ECCE_SFTP_NOBATCH")) gBatchDepth++; else
 SftpEDSI::Batch::~Batch() { if (!p_off && --gBatchDepth == 0) gCache.clear(); }
 unsigned SftpEDSI::scriptCount() { return gScripts; }
 
-void SftpEDSI::setInteractive(bool on) { std::lock_guard<std::mutex> g(gMutex); gInteractive = on; }
+void SftpEDSI::setInteractive(bool on) { std::lock_guard<std::mutex> g(gMutex); gInteractive += on ? 1 : (gInteractive > 0 ? -1 : 0); }
 
 SftpEDSI::Probe SftpEDSI::probe(const string& user, const string& host,
                                 const string& folder, bool create, string& message)
@@ -824,7 +826,9 @@ string SftpEDSI::folderStamp()
   {
     string user, host, path;
     parseURL(getURL().toString(false), user, host, path);
-    std::lock_guard<std::mutex> g(gMutex);
+    // A login running on a worker holds the lock: skip, never wait for it.
+    std::unique_lock<std::mutex> g(gMutex, std::try_to_lock);
+    if (!g.owns_lock()) return "";
     auto it = gLogins.find(user + "@" + host);
     if (it == gLogins.end() || !it->second || !it->second->isOpen()) return "";
   }
