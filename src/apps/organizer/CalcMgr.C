@@ -4599,17 +4599,35 @@ void CalcMgr::setContextPanel()
       // change (#1237): show it. A page of an unselected tab stays hidden.
       wxWindow *hidden = 0;
       const string chain = deskChain(desk, &hidden);
+      // The tab strip, not the notebook's selection, says which page the
+      // user sees: after a tool tab closed the selection could name another
+      // page while the strip still showed the Organizer's (#1237).
       bool unselected = false;
+      string book;
       if (hidden)
-        if (wxAuiNotebook *nb = wxDynamicCast(hidden->GetParent(), wxAuiNotebook))
-          unselected = nb->GetSelection() != wxNOT_FOUND &&
-                       nb->GetPageIndex(hidden) != nb->GetSelection();
+        if (wxAuiNotebook *nb = wxDynamicCast(hidden->GetParent(), wxAuiNotebook)) {
+          wxAuiTabCtrl *ctrl = 0;
+          int pos = -1;
+          const bool found = nb->FindTab(hidden, &ctrl, &pos);
+          unselected = found && ctrl && ctrl->GetActivePage() != pos;
+          book = " book: sel=" + std::to_string(nb->GetSelection()) +
+                 " page=" + std::to_string(nb->GetPageIndex(hidden)) +
+                 " pages=" + std::to_string(nb->GetPageCount()) +
+                 " strip=" + std::to_string(pos) + "/" +
+                 std::to_string(ctrl ? ctrl->GetActivePage() : -9);
+        }
       std::cerr << "ORGANIZER: desk panel " << d.x << "x" << d.y
                 << " shown=" << desk->IsShownOnScreen() << " in splitter "
                 << sp.x << "x" << sp.y << " sash=" << p_splitterWindow->GetSashPosition()
-                << " chain:" << chain
+                << " chain:" << chain << book
                 << (hidden && !unselected ? " -> shown again" : "") << std::endl;
       if (hidden && !unselected && !hidden->IsTopLevel()) {
+        // Bring the notebook's selection back to the page on view, so the
+        // next tab change hides and shows the right pages.
+        if (wxAuiNotebook *nb = wxDynamicCast(hidden->GetParent(), wxAuiNotebook)) {
+          const int idx = nb->GetPageIndex(hidden);
+          if (idx != wxNOT_FOUND && idx != nb->GetSelection()) nb->SetSelection(idx);
+        }
         hidden->Show(true);
         hidden->GetParent()->Layout();
         desk->Refresh();
