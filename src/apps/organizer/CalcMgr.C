@@ -3124,10 +3124,20 @@ void CalcMgr::runTestCommand(const string& line)
       WxResourceTreeItemData *node = p_treeCtrl->findNode(EcceURL(calcName), true, true);
       if (!node) outcome = "no node";
       else {
+        // select= and menu= are milliseconds: the selection's desk and the
+        // menu as a right-click builds it, a server root's items first (#1273).
+        wxStopWatch clock;
         p_treeCtrl->SelectItem(node->GetId());
+        const long selectMs = clock.Time();
         for (int i = 0; i < 20; ++i) { wxYield(); wxMilliSleep(25); }
         wxMenu menu;
+        clock.Start();
+        if (rememberedServer(node->serverRef())) {
+          serverRootMenu(menu, node->serverRef());
+          menu.AppendSeparator();
+        }
         getContextMenu(menu);
+        const long menuMs = clock.Time();
         std::function<void(wxMenu*, const string&)> dump =
             [&](wxMenu *m, const string& prefix) {
           for (wxMenuItem *it : m->GetMenuItems()) {
@@ -3137,7 +3147,8 @@ void CalcMgr::runTestCommand(const string& line)
             if (it->GetSubMenu()) dump(it->GetSubMenu(), prefix + label + "/");
           }
         };
-        outcome = "menu";
+        outcome = "menu select=" + std::to_string(selectMs) +
+                  " menu=" + std::to_string(menuMs);
         dump(&menu, "");
       }
     } else if (command == "exportmenu") {
@@ -11528,7 +11539,11 @@ void CalcMgr::getContextMenu(wxMenu & menu)
   if (itemData && itemData->getResource()) {
     const EcceURL here = itemData->getResource()->getURL();
     const EcceURL folder = isCalculationNode ? here.getParent() : here;
-    if (EDSIFactory::getResource(folder.getChild("host"))) {
+    // Off this machine a lookup is a round trip on the GUI thread, so an
+    // SSH or server folder answers from what the tree has listed (#1273).
+    const EcceURL host = folder.getChild("host");
+    if (here.getProtocol() == "file" ? EDSIFactory::getResource(host) != 0
+                                     : findNode(host, false, false) != 0) {
       int id = wxWindow::NewControlId();
       menu.AppendSeparator();
       menu.Append(id, _("Site Screening Results"), _("E - E(host) of the finished site "
