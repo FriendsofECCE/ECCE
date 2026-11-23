@@ -27,8 +27,9 @@ receptor, and treat differences of less than about 1 kcal/mol as noise.
 Build the whole system in the Builder, receptor and ligand together, and start
 a **New Vina Docking Calculation**. There is one run type, **Docking (Vina)**.
 The Runtype Details dialog holds these options. The Calculation Editor shows
-no Charge, Spin Mult. or Open Shells for Vina: Vina does not use the charge or
-spin of the whole system, and the ligand's charge is set below.
+no Charge, Spin Mult., Open Shells or Symmetry for Vina: Vina does not use the
+charge, spin or point group of the whole system, and the ligand's charge is
+set below.
 
 **Receptor and Ligand.** The receptor and the ligand are told apart by atom
 numbers.

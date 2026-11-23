@@ -791,6 +791,14 @@ bool JCode::usesChargeAndSpin(void) const
   return uses;
 }
 
+//  Whether a point group means anything to the code; Vina docks without it.
+bool JCode::usesSymmetry(void) const
+{
+  bool uses = true;
+  get_bool("Symmetry", uses);
+  return uses;
+}
+
 bool JCode::getBasisSetQuickListSupported(void) const
 {
   bool supportedFlag = true;
