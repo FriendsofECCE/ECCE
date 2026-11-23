@@ -2386,10 +2386,17 @@ def runTabFrames(display):
 
         def inspect(disp):
             name = disp.env()["DISPLAY"]
-            append("tabrect " + rectFile, 3)
-            try:
-                rect = [int(v) for v in open(rectFile).read().split()]
-            except (OSError, ValueError):
+            # The Organizer may still be starting: ask until it answers.
+            rect = None
+            for _ in range(12):
+                append("tabrect " + rectFile, 5)
+                try:
+                    rect = [int(v) for v in open(rectFile).read().split()]
+                    break
+                except (OSError, ValueError):
+                    pass
+            if not rect:
+                print("tabrect unanswered; windows: %s" % (disp.windows(),))
                 return
             cases = (("open Viewer", "start CalculationViewer " + url, 20),
                      ("close Viewer onto Organizer", "tabclose 1", 6),
