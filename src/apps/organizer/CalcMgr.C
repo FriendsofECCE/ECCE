@@ -16022,6 +16022,9 @@ void CalcMgr::onSelectionChange(bool selectInTree)
   WxResourceTreeItemData *itemData = 0;
 
   if (selectInTree) {
+    // One Batch for the tree's listing, the desk and the auto-refresh stamp:
+    // on an SSH folder they share one remote script instead of three (#1273).
+    SftpEDSI::Batch sftpBatch;
     // Start disabler since loading children may take some time.
     startDisabler();
 

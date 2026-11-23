@@ -5,9 +5,10 @@ A remembered SSH folder (sftp://<user>@localhost:2299/<tmp dir>) is reached
 through tests/apps/fakessh/ssh, which runs each remote command on this
 machine after a delay, so no host is contacted.  The folder is connected
 with no delay; then every remote command takes DELAY seconds and the
-"menulabels" hook builds the root's menu as a right-click does.  The menu
-must be built within 1 s and still offer the server and folder items.
-The time to select the root (its desk) is printed.  Exit 77 (skip)
+root is selected and its desk shown ("select", then "desk"): that must be
+one remote script, under 1.5 x DELAY.  Then the "menulabels" hook builds
+the root's menu as a right-click does: within 1 s, still offering the
+server and folder items.  Exit 77 (skip)
 without an install or Xvfb.
 """
 import getpass
@@ -80,6 +81,12 @@ def run(display):
                 h.write(str(DELAY))
             mark = os.path.getsize(sshlog) if os.path.exists(sshlog) else 0
             t0 = time.monotonic()
+            out["select"] = command("select %s/" % address)
+            out["desk"] = command("desk")
+            out["selwall"] = time.monotonic() - t0
+            out["selssh"] = open(sshlog).read()[mark:] if os.path.exists(sshlog) else ""
+            mark = os.path.getsize(sshlog) if os.path.exists(sshlog) else 0
+            t0 = time.monotonic()
             out["menu"] = command("menulabels %s/" % address)
             out["wall"] = time.monotonic() - t0
             out["ssh"] = open(sshlog).read()[mark:] if os.path.exists(sshlog) else ""
@@ -105,13 +112,23 @@ def run(display):
             return
         out = result.inspected
         print("  connect=%s roots=%s" % (out["connect"], out["roots"]))
+        print("  select + desk (%.1f s wall): %s / %s" % (out["selwall"], out["select"], out["desk"][:120]))
+        print("  remote commands during select + desk (each %d s):\n    %s" %
+              (DELAY, out["selssh"].strip().replace("\n", "\n    ") or "(none)"))
         print("  menulabels (%.1f s wall): %s" % (out["wall"], out["menu"][:400]))
-        print("  remote commands during select + menu (each %d s):\n    %s" %
+        print("  remote commands during the menu (each %d s):\n    %s" %
               (DELAY, out["ssh"].strip().replace("\n", "\n    ") or "(none)"))
         print("  remote scripts and hooks, in order (Organizer log):\n    " + "\n    ".join(
             l[:200] for l in (result.log or "").splitlines()
             if "SftpEDSI-script" in l or l.startswith("ECCE_TEST_ORGANIZER:")))
         check(out["connect"].endswith(": connected"), "the slow SSH folder connects", out["connect"])
+        check(out["select"].endswith(": ok") and " desk " in " " + out["desk"],
+              "the root is selected and its desk shown", "%s / %s" % (out["select"], out["desk"]))
+        nssh = len(out["selssh"].strip().splitlines())
+        check(nssh == 1, "selecting the root makes one remote script", "%d scripts" % nssh)
+        check(out["selwall"] < 1.5 * DELAY,
+              "selecting the root and showing its desk takes under %.1f s (one round trip)" % (1.5 * DELAY),
+              "%.1f s" % out["selwall"])
         m = re.search(r"menu select=(\d+) menu=(\d+)", out["menu"])
         if not check(m is not None, "the menu hook answered", out["menu"]):
             return

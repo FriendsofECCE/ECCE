@@ -2,7 +2,7 @@
 type: pitfall
 title: "A right-click menu on an SSH folder must not look anything up on the server (#1273)"
 area: services
-paths: ["src/apps/organizer/CalcMgr.C", "tests/apps/ssh_root_menu_test.py", "tests/apps/fakessh/ssh"]
+paths: ["src/apps/organizer/CalcMgr.C", "src/dsm/edsiimpl/SftpEDSI.C", "src/apps/organizer/ProjectContextPanel.C", "tests/apps/ssh_root_menu_test.py", "tests/apps/fakessh/ssh"]
 issues: [1273]
 ---
 - `CalcMgr::getContextMenu` runs on the GUI thread outside any
@@ -18,6 +18,11 @@ issues: [1273]
   PATH (runs the command locally after a delay; a non-zero port in the
   `sftp://` address forces the ssh transport even for localhost) and times
   the menu with the `menulabels` hook (`select=` and `menu=` ms).
-- Not fixed: selecting an SSH folder (its desk) still makes three scripts on
-  the GUI thread: a listing outside a Batch, the same listing again inside
-  `ProjectContextPanel::initialize`'s Batch, and an mtime `stat`.
+- Selecting an SSH folder made three scripts on the GUI thread (GTK selects
+  a node before its right-click menu): the tree's listing in
+  `Resource::getChildren`'s own Batch, the same listing again in
+  `ProjectContextPanel::initialize`'s, and the auto-refresh `stat`
+  (`SftpEDSI::folderStamp`). `CalcMgr::onSelectionChange` now holds one
+  Batch over all three and `folderStamp` answers from that Batch's listing,
+  so a selection is one script. The test checks `select` + `desk` costs one
+  script and under 1.5 x the fake delay.
