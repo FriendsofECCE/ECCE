@@ -1501,6 +1501,16 @@ void CalcEd::OnToolClick(wxCommandEvent &event)
 }
 
 
+void CalcEd::showLaunchPanel()
+{
+  doSave();
+  if (p_setupArea && p_setupArea->showLaunch()) return;
+  ResourceTool *launcher =
+      ResourceDescriptor::getResourceDescriptor().getTool(LAUNCHER);
+  if (launcher) startApp(launcher->getId(), 0, p_context);
+}
+
+
 void CalcEd::openBasisSetTool()
 {
   ResourceTool *basis =

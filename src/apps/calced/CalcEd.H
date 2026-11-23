@@ -430,6 +430,9 @@ class CalcEd: public CalcEdGUI,
     // The basis panel in the Set-up tab, a window moved to tabs first;
     // false without tabs.
     bool showBasisPanel();
+    // The Launch panel in the Set-up tab (saves first, as the Launch...
+    // button does); without one, the Launcher tool for this calculation.
+    void showLaunchPanel();
 
     // The window owns its dispatcher (#983) and deletes it with itself.
     void setMessages(CalcEdMessages *msgs) { p_msgs = msgs; }

@@ -63,7 +63,9 @@ as a downloaded editor copy.
   **Terminate**, **Reset for Rerun**, **Re-Parse Outputs** and **Shell in Run Directory**. Items
   that do not fit the state of the calculation are grey. Reconnect is
   available when the job was started from this installation and has a job id
-  and a run directory.
+  and a run directory. With one calculation selected, **Launch...** opens
+  that calculation's editor tab (or switches to it) with the Launch panel
+  on the right; with several selected it opens the Launcher.
 
 The Builder, the Electronic Structure Editor (**Tools > Electronic Structure
 Editor...**, Ctrl+E), its basis panel and the Viewer are opened from the
