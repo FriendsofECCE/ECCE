@@ -1014,6 +1014,7 @@ struct SnapshotState {
   int shown = 0, quietEnds = 0, timeouts = 0, modalEnds = 0, skipped = 0;
   long lastMs = -1;
   wxString lastSkip = "none";
+  wxString history;   // how each picture ended: q|t|m and its ms
 } s_snap;
 
 const long SNAPSHOT_TICK_MS = 16;     // about one frame
@@ -1026,6 +1027,9 @@ void endSnapshot(int *counter)
   if (!ov) return;
   if (counter) (*counter)++;
   s_snap.lastMs = s_snap.since.Time();
+  s_snap.history += wxString::Format("%s%ld,",
+      counter == &s_snap.quietEnds ? "q" : counter == &s_snap.timeouts ? "t"
+      : counter == &s_snap.modalEnds ? "m" : "x", s_snap.lastMs);
   s_snap.overlay = 0;
   ov->Destroy();
   if (s_hostFrame) s_hostFrame->Refresh();
@@ -1160,11 +1164,11 @@ void beginSnapshot()
 wxString snapshotInfo()
 {
   return wxString::Format("enabled=%d up=%d shown=%d quiet=%d timeout=%d "
-                          "modal=%d skipped=%d lastskip=%s lastms=%ld",
+                          "modal=%d skipped=%d lastskip=%s lastms=%ld hist=%s",
                           (int)s_snap.enabled, (int)(bool)s_snap.overlay,
                           s_snap.shown, s_snap.quietEnds, s_snap.timeouts,
                           s_snap.modalEnds, s_snap.skipped, s_snap.lastSkip,
-                          s_snap.lastMs);
+                          s_snap.lastMs, s_snap.history);
 }
 
 }

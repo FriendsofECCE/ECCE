@@ -117,3 +117,25 @@ def halfDrawn(states, tolerance=0.03):
             samples += count
             worst = max(worst, d)
     return bad, samples, worst
+
+
+def describe(states, tolerance=0.03):
+    """The half-drawn states as "start+samples:dFirst/dLast/flat" (percent;
+    flat is the share of the most common colour), start in samples."""
+    out = []
+    if len(states) < 2:
+        return out
+    first, last = states[0][0], states[-1][0]
+    at = states[0][1]
+    for frame, count in states[1:-1]:
+        a, b = difference(frame, first), difference(frame, last)
+        if min(a, b) > tolerance:
+            px = memoryview(frame).cast("I")
+            counts = {}
+            for p in px:
+                counts[p] = counts.get(p, 0) + 1
+            flat = max(counts.values()) / float(len(px) or 1)
+            out.append("%d+%d:%.0f/%.0f/%.0f" % (at, count, 100 * a, 100 * b,
+                                                100 * flat))
+        at += count
+    return out

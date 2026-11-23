@@ -2492,7 +2492,7 @@ def runTabFrames(display):
                     states = sampler.stop()
                     bad, samples, worst = screenframes.halfDrawn(states)
                     results.append((mode, what, len(states), bad, samples,
-                                    worst))
+                                    screenframes.describe(states)))
                 append("snapshot", 1)
 
         setLayout(display, "normal")
@@ -2512,18 +2512,20 @@ def runTabFrames(display):
               "%d of 12; hooks: %s" % (len(results), "\n".join(
                   ln for ln in log.splitlines()
                   if "ECCE_TEST_ORGANIZER" in ln)[-3000:] or log[-3000:]))
-        for mode, what, n, bad, samples, worst in results:
-            print("frames picture=%s %-28s states=%3d half-drawn=%d "
-                  "(%d samples, worst %.0f%% off)"
-                  % (mode, what + ":", n, bad, samples, 100 * worst))
-        for info in pb.answers(log, "snapshot"):
-            if info.startswith("enabled="):
-                print("snapshot: " + info)
-        for mode, what, n, bad, samples, worst in results:
-            if mode == "on":
-                check(bad == 0, "no half-drawn state: " + what,
-                      "%d states, %d samples, worst %.0f%%"
-                      % (bad, samples, 100 * worst))
+        # Last, so the summary is in the tail an offload run shows.
+        infos = [a for a in pb.answers(log, "snapshot")
+                 if a.startswith("enabled=")]
+        print("snapshot: " + (infos[-1] if infos else "none"))
+        bad = []
+        for i in range(len(results) // 2):
+            off, on = results[i], results[i + len(results) // 2]
+            print("frames %-28s off: %d half-drawn (%d samples)  on: %d (%d) %s"
+                  % (off[1] + ":", off[3], off[4], on[3], on[4],
+                     " ".join(on[5])[:150]))
+            if on[3]:
+                bad.append(on[1])
+        check(not bad, "no half-drawn state with the picture on",
+              ", ".join(bad))
     finally:
         shutil.rmtree(data, ignore_errors=True)
         shutil.rmtree(work, ignore_errors=True)
