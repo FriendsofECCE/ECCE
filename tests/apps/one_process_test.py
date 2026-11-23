@@ -2502,6 +2502,10 @@ def runTabFrames(display):
                                "ECCE_LOCAL_DATA": data},
                           inspect=inspect)
         log = result.log or ""
+        print("organizer: window=%s note=%s log=%d bytes rect=%s" % (
+            result.sawWindow, result.note, len(log),
+            open(rectFile).read().strip() if os.path.exists(rectFile)
+            else "none"))
         check(not result.crashed, "the Organizer ran without a crash",
               result.signalName or log[-1500:])
         check(len(results) == 12, "every case was sampled",
