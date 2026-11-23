@@ -26,10 +26,10 @@ FAIL, 77 without an install or Xvfb. `--keep` keeps the work folder
 
 | Step | Done with |
 | --- | --- |
-| W1.1 | `examples` (Getting Started), `newproject`, `server paste copy` (Copy and Paste) |
+| W1.1 | `examples` (Getting Started), `newproject`, `server paste copy` (Copy and Paste), `duplicate URL` (New from This > Duplicate) |
 | W1.2, W2.2-4, W3.1-2 | Builder script: `info`, `select_hetero`, `delkey`, `undo`, `redo`, `menu Build\|Add Hydrogen`, `ligands`, `ligand 1`, `pbc ...`, `save` |
 | W1.3-5, W2.5-6, W3.3 | `start CalculationEditor`, `setup info\|runtype\|save\|launch\|launch go`, `state URL` polled |
-| W1.6, W2.6, W3.4, W4.3-4 | `start CalculationViewer`, Builder script `plist`, `list NAME`, `overlay`, `selectoverlay 1` |
+| W1.6, W2.6, W3.4, W4.3-4 | `start CalculationViewer`, one Builder script `plist`, `list Calculation Summary`, `list Energies`, `overlay`, `selectoverlay 1`; `tabclose` once, checked |
 | W1.7 | `menu exit`, a new Organizer, `state URL` |
 | W2.1 | `$ECCE_HOME/libexec/ecce-one-instance FILE` (what `ecce FILE` and Open With do) |
 | W4.2 | `select URL`, `desk`, `refreshtimes` (`ECCE_TIMING=1`) |
@@ -38,6 +38,12 @@ FAIL, 77 without an install or Xvfb. `--keep` keeps the work folder
 
 ## Not scripted (reported MANUAL)
 
+- W1.1: a pasted copy of an example keeps its Loaded (imported) state,
+  whose Launch is off by design (as Reset for Rerun skips it); the runner
+  then makes New from This > Duplicate of it, the route the help gives for
+  rerunning, and W1.2-W1.7 use the duplicate.
+- Every Builder and Viewer tab runs the script (`ECCE_BUILDER_SCRIPT_EACH=1`);
+  without it only the first tab of the process does.
 - W2.5: the Builder's Save As calculation dialog has no hook; the runner
   makes the Vina calculation with File > New (`newcalc`), imports the same
   PDB in its Builder, repeats the edits and saves.

@@ -118,6 +118,9 @@ class Organizer(object):
         env.update({"ECCE_ONE_PROCESS": "1", "ECCE_TEST_ORGANIZER": self.cmds,
                     "ECCE_TEST_ORGANIZER_ANSWERS": self.answers,
                     "ECCE_BUILDER_SCRIPT": self.script, "ECCE_TIMING": "1",
+                    # Without it only the first Builder/Viewer tab of the
+                    # process runs the script (docs/AGENTS.md).
+                    "ECCE_BUILDER_SCRIPT_EACH": "1",
                     "ECCE_LOCAL_DATA": self.data})
         env.update(self.extra)
         return env
@@ -345,11 +348,20 @@ class Round(object):
                              % (self.project, src), 120) if src else "no source"
             copies = [c for c in calcsUnder(urlPath(self.project))
                       if c[1] == "ECCE-QM"]
-            ok = bool(copies)
+            # The pasted copy keeps the example's Loaded state (imported
+            # results), whose Launch is off by design; New from This >
+            # Duplicate makes the launchable copy, as the help says for a rerun.
+            dup, fresh = "not reached", []
+            if copies:
+                dup = org.send("duplicate file://" + copies[0][0], 120) or ""
+                fresh = [c for c in calcsUnder(urlPath(self.project))
+                         if c[1] == "ECCE-QM" and c[0] != copies[0][0]]
+            ok = bool(fresh)
             if ok:
-                self.w1calc = "file://" + copies[0][0]
-            if not passfail("W1.1", ok, "examples: %s; paste: %s; copy: %s"
-                            % (ex, paste, copies[:1])):
+                self.w1calc = "file://" + fresh[0][0]
+            if not passfail("W1.1", ok, "examples: %s; paste: %s; copy: %s; "
+                            "duplicate: %s -> %s" % (ex, paste, copies[:1],
+                                                     dup[:80], fresh[:1])):
                 return
             url = self.w1calc
             org.send("select " + url)
@@ -412,41 +424,43 @@ class Round(object):
         finally:
             org.kill()
 
-    def viewerCheck(self, org, url, sid, wants, panels=2, atom=False):
-        """Viewer tab: the Properties list has each wanted kind; clicks the
-        first `panels` entries; with atom, selects atom 1 (#1236)."""
-        b = org.builderScript(["wait 4000", "plist"])
-        m = org.mark()
-        org.send("start CalculationViewer " + url)
-        org.waitTool()
-        org.waitScript(b)
-        _o, info = org.scriptOut(m)
-        entries = [i[len("BUILDER: entry "):] for i in info
-                   if i.startswith("BUILDER: entry ")]
-        bi = org.send("builderinfo") or ""
-        org.closeTab("Viewer")
-        missing = [k for k, rx in wants
-                   if not any(re.search(rx, e, re.I) for e in entries)
-                   and not (k == "geometry" and re.search(r"atoms=[1-9]", bi))]
-        lines = ["wait 4000"]
-        picks = [e.split("/", 1)[-1] for e in entries[:panels]]
-        lines += ["list " + p for p in picks] + ["wait 1500", "overlay"]
-        if atom:
-            lines += ["selectoverlay 1"]
+    VIEWER_PICKS = ("Calculation Summary", "Energies")
+
+    def viewerCheck(self, org, url, sid, wants, atom=False):
+        """One Viewer tab, one script: the Properties list has each wanted
+        kind, the known entries VIEWER_PICKS present open, with atom atom 1
+        is selected (#1236); then the tab is closed once and checked gone.
+        Reopening a tab that did not close reuses it without the script."""
+        lines = ["wait 4000", "plist"] + ["list " + p for p in self.VIEWER_PICKS]
+        lines += ["wait 1500", "overlay"] + (["selectoverlay 1"] if atom else [])
         b = org.builderScript(lines)
         m = org.mark()
         org.send("start CalculationViewer " + url)
         org.waitTool()
         done = org.waitScript(b)
         outs, info = org.scriptOut(m)
-        bad = [o for o in outs if ": ok" not in o and not o.startswith("shot")]
+        bi = org.send("builderinfo") or ""
+        asked, tabs = org.closeTab("Viewer")
+        closed = asked is not None and tabIndex(tabs, "Viewer") is None
+        entries = [i[len("BUILDER: entry "):] for i in info
+                   if i.startswith("BUILDER: entry ")]
+        names = [e.split("/", 1)[-1] for e in entries]
+        picks = [p for p in self.VIEWER_PICKS if p in names]
+        absent = ["list %s:" % p for p in self.VIEWER_PICKS if p not in names]
+        bad = [o for o in outs if ": ok" not in o and not o.startswith("shot")
+               and not any(o.startswith(a) for a in absent)]
         sel = [i for i in info if i.startswith("SELOVERLAY:")]
+        missing = [k for k, rx in wants
+                   if not any(re.search(rx, e, re.I) for e in entries)
+                   and not (k == "geometry" and re.search(r"atoms=[1-9]", bi))]
+        if not closed:
+            bad.append("Viewer tab still open after close: %s" % tabs)
         ok = done and entries and not missing and not bad
         if wants:
             passfail(sid, ok, "%s; entries=%s; clicked=%s; missing=%s; errors=%s"
                      % (bi, entries, picks, missing, bad))
         return {"entries": entries, "picks": picks, "bad": bad, "sel": sel,
-                "done": done, "info": bi}
+                "done": done, "info": bi, "closed": closed}
 
     # ---------------------------------------------------------------- W2
     def w2(self):
@@ -542,7 +556,7 @@ class Round(object):
             passfail("W2.5", lig and int(lig.group(1)) > 0 and stored,
                      "(Save As dialog replaced by New Vina + import; no hook) "
                      "builder=%s; ligandpick=%s; save=%s; stored=%s"
-                     % ([o for o in outs if o.startswith("save")],
+                     % ([o for o in outs if o.startswith(("save", "import"))],
                         lig and lig.group(1), save, stored[:1]))
             if not which("vina"):
                 step("W2.6", "SKIP", "vina is not installed on this host; W2 "
@@ -690,7 +704,7 @@ class Round(object):
                 panels.append("%s: clicked %s errors %s" % (os.path.basename(path),
                                                            r["picks"], r["bad"]))
                 sels.append("%s: %s" % (os.path.basename(path), r["sel"][:1]))
-                okp = r["done"] and len(r["picks"]) == 2 and not r["bad"]
+                okp = r["done"] and r["picks"] and not r["bad"]
                 if not okp:
                     panels[-1] += " FAILED"
             passfail("W4.3", len(panels) == 3 and not any("FAILED" in p for p in panels),
@@ -843,7 +857,8 @@ class Round(object):
                      % (d, r1, c, r2, st0, st1))
             if calc:
                 r = self.viewerCheck(org, calc, None, ())
-                passfail("W6.5", r["done"] and re.search(r"atoms=[1-9]", r["info"]),
+                passfail("W6.5", r["done"] and re.search(r"atoms=[1-9]", r["info"])
+                         and r["closed"],
                          "(no job to fetch: W6.2 MANUAL) Viewer on the SSH folder's "
                          "copy: %s; entries=%s" % (r["info"], r["entries"][:6]))
             else:
