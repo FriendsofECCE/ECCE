@@ -3796,8 +3796,10 @@ if(PYTHON3_EXECUTABLE)
                    ${PYTHON3_EXECUTABLE}
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/one_process_test.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
-  set_tests_properties(apps_organizer_one_process
-                       apps_organizer_one_process_core PROPERTIES TIMEOUT 3300
+  # The tabbed part runs ~74 min on the offload hosts (#1253).
+  set_tests_properties(apps_organizer_one_process PROPERTIES TIMEOUT 6000
+                       SKIP_RETURN_CODE 77)
+  set_tests_properties(apps_organizer_one_process_core PROPERTIES TIMEOUT 3300
                        SKIP_RETURN_CODE 77)
   # The basis panel's contraction editor and exponents view (#1063).
   add_test(NAME apps_basis_contractions

@@ -2772,9 +2772,9 @@ def main():
         if failures:
             results.fail("one-process", "; ".join(failures))
     run_tests.checkApp = checkApp
-    # every scenario in one run (no part selected) takes ~50 min on a busy
-    # host; ctest runs the two parts separately, each inside its TIMEOUT
-    sys.argv = ([sys.argv[0], "--app", "organizer", "--budget", "4500"] +
+    # The tabbed part alone takes ~74 min on the offload hosts (#1253);
+    # ctest runs the parts separately, each inside its TIMEOUT.
+    sys.argv = ([sys.argv[0], "--app", "organizer", "--budget", "5700"] +
                 sys.argv[1:])
     return run_tests.main()
 
