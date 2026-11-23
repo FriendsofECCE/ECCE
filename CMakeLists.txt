@@ -4197,6 +4197,14 @@ if(PYTHON3_EXECUTABLE)
   set_tests_properties(apps_ssh_root_menu PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
 
+  # A password-only host: no empty or silently repeated password (#1274).
+  add_test(NAME apps_ssh_password_refused
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/ssh_password_refused_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_ssh_password_refused PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
+
   # Organizer file view: bounded reads, Follow, binary files (#1084).
   add_test(NAME apps_organizer_file_view
            COMMAND ${PYTHON3_EXECUTABLE}
