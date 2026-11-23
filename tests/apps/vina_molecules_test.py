@@ -77,8 +77,10 @@ def check_preview(s, url, display, tmpdir, wrappers):
                                 stderr=subprocess.STDOUT, start_new_session=True)
         try:
             time.sleep(25)
-            ask_org(cmds, logpath, proc, "launchbutton " + url, 1, 60)
+            say("  launchbutton: %s" % ask_org(cmds, logpath, proc, "launchbutton " + url, 1, 60))
             time.sleep(20)
+            say("  tabs: %s" % ask_org(cmds, logpath, proc, "tabs", 1, 30))
+            say("  setup info: %s" % ask_org(cmds, logpath, proc, "setup info", 1, 30))
             ask_org(cmds, logpath, proc, "setup input", 1, 30)
             text = ""
             count = 0
