@@ -1,0 +1,24 @@
+#!/bin/sh
+# Stand-in for ssh in tests: runs the remote command on this machine after
+# the delay in $FAKE_SSH_DELAY_FILE (seconds), so a test sees a slow link
+# without contacting any host. Each command is appended to $FAKE_SSH_LOG.
+delay=$(cat "$FAKE_SSH_DELAY_FILE" 2>/dev/null || echo 0)
+mode=run host= cmd=
+while [ $# -gt 0 ]; do
+  case "$1" in
+    -G) mode=G; shift ;;
+    -O) mode=O; shift 2 ;;
+    -N) mode=N; shift ;;
+    -[BbcDEeFIiJLlmopQRSWw]) shift 2 ;;
+    -*) shift ;;
+    *) if [ -z "$host" ]; then host=$1; shift; else cmd="$*"; break; fi ;;
+  esac
+done
+case $mode in
+  G) printf 'controlmaster false\ncontrolpath none\nproxycommand none\n'; exit 0 ;;
+  O) exit 0 ;;
+esac
+sleep "$delay"
+[ -n "$FAKE_SSH_LOG" ] && printf '%s delay=%s %.60s\n' "$(date +%T.%N)" "$delay" "$(printf %s "$cmd" | tr '\n' ' ')" >> "$FAKE_SSH_LOG"
+[ $mode = N ] || [ -z "$cmd" ] && exit 0
+exec sh -c "$cmd"
