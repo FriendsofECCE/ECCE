@@ -6,7 +6,8 @@ ion is stored as a Vina calculation.  The Calculation Editor writes the
 dialog's <out>.molecules side file (label TAB atom range, likely ligand
 first) and the dialog fills Ligand atoms with the first one.  Before any
 Save the preview shows Vina's config, and pressing Runtype Details changes
-the editor's controls and note once each (#1261).
+the editor's controls and note once each (#1261).  The editor hides
+Charge and Spin Mult. for Vina (#1276).
 
     tests/apps/vina_molecules_test.py [--build build-cmake] [--keep]
 
@@ -80,7 +81,11 @@ def check_preview(s, url, display, tmpdir, wrappers):
             say("  start: %s" % ask_org(cmds, logpath, proc, "start CalculationEditor " + url, 1, 60))
             time.sleep(20)
             say("  tabs: %s" % ask_org(cmds, logpath, proc, "tabs", 1, 30))
-            say("  setup info: %s" % ask_org(cmds, logpath, proc, "setup info", 1, 30))
+            info = ask_org(cmds, logpath, proc, "setup info", 1, 30) or ""
+            say("  setup info: %s" % info)
+            # Vina takes no total charge or spin; the editor hides them (#1276).
+            check("chargespin=hidden" in info.split(),
+                  "Charge, Spin Mult. and Open Shells are hidden for Vina: %r" % info)
             ask_org(cmds, logpath, proc, "setup input", 1, 30)
             text = ""
             count = 0

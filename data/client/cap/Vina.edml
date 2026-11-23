@@ -19,6 +19,9 @@
 <appdescriptor>
 
 <SupportsConstraints>false</SupportsConstraints>
+<!-- No Charge, Spin Mult. or Open Shells in the editor: Vina ignores them
+     (the ligand charge is a Runtype Details setting). -->
+<ChargeAndSpin>false</ChargeAndSpin>
 
 <Editor theorydialog="vinatheory.py" runtypedialog="vinaruntype.py">
   <Theory category="SE" name="Vina" needsBasis="false">
