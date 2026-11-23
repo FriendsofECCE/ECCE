@@ -255,6 +255,7 @@ class CalcEd: public CalcEdGUI,
     // show/hide indicated field sets
     void showAllFields();
     void showChemSysFields();
+    bool usesChargeAndSpin() const;
     void showBasisSetFields();
     void showDetailsFields();
     void showGeomEditor();

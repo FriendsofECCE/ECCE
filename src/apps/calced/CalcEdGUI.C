@@ -68,6 +68,7 @@ const wxWindowID CalcEdGUI::ID_BUTTON_CALCED_VERIFY = wxNewId();
 const wxWindowID CalcEdGUI::ID_BUTTON_CALCED_GUESS_DEFAULT = wxNewId();
 const wxWindowID CalcEdGUI::ID_STATICTEXT_CALCED_VERIFY_LIGHT = wxNewId();
 const wxWindowID CalcEdGUI::ID_STATICTEXT_CALCED_OPEN_SHELLS = wxNewId();
+const wxWindowID CalcEdGUI::ID_STATIC_CALCED_OPEN_SHELLS = wxNewId();
 const wxWindowID CalcEdGUI::ID_STATICTEXT_CALCED_FUNCTIONS = wxNewId();
 const wxWindowID CalcEdGUI::ID_STATICTEXT_CALCED_FORMULA = wxNewId();
 const wxWindowID CalcEdGUI::ID_STATICTEXT_CALCED_SYMMETRY = wxNewId();
@@ -356,7 +357,7 @@ void CalcEdGUI::CreateControls()
 
     itemFlexGridSizer38->Add(symmetryRow, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 2);
 
-    ewxNonBoldLabel* itemStaticText41 = new ewxNonBoldLabel( p_chemSysInner, wxID_STATIC, _("Open Shells:"), wxDefaultPosition, wxDefaultSize, 0 );
+    ewxNonBoldLabel* itemStaticText41 = new ewxNonBoldLabel( p_chemSysInner, ID_STATIC_CALCED_OPEN_SHELLS, _("Open Shells:"), wxDefaultPosition, wxDefaultSize, 0 );
     itemFlexGridSizer38->Add(itemStaticText41, 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL, 0);
 
     ewxStaticText* itemStaticText42 = new ewxStaticText( p_chemSysInner, ID_STATICTEXT_CALCED_OPEN_SHELLS, _T(""), wxDefaultPosition, wxDefaultSize, 0 );
