@@ -11,6 +11,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <map>
+#include <string>
 #include <vector>
 
 #include "wx/aui/auibook.h"
@@ -41,8 +42,14 @@
 #include "wx/statusbr.h"
 #include "wx/toolbar.h"
 
+#include "wx/modalhook.h"
+#include "wx/stopwatch.h"
+
 #ifdef __WXGTK__
 #include <gtk/gtk.h>
+#ifdef GDK_WINDOWING_X11
+#include <gdk/gdkx.h>
+#endif
 #endif
 
 #include "util/MqttLink.H"
@@ -57,6 +64,7 @@ static void fitScrollBody(wxWindow *body);
 static void allocateNeverSized(wxWindow *parent);
 
 namespace {
+void beginSnapshot();
 
 const int ID_OPEN_IN_WINDOW = wxID_HIGHEST + 7301;
 const int ID_MOVE_TO_TABS = wxID_HIGHEST + 7302;
@@ -963,6 +971,202 @@ wxString paintInfo(wxWindow *page)
   return wxString::Format("colours=%d", (int)colours.size());
 }
 
+
+
+// Tab changes (#1210).  A page that was hidden is mapped and drawn by GTK
+// over several frames, so for 2-10 frames the window showed a half-drawn
+// page.  Around every change a native child window shows a picture of the
+// notebook's page area as it was, until the new page has stopped painting
+// (two frame-long ticks without a paint on the host, at least one frame) or
+// 600 ms have passed.  It must be native and raised: the Viewer's GL canvas
+// is a native window and would cover a client-side one.  Freezing the host
+// instead makes GNOME show the window black for its duration.
+// X11 only: the picture is read back from the X server; on Wayland, macOS
+// and Windows nothing is shown and the change happens as before.
+class SnapshotOverlay : public wxWindow
+{
+public:
+  SnapshotOverlay(wxWindow *parent, const wxRect& r, const wxBitmap& bmp)
+    : m_bmp(bmp)
+  {
+    SetBackgroundStyle(wxBG_STYLE_PAINT);
+    Create(parent, wxID_ANY, r.GetPosition(), r.GetSize(), wxBORDER_NONE);
+    Bind(wxEVT_PAINT, [this](wxPaintEvent&) {
+      wxPaintDC dc(this);
+      dc.DrawBitmap(m_bmp, 0, 0);
+    });
+  }
+  bool AcceptsFocus() const override { return false; }
+  bool AcceptsFocusFromKeyboard() const override { return false; }
+private:
+  wxBitmap m_bmp;
+};
+
+struct SnapshotState {
+  wxWeakRef<wxWindow> overlay;
+  wxStopWatch since;
+  wxTimer *timer = 0;
+  int paints = 0;     // on the host, overlay excluded, since the last tick
+  int quiet = 0;      // ticks in a row without one
+  int modal = 0;      // modal dialogs up
+  bool enabled = !std::getenv("ECCE_TAB_SNAPSHOT") ||
+                 std::string(std::getenv("ECCE_TAB_SNAPSHOT")) != "0";
+  int shown = 0, quietEnds = 0, timeouts = 0, modalEnds = 0, skipped = 0;
+  long lastMs = -1;
+  wxString lastSkip = "none";
+} s_snap;
+
+const long SNAPSHOT_TICK_MS = 16;     // about one frame
+const long SNAPSHOT_TIMEOUT_MS = 600;
+
+void endSnapshot(int *counter)
+{
+  wxWindow *ov = s_snap.overlay;
+  if (s_snap.timer) s_snap.timer->Stop();
+  if (!ov) return;
+  if (counter) (*counter)++;
+  s_snap.lastMs = s_snap.since.Time();
+  s_snap.overlay = 0;
+  ov->Destroy();
+  if (s_hostFrame) s_hostFrame->Refresh();
+}
+
+class SnapshotPaints : public wxEventFilter
+{
+public:
+  int FilterEvent(wxEvent& ev) override
+  {
+    if (ev.GetEventType() == wxEVT_PAINT && s_snap.overlay && s_hostFrame) {
+      wxWindow *w = wxDynamicCast(ev.GetEventObject(), wxWindow);
+      if (w && w != s_snap.overlay && wxGetTopLevelParent(w) == s_hostFrame)
+        s_snap.paints++;
+    }
+    return Event_Skip;
+  }
+};
+
+// A question raised while the picture is up (a close's "Save changes?")
+// must be seen over the real page.
+class SnapshotModalHook : public wxModalDialogHook
+{
+protected:
+  int Enter(wxDialog *) override
+  {
+    s_snap.modal++;
+    endSnapshot(&s_snap.modalEnds);
+    return wxID_NONE;
+  }
+  void Exit(wxDialog *) override { if (s_snap.modal > 0) s_snap.modal--; }
+};
+
+void snapshotTick()
+{
+  wxWindow *ov = s_snap.overlay;
+  if (!ov || !s_hostFrame) { endSnapshot(0); return; }
+  long ms = s_snap.since.Time();
+  if (ms >= SNAPSHOT_TIMEOUT_MS) { endSnapshot(&s_snap.timeouts); return; }
+  if (s_snap.paints == 0 && ms >= SNAPSHOT_TICK_MS) s_snap.quiet++;
+  else s_snap.quiet = 0;
+  s_snap.paints = 0;
+  if (s_snap.quiet >= 2) { endSnapshot(&s_snap.quietEnds); return; }
+#ifdef __WXGTK__
+  // A native window made later (the Viewer's GL canvas) goes on top.
+  if (GdkWindow *gw = gtk_widget_get_window(ov->m_widget)) gdk_window_raise(gw);
+#endif
+}
+
+#if defined(__WXGTK__) && defined(GDK_WINDOWING_X11)
+bool snapshotX11()
+{
+  return GDK_IS_X11_DISPLAY(gdk_display_get_default());
+}
+
+// The page area as the X server has it, GL canvases included.
+wxBitmap captureArea(const wxRect& screenRect)
+{
+  GdkWindow *top = s_hostFrame ? gtk_widget_get_window(s_hostFrame->m_widget) : 0;
+  if (!top) return wxBitmap();
+  int ox = 0, oy = 0;
+  gdk_window_get_origin(top, &ox, &oy);
+  GdkPixbuf *pb = gdk_pixbuf_get_from_window(top, screenRect.x - ox,
+                                             screenRect.y - oy,
+                                             screenRect.width,
+                                             screenRect.height);
+  return pb ? wxBitmap(pb) : wxBitmap();
+}
+#endif
+
+void beginSnapshot()
+{
+#if defined(__WXGTK__) && defined(GDK_WINDOWING_X11)
+  if (!s_snap.enabled || !s_book || !s_hostFrame) return;
+  if (s_snap.overlay) {
+    // Another change before the page drew: keep the picture the user sees.
+    s_snap.since.Start();
+    s_snap.quiet = 0;
+    return;
+  }
+  auto skip = [](const char *why) { s_snap.skipped++; s_snap.lastSkip = why; };
+  if (!snapshotX11()) return skip("not X11");
+  if (s_snap.modal > 0) return skip("modal");
+  if (!s_hostFrame->IsShownOnScreen() || s_hostFrame->IsIconized())
+    return skip("host hidden");
+  int sel = s_book->GetSelection();
+  wxWindow *page = sel >= 0 ? s_book->GetPage(sel) : 0;
+  if (!page || !page->IsShownOnScreen()) return skip("no page");
+  wxRect screen(page->GetScreenPosition(), page->GetSize());
+  if (screen.width < 2 || screen.height < 2) return skip("no size");
+  wxBitmap bmp = captureArea(screen);
+  if (!bmp.IsOk()) return skip("capture failed");
+
+  static bool hooked = false;
+  if (!hooked) {
+    hooked = true;
+    wxEvtHandler::AddFilter(new SnapshotPaints);
+    static SnapshotModalHook modalHook;
+    modalHook.Register();
+    s_snap.timer = new wxTimer;
+    s_snap.timer->Bind(wxEVT_TIMER, [](wxTimerEvent&) { snapshotTick(); });
+  }
+  wxRect r(s_hostFrame->ScreenToClient(screen.GetPosition()), screen.GetSize());
+  SnapshotOverlay *ov = new SnapshotOverlay(s_hostFrame, r, bmp);
+  GtkWidget *wd = ov->m_widget;
+  gtk_widget_set_can_focus(wd, FALSE);
+  gtk_widget_realize(wd);
+  GdkWindow *gw = gtk_widget_get_window(wd);
+  if (!gw || !gdk_window_ensure_native(gw)) {
+    ov->Destroy();
+    return skip("not native");
+  }
+  // Clicks go through to the page beneath.
+  cairo_region_t *none = cairo_region_create();
+  gdk_window_input_shape_combine_region(gw, none, 0, 0);
+  cairo_region_destroy(none);
+  // A child of a parent whose size does not change is never allocated by
+  // GTK (see allocateNeverSized); place it now.
+  GtkAllocation a = {r.x, r.y, r.width, r.height};
+  gtk_widget_size_allocate(wd, &a);
+  if (!gtk_widget_get_mapped(wd)) gtk_widget_map(wd);
+  gdk_window_raise(gw);
+  s_snap.overlay = ov;
+  s_snap.shown++;
+  s_snap.paints = 0;
+  s_snap.quiet = 0;
+  s_snap.since.Start();
+  s_snap.timer->Start(SNAPSHOT_TICK_MS);
+#endif
+}
+
+wxString snapshotInfo()
+{
+  return wxString::Format("enabled=%d up=%d shown=%d quiet=%d timeout=%d "
+                          "modal=%d skipped=%d lastskip=%s lastms=%ld",
+                          (int)s_snap.enabled, (int)(bool)s_snap.overlay,
+                          s_snap.shown, s_snap.quietEnds, s_snap.timeouts,
+                          s_snap.modalEnds, s_snap.skipped, s_snap.lastSkip,
+                          s_snap.lastMs);
+}
+
 }
 
 
@@ -1033,6 +1237,11 @@ bool ToolTabs::adoptMain(wxFrame *org)
   wxTheApp->Bind(wxEVT_IDLE, [](wxIdleEvent& ev) {
     for (wxWindow *tlw : wxTopLevelWindows)
       if (tlw->IsShown()) allocateNeverSized(tlw);
+    ev.Skip();
+  });
+  // A tab click, the Window menu, Ctrl+Tab: the picture before the change.
+  s_book->Bind(wxEVT_AUINOTEBOOK_PAGE_CHANGING, [](wxAuiNotebookEvent& ev) {
+    beginSnapshot();
     ev.Skip();
   });
   s_book->Bind(wxEVT_AUINOTEBOOK_PAGE_CHANGED, onPageChanged);
@@ -1124,6 +1333,7 @@ bool ToolTabs::adopt(wxFrame *tool, wxAuiManager *mgr, const wxString& title)
   if (!s_book || !tool) return false;
   Tab *t = findTool(tool);
   if (t && t->page) return true;
+  beginSnapshot();
   if (!t) {
     tabs().push_back(Tab{tool, mgr, 0, 0, title, dotFor(title), "", {}, false});
     t = &tabs().back();
@@ -1295,8 +1505,10 @@ void ToolTabs::select(wxTopLevelWindow *tool)
   Tab *t = findTool(tool);
   if (!t || !t->page) return;
   int idx = s_book->GetPageIndex(t->page);
-  if (idx != wxNOT_FOUND && idx != s_book->GetSelection())
+  if (idx != wxNOT_FOUND && idx != s_book->GetSelection()) {
+    beginSnapshot();
     s_book->SetSelection(idx);
+  }
   if (s_hostFrame->IsIconized()) s_hostFrame->Iconize(false);
   s_hostFrame->Raise();
   // A frame's first Show lays its content out; a tab gets no such event.
@@ -1355,6 +1567,7 @@ void ToolTabs::release(wxTopLevelWindow *tlw, bool showFrame)
   // Bring the tab that stays to the front before this one is taken apart,
   // or the window shows a blank page for a few frames on each close
   // (#1210). No Freeze: on GTK a frozen frame is shown black meanwhile.
+  if (idx != wxNOT_FOUND && idx == s_book->GetSelection()) beginSnapshot();
   if (idx != wxNOT_FOUND && idx == s_book->GetSelection() &&
       s_book->GetPageCount() > 1)
     s_book->SetSelection(idx > 0 ? idx - 1 : 1);
@@ -1651,6 +1864,25 @@ bool ToolTabs::testCommand(const wxString& cmd, const wxString& arg,
       return true;
     }
     outcome = s_greyLog ? wxString::Format("%d", s_greyLog->count) : wxString("off");
+  } else if (cmd == "snapshot") {
+    // The tab-change picture (#1210): "snapshot on|off" switches it,
+    // "snapshot" reports what it did.
+    if (arg == "on" || arg == "off") s_snap.enabled = arg == "on";
+    outcome = snapshotInfo();
+  } else if (cmd == "tabrect") {
+    // The selected page's rectangle on the screen, "x y w h"; written to the
+    // file named by arg too, for a test sampling the screen meanwhile.
+    wxWindow *page = s_book && s_book->GetSelection() >= 0
+                     ? s_book->GetPage(s_book->GetSelection()) : 0;
+    if (!page) { outcome = "no page"; return true; }
+    wxPoint p = page->GetScreenPosition();
+    outcome = wxString::Format("%d %d %d %d", p.x, p.y, page->GetSize().x,
+                               page->GetSize().y);
+    if (!arg.empty())
+      if (FILE *f = fopen(arg.utf8_str(), "w")) {
+        fprintf(f, "%s\n", (const char*)outcome.utf8_str());
+        fclose(f);
+      }
   } else if (cmd == "quitlabel") {
     // The Quit item of the menu bar on the host now.
     wxMenuBar *mb = s_hostFrame ? s_hostFrame->wxFrame::GetMenuBar() : 0;
