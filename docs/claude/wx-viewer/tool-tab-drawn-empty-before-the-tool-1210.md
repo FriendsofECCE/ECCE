@@ -25,3 +25,5 @@ Closing a tab: the old page is repainted once or twice, then the Organizer
 page; no empty intermediate state was seen. The Organizer page then keeps
 repainting a few times a second for a while in some runs (ProjectContextPanel,
 WxGridView), independent of the tab code.
+
+Fixed by the tab-change picture: tab-change-snapshot-overlay-1210.md.
