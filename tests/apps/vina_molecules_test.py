@@ -42,17 +42,61 @@ def check(ok, what):
     return ok
 
 
-def check_preview(cmdfile, logpath, proc, asked):
-    """The unsaved Vina calculation's preview is its config (#1261)."""
-    ask(cmdfile, logpath, proc, "setup input", asked, 30)
-    text = ""
-    end = time.time() + 90
-    while time.time() < end and "center_x" not in text and "could not" not in text:
-        text = ask(cmdfile, logpath, proc, "setup text", asked, 30) or ""
-        time.sleep(2)
-    check("no theory" not in text, "the preview does not say 'no theory': %r" % text[:300])
-    check("receptor = receptor.pdbqt" in text and "center_x" in text,
-          "the preview shows Vina's config: %r" % text[:300])
+def ask_org(cmds, logpath, proc, cmd, count, seconds=60):
+    """One Organizer test-hook line; count = how often cmd was sent so far."""
+    with open(cmds, "a") as handle:
+        handle.write(cmd + "\n")
+    want = "ECCE_TEST_ORGANIZER: %s: " % cmd
+    end = time.time() + seconds
+    while time.time() < end and proc.poll() is None:
+        seen = [ln for ln in open(logpath, errors="replace") if ln.startswith(want)]
+        if len(seen) >= count:
+            return seen[count - 1][len(want):].strip()
+        time.sleep(0.5)
+    return None
+
+
+def check_preview(s, url, display, tmpdir, wrappers):
+    """The unsaved Vina calculation's preview is its config (#1261).  The
+    Set-up area exists only in the one-process editor tab, so this drives
+    the Organizer (one process, tabs) rather than the standalone calced."""
+    home = os.path.join(s.state, "orghome")
+    os.makedirs(os.path.join(home, ".ECCE"), exist_ok=True)
+    with open(os.path.join(home, ".ECCE", "EcceGlobal"), "w") as prefs:
+        prefs.write("WindowsAndTabs.Layout:\tnormal\n")
+    cmds = os.path.join(s.state, "organizer.cmd")
+    open(cmds, "w").close()
+    logpath = os.path.join(s.state, "organizer.log")
+    env = s.env({"DISPLAY": display.name, "GTK_THEME": "Adwaita", "ECCE_ONE_PROCESS": "1",
+                 "ECCE_TEST_ORGANIZER": cmds, "ECCE_TMPDIR": tmpdir,
+                 "ECCE_REALUSERHOME": home,
+                 "PATH": wrappers + os.pathsep + s.env()["PATH"]})
+    with open(logpath, "w") as log:
+        proc = subprocess.Popen([os.path.join(wrappers, "ecce-organizer")], env=env,
+                                cwd=os.path.join(s.home, "bin"), stdout=log,
+                                stderr=subprocess.STDOUT, start_new_session=True)
+        try:
+            time.sleep(25)
+            ask_org(cmds, logpath, proc, "launchbutton " + url, 1, 60)
+            time.sleep(20)
+            ask_org(cmds, logpath, proc, "setup input", 1, 30)
+            text = ""
+            count = 0
+            end = time.time() + 90
+            while time.time() < end and "center_x" not in text:
+                count += 1
+                text = ask_org(cmds, logpath, proc, "setup text", count, 30) or ""
+                time.sleep(2)
+            check("no theory" not in text, "the preview does not say 'no theory': %r" % text[:300])
+            check("receptor = receptor.pdbqt" in text and "center_x" in text,
+                  "the preview shows Vina's config: %r" % text[:300])
+        finally:
+            if proc.poll() is None:
+                try:
+                    os.killpg(proc.pid, 15)
+                    proc.wait(timeout=20)
+                except (OSError, subprocess.TimeoutExpired):
+                    pass
 
 
 def check_details_open(cmdfile, logpath, proc, asked):
@@ -173,9 +217,10 @@ def main():
                         for line in open(logpath, errors="replace"):
                             if "VINADLG" in line or "Traceback" in line or "Error" in line:
                                 say("    " + line.rstrip())
-                    check_preview(cmdfile, logpath, proc, asked)
                     check_details_open(cmdfile, logpath, proc, asked)
                     ask(cmdfile, logpath, proc, "quit", asked, 60)
+                    time.sleep(5)
+                    check_preview(s, url, display, tmpdir, wrappers)
                 finally:
                     if proc.poll() is None:
                         try:
