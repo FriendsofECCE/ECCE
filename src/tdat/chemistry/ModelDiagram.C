@@ -1162,7 +1162,7 @@ bool ModelDiagram::build(const Input& in,
    //  degenerate pair in two: the model's pair then matched one member and
    //  the other was unreachable from the diagram (#1212).
    {
-      const double NEAR = 5.0e-4;   // Hartree; closer levels are one line on the axis
+      const double kNear = 5.0e-4;   // Hartree; closer levels are one line on the axis
       bool ordinals = true;
       for (const MoLevel& l : real)
          if (!l.irrep.empty() || l.label.empty() ||
@@ -1170,7 +1170,7 @@ bool ModelDiagram::build(const Input& in,
       vector<MoLevel> merged;
       for (const MoLevel& l : real) {
          if (ordinals && !merged.empty() &&
-             fabs(l.energy - merged.back().energy) <= NEAR &&
+             fabs(l.energy - merged.back().energy) <= kNear &&
              (l.occupancy > 0.0) == (merged.back().occupancy > 0.0) &&
              (l.occupancyBeta > 0.0) == (merged.back().occupancyBeta > 0.0) &&
              (l.occupancyBeta < 0.0) == (merged.back().occupancyBeta < 0.0)) {

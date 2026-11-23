@@ -61,7 +61,10 @@ PropertyIndexPanel::PropertyIndexPanel(wxWindow *parent)
     int flags = 0;
     wxTreeItemId hit = p_tree->HitTest(event.GetPosition(), flags);
     int vx = 0, vy = 0;
+#ifndef __WXMSW__
+    // The native Windows tree is no scrolled window.
     p_tree->GetViewStart(&vx, &vy);
+#endif
     wxRect row;
     const int rowh = hit.IsOk() && p_tree->GetBoundingRect(hit, row) ? row.height : -1;
     fprintf(stderr, "[PANELS] list click y=%d hit=%s rowh=%d scrollpos=%d "
@@ -82,8 +85,12 @@ PropertyIndexPanel::PropertyIndexPanel(wxWindow *parent)
 
 void PropertyIndexPanel::syncView()
 {
+#ifndef __WXMSW__
+  // The generic tree (GTK, macOS) can keep a stale offset once the list fits;
+  // the native Windows tree resets it itself and has no Scroll().
   if (p_tree->GetVirtualSize().y <= p_tree->GetClientSize().y)
     p_tree->Scroll(0, 0);
+#endif
   p_tree->Refresh();
   p_tree->Update();
 }
