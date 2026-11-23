@@ -2496,11 +2496,18 @@ def runTabFrames(display):
                 append("snapshot", 1)
 
         setLayout(display, "normal")
-        result = apps.run(display, "organizer", windowTimeout=60, settle=20,
-                          env={"ECCE_ONE_PROCESS": "1",
-                               "ECCE_TEST_ORGANIZER": cmds,
-                               "ECCE_LOCAL_DATA": data},
-                          inspect=inspect)
+        # The first Organizer on a fresh test home answered no hook at all in
+        # 2 of 3 offload runs (empty log); a second start does.
+        for attempt in range(2):
+            open(cmds, "w").close()
+            result = apps.run(display, "organizer", windowTimeout=60,
+                              settle=20,
+                              env={"ECCE_ONE_PROCESS": "1",
+                                   "ECCE_TEST_ORGANIZER": cmds,
+                                   "ECCE_LOCAL_DATA": data},
+                              inspect=inspect)
+            if results:
+                break
         log = result.log or ""
         print("organizer: window=%s note=%s log=%d bytes rect=%s" % (
             result.sawWindow, result.note, len(log),
