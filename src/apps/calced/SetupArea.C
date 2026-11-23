@@ -384,11 +384,34 @@ void SetupArea::basisChanged()
 
 void SetupArea::external(Kind kind)
 {
+  p_external = kind;
   showInput();
-  p_note->SetLabel(wxString(kind == THEORY ? "Theory" : "Runtype") +
-                   " Details of this code open in their own window.");
-  p_note->Show();
-  Layout();
+}
+
+
+void SetupArea::externalClosed(Kind kind)
+{
+  if (p_external != kind) return;
+  p_external = INPUT;
+  if (p_kind == INPUT) statusChanged();
+}
+
+
+wxString SetupArea::note() const
+{
+  return p_note->IsShown() ? p_note->GetLabel() : wxString();
+}
+
+
+//  While details are open in their own window the note says so, whatever the
+//  preview's state: the dry runs their edits start must not swap it back and
+//  forth with the preview's own note.
+static wxString withExternal(SetupArea::Kind ext, const wxString& note)
+{
+  if (ext == SetupArea::INPUT) return note;
+  wxString open = wxString(ext == SetupArea::THEORY ? "Theory" : "Runtype") +
+                  " Details of this code open in their own window.";
+  return note.empty() ? open : open + " " + note;
 }
 
 
@@ -399,9 +422,11 @@ void SetupArea::dryRun()
   wxBusyCursor busy;
   bool ok = p_ed->previewDeck(deck, err);
   p_dry = ok;
-  p_note->SetLabel(ok ? wxString("Unsaved changes: Save writes this file.")
+  wxString note = ok ? wxString("Unsaved changes: Save writes this file.")
                       : "Unsaved changes; the settings could not be "
-                        "generated: " + wxString::FromUTF8(err.c_str()));
+                        "generated: " + wxString::FromUTF8(err.c_str());
+  note = withExternal(p_external, note);
+  if (p_note->GetLabel() != note) p_note->SetLabel(note);
   p_note->Wrap(std::max(200, p_body->GetSize().x));
   p_note->Show();
   if (ok) {
@@ -481,6 +506,13 @@ void SetupArea::statusChanged()
   bool modified = p_ed->p_feedback &&
       p_ed->p_feedback->getEditStatus() == WxFeedback::MODIFIED;
   if (modified) {
+    // Until the dry run, the note keeps what it said (or only that the
+    // details are open), instead of blinking through an empty one.
+    if (p_external != INPUT && !p_note->IsShown()) {
+      p_note->SetLabel(withExternal(p_external, ""));
+      p_note->Show();
+      Layout();
+    }
     p_timer->StartOnce(500);
     return;
   }
@@ -491,7 +523,8 @@ void SetupArea::statusChanged()
   else if (p_ed->p_inputGenFailed)
     note = "The current settings could not be generated; this is the last "
            "file that was.";
-  p_note->SetLabel(note);
+  note = withExternal(p_external, note);
+  if (p_note->GetLabel() != note) p_note->SetLabel(note);
   p_note->Show(!note.empty());
   wxString shown = wxString::FromUTF8(text.c_str());
   if (p_input->GetValue() != shown) p_input->ChangeValue(shown);

@@ -1,6 +1,9 @@
 #ifndef _CALCED_H_
 #define _CALCED_H_
 
+#include <map>
+#include <vector>
+#include <wx/timer.h>
 #include <functional>
 #include <string>
 #include <utility>
@@ -385,6 +388,10 @@ class CalcEd: public CalcEdGUI,
     bool previewDeck(string& deck, string& error);
     // Test hook "setup ..." on the active Set-up tab.
     wxString setupCommand(const wxString& arg);
+    // Test hook "watch start" / "watch" (both script hooks answer it):
+    // what a user sees change in the Theory/Runtype controls and the
+    // preview note while details open.
+    std::string watchCommand(const std::string& arg);
 
     // The basis panel of the Set-up tab (BasisPanel): the elements of the
     // chemical system, the current assignment (one line per element when
@@ -442,6 +449,9 @@ class CalcEd: public CalcEdGUI,
     friend class SetupArea;
     friend class BasisPanel;
     SetupArea *p_setupArea = nullptr;
+    wxTimer *p_watchTimer = nullptr;   // deleted with the window
+    std::map<std::string, int> p_watchLast, p_watchOff, p_watchOn;
+    std::vector<std::string> p_watchNotes;
     CalcEdMessages *p_msgs = nullptr;
     void runTestCommand(const string& line);
 

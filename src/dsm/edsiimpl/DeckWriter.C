@@ -209,14 +209,13 @@ bool writeConstraints(ICalculation *calc, const string& code,
   return status;
 }
 
-bool writeGbs(ICalculation *calc, const string& file, bool useExpCoeff,
-              bool& fileFlag, bool& ecp, bool& spherical)
+bool writeGbs(ICalculation *calc, const TTheory *theory, const string& file,
+              bool useExpCoeff, bool& fileFlag, bool& ecp, bool& spherical)
 {
   bool status = false;
   fileFlag = ecp = spherical = false;
   const JCode *code = calc->application();
   // A step nobody has opened in the editor may store no theory (#950).
-  std::unique_ptr<TTheory> theory(calc->theory());
   if (!code || !theory) return false;
   if (code->theoryNeedsBasis(*theory)) {
     TGBSConfig *const cfg = calc->gbsConfig();
@@ -263,6 +262,8 @@ bool writeParams(ICalculation *calc, const string& file,
     os << "parseFile: " << f.name() << endl;
   }
   TTheory *theory = calc->theory();
+  if (!theory && !opt.theory.empty())
+    theory = new TTheory(opt.category, opt.theory);
   if (!opt.theory.empty()) {
     os << "Category: " << opt.category << endl;
     os << "Theory: " << opt.theory << endl;
@@ -385,6 +386,10 @@ DeckWriter::Result DeckWriter::generate(ICalculation *calc, const Options& opt)
   RCommand localconn("system");
 
   std::unique_ptr<TTheory> theory(calc->theory());
+  // The editor's preview passes the theory it shows; a calculation not yet
+  // saved (a code with one fixed theory, Vina) stores none.
+  if (!theory && !opt.theory.empty())
+    theory.reset(new TTheory(opt.category, opt.theory));
   if (codecap == (JCode*)0)
     message = "Input files could not be generated--code does not exist";
   else if (!theory)
@@ -448,7 +453,7 @@ DeckWriter::Result DeckWriter::generate(ICalculation *calc, const Options& opt)
     else if (!writeConstraints(calc, codecap->name(), conFile, conFlag))
       message = "Input files could not be generated--failed writing "
                 "chemical system constraints";
-    else if (!writeGbs(calc, basisFile, opt.useExpCoeff, basisFlag, ecp,
+    else if (!writeGbs(calc, theory.get(), basisFile, opt.useExpCoeff, basisFlag, ecp,
                        spherical))
       message = "Input files could not be generated--failed writing "
                 "basis set";

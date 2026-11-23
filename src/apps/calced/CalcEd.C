@@ -439,6 +439,10 @@ void CalcEd::runTestCommand(const string& line)
       OnChoiceCalcedRuntypeSelected(event);
       outcome = "ok";
     }
+  } else if (line.compare(0, 6, "setup ") == 0) {
+    outcome = std::string(setupCommand(wxString::FromUTF8(line.substr(6).c_str())).utf8_str());
+  } else if (line == "watch" || line.compare(0, 6, "watch ") == 0) {
+    outcome = watchCommand(line.size() > 6 ? line.substr(6) : "");
   } else if (line == "quit") {
     cerr << "ECCE_TEST_CALCED: quit: ok" << endl;
     closeTheoryApp(true);
@@ -1254,7 +1258,54 @@ static wxString columnOverlaps(wxWindow *root)
 }
 
 
-//  setup [info] | theory | runtype | basis [filter T|pick N|all|assign N [@ E,E]|ecp [N] [@ E,E]|fit N [@ E,E]] | input | fold | unfold | save | preview
+std::string CalcEd::watchCommand(const std::string& arg)
+{
+  const struct { const char *name; wxWindowID id; } ctl[] = {
+    {"theory", ID_CHOICE_CALCED_THEORY},
+    {"runtype", ID_CHOICE_CALCED_RUNTYPE},
+    {"theory-details", ID_BUTTON_CALCED_THEORY},
+    {"runtype-details", ID_BUTTON_CALCED_RUNTYPE}};
+  if (arg == "start") {
+    p_watchLast.clear();
+    p_watchOff.clear();
+    p_watchOn.clear();
+    p_watchNotes.clear();
+    if (!p_watchTimer) {
+      p_watchTimer = ewxWindowTimer(this);
+      p_watchTimer->Bind(wxEVT_TIMER, [this, ctl](wxTimerEvent&) {
+        for (auto& c : ctl) {
+          wxWindow *x = FindWindow(c.id);
+          int on = x && x->IsEnabled();
+          auto it = p_watchLast.find(c.name);
+          if (it == p_watchLast.end()) p_watchLast[c.name] = on;
+          else if (it->second != on) {
+            (on ? p_watchOn : p_watchOff)[c.name]++;
+            it->second = on;
+          }
+        }
+        std::string n = p_setupArea ?
+            std::string(p_setupArea->note().utf8_str()) : "";
+        if (p_watchNotes.empty() || p_watchNotes.back() != n)
+          p_watchNotes.push_back(n);
+      });
+    }
+    p_watchTimer->Start(10);
+    return "ok";
+  }
+  std::string outcome = "ok";
+  for (auto& c : ctl)
+    outcome += std::string(" ") + c.name + "=off" +
+        std::to_string(p_watchOff[c.name]) + "/on" +
+        std::to_string(p_watchOn[c.name]);
+  outcome += " notes=" + std::to_string(p_watchNotes.size());
+  for (const std::string& n : p_watchNotes)
+    outcome += " |" + n.substr(0, 70);
+  for (char& c : outcome) if (c == '\n') c = ' ';
+  return outcome;
+}
+
+
+//  setup [info] | text | theory | runtype | basis [filter T|pick N|all|assign N [@ E,E]|ecp [N] [@ E,E]|fit N [@ E,E]] | input | fold | unfold | save | preview
 wxString CalcEd::setupCommand(const wxString& arg)
 {
   if (!p_setupArea) return "no set-up area";
@@ -1396,6 +1447,12 @@ wxString CalcEd::setupCommand(const wxString& arg)
     if (p_setupArea->current() != SetupArea::INPUT) return "not the input";
     return "shown=" + wxString(fnvOf(p_setupArea->previewShown())) +
            " file=" + wxString(fnvOf(p_setupArea->previewText()));
+  } else if (arg == "text") {
+    // the note and the preview as shown, on one line
+    wxString t = p_setupArea->note() + " || " +
+                 wxString::FromUTF8(p_setupArea->previewShown().c_str());
+    t.Replace("\n", "|");
+    return t;
   } else if (!arg.empty() && arg != "info") {
     return "unknown: " + arg;
   }
@@ -6199,6 +6256,7 @@ void CalcEd::closeTheoryApp(const bool& sendTerm)
     (void)kill((p_theoryPid), SIGTERM);
   }
   if (sendTerm && p_setupArea) p_setupArea->closeDetails(SetupArea::THEORY);
+  if (p_setupArea) p_setupArea->externalClosed(SetupArea::THEORY);
 
   if (p_theoryInPort != 0) {
     p_theoryInSocket->Notify(false);
@@ -6217,6 +6275,7 @@ void CalcEd::closeRuntypeApp(const bool& sendTerm)
     (void)kill((p_runtypePid), SIGTERM);
   }
   if (sendTerm && p_setupArea) p_setupArea->closeDetails(SetupArea::RUNTYPE);
+  if (p_setupArea) p_setupArea->externalClosed(SetupArea::RUNTYPE);
 
   if (!p_runtypeNotePath.empty()) {
     remove(p_runtypeNotePath.c_str());

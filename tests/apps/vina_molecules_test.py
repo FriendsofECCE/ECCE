@@ -4,7 +4,9 @@
 A structure with a ligand, a smaller ligand-like residue, an additive and an
 ion is stored as a Vina calculation.  The Calculation Editor writes the
 dialog's <out>.molecules side file (label TAB atom range, likely ligand
-first) and the dialog fills Ligand atoms with the first one.
+first) and the dialog fills Ligand atoms with the first one.  Before any
+Save the preview shows Vina's config, and pressing Runtype Details changes
+the editor's controls and note once each (#1261).
 
     tests/apps/vina_molecules_test.py [--build build-cmake] [--keep]
 
@@ -38,6 +40,85 @@ def check(ok, what):
     if not ok:
         failures.append(what)
     return ok
+
+
+def ask_org(cmds, logpath, proc, cmd, count, seconds=60):
+    """One Organizer test-hook line; count = how often cmd was sent so far."""
+    with open(cmds, "a") as handle:
+        handle.write(cmd + "\n")
+    want = "ECCE_TEST_ORGANIZER: %s: " % cmd
+    end = time.time() + seconds
+    while time.time() < end and proc.poll() is None:
+        seen = [ln for ln in open(logpath, errors="replace") if ln.startswith(want)]
+        if len(seen) >= count:
+            return seen[count - 1][len(want):].strip()
+        time.sleep(0.5)
+    return None
+
+
+def check_preview(s, url, display, tmpdir, wrappers):
+    """The unsaved Vina calculation's preview is its config (#1261).  The
+    Set-up area exists only in the one-process editor tab, so this drives
+    the Organizer (one process, tabs) rather than the standalone calced."""
+    home = os.path.join(s.state, "orghome")
+    os.makedirs(os.path.join(home, ".ECCE"), exist_ok=True)
+    with open(os.path.join(home, ".ECCE", "EcceGlobal"), "w") as prefs:
+        prefs.write("WindowsAndTabs.Layout:\tnormal\n")
+    cmds = os.path.join(s.state, "organizer.cmd")
+    open(cmds, "w").close()
+    logpath = os.path.join(s.state, "organizer.log")
+    env = s.env({"DISPLAY": display.name, "GTK_THEME": "Adwaita", "ECCE_ONE_PROCESS": "1",
+                 "ECCE_TEST_ORGANIZER": cmds, "ECCE_TMPDIR": tmpdir,
+                 "ECCE_REALUSERHOME": home,
+                 "PATH": wrappers + os.pathsep + s.env()["PATH"]})
+    with open(logpath, "w") as log:
+        proc = subprocess.Popen([os.path.join(wrappers, "ecce-organizer")], env=env,
+                                cwd=os.path.join(s.home, "bin"), stdout=log,
+                                stderr=subprocess.STDOUT, start_new_session=True)
+        try:
+            time.sleep(25)
+            say("  start: %s" % ask_org(cmds, logpath, proc, "start CalculationEditor " + url, 1, 60))
+            time.sleep(20)
+            say("  tabs: %s" % ask_org(cmds, logpath, proc, "tabs", 1, 30))
+            say("  setup info: %s" % ask_org(cmds, logpath, proc, "setup info", 1, 30))
+            ask_org(cmds, logpath, proc, "setup input", 1, 30)
+            text = ""
+            count = 0
+            end = time.time() + 90
+            while time.time() < end and "center_x" not in text:
+                count += 1
+                text = ask_org(cmds, logpath, proc, "setup text", count, 30) or ""
+                time.sleep(2)
+            check("no theory" not in text, "the preview does not say 'no theory': %r" % text[:300])
+            check("receptor = receptor.pdbqt" in text and "center_x" in text,
+                  "the preview shows Vina's config: %r" % text[:300])
+        finally:
+            if proc.poll() is None:
+                try:
+                    os.killpg(proc.pid, 15)
+                    proc.wait(timeout=20)
+                except (OSError, subprocess.TimeoutExpired):
+                    pass
+
+
+def check_details_open(cmdfile, logpath, proc, asked):
+    """One press of Runtype Details changes the editor once (#1261)."""
+    ask(cmdfile, logpath, proc, "watch start", asked, 30)
+    ask(cmdfile, logpath, proc, "details runtype", asked, 30)
+    time.sleep(10)
+    got = ask(cmdfile, logpath, proc, "watch", asked, 30) or ""
+    say("  watch: " + got[:600])
+    for name in ("theory", "runtype", "theory-details", "runtype-details"):
+        part = [p for p in got.split() if p.startswith(name + "=")]
+        if not check(part != [], "watch reports %s" % name):
+            continue
+        off, on = part[0].split("=")[1].split("/")
+        check(int(off[3:]) <= 1 and int(on[2:]) <= 1,
+              "%s goes off and on at most once each: %s" % (name, part[0]))
+    notes = [n.strip() for n in got.split(" |")[1:]]
+    back = [n for i, n in enumerate(notes) if n in notes[:i]]
+    check(not back, "the preview note does not swing back: %r" % notes)
+    ask(cmdfile, logpath, proc, "close-details", asked, 30)
 
 
 def main():
@@ -138,7 +219,10 @@ def main():
                         for line in open(logpath, errors="replace"):
                             if "VINADLG" in line or "Traceback" in line or "Error" in line:
                                 say("    " + line.rstrip())
+                    check_details_open(cmdfile, logpath, proc, asked)
                     ask(cmdfile, logpath, proc, "quit", asked, 60)
+                    time.sleep(5)
+                    check_preview(s, url, display, tmpdir, wrappers)
                 finally:
                     if proc.poll() is None:
                         try:

@@ -59,7 +59,9 @@
 #include "wxgui/ewxThemeColours.H"
 
 #include "CalcEd.H"
+#include "SetupArea.H"
 #include "wxgui/EcceTool.H"
+#include <map>
 
 namespace {
 
@@ -327,6 +329,11 @@ void CalcEd::runCalcEdScript(const string& file)
         }
         outcome += std::string(" state=") + (p_iCalc ?
             ResourceUtils::stateToString(p_iCalc->getState()) : "none");
+      } else if (w[0] == "setup") {
+        // the Set-up tab's hook ("setup text", "setup input", ...)
+        outcome = std::string(setupCommand(wxString::FromUTF8(rest(1).c_str())).utf8_str());
+      } else if (w[0] == "watch") {
+        outcome = watchCommand(rest(1));
 #ifdef __WXMSW__
       } else if (w[0] == "wmcommand" && w.size() == 2) {
         // the WM_COMMAND a click on a popup menu item with that id sends
