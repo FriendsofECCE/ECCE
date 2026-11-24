@@ -2,9 +2,10 @@
 """Vina Runtype Details lists the structure's ligand candidates (#1244).
 
 A structure with a ligand, a smaller ligand-like residue, an additive and an
-ion is stored as a Vina calculation.  The Calculation Editor writes the
-dialog's <out>.molecules side file (label TAB atom range, likely ligand
-first) and the dialog fills Ligand atoms with the first one.  Before any
+ion is stored as a Vina calculation.  The dialog fills Ligand atoms with the
+first candidate (likely ligand first).  The side file itself is not read
+here: the editor removes it with its temp directory, so a poll races that
+cleanup (#1271); the dialog's ligand-molecule list must hold all of WANT.  Before any
 Save the preview shows Vina's config, and pressing Runtype Details changes
 the editor's controls and note once each (#1261).  The editor hides
 Charge and Spin Mult. for Vina (#1276).  In the Organizer's editor tab
@@ -141,7 +142,7 @@ def check_embedded(s, cmds, logpath, proc):
     check("area=runtype" in info.split(),
           "Runtype Details opens in the Set-up area: %r" % info[:200])
     picks = [w for w in info.split() if w.startswith("ligandpick=")]
-    check(picks and int(picks[0].split("=")[1]) >= 1,
+    check(picks and int(picks[0].split("=")[1]) == len(WANT),
           "the ligand-molecule list has the candidates: %r" % picks)
     got = ask_org(cmds, logpath, proc, "setup set ES.Runtype.Vina.NumPoses 7", 1, 30)
     say("  setup set: %s" % got)
@@ -240,25 +241,6 @@ def main():
                 try:
                     time.sleep(12)
                     ask(cmdfile, logpath, proc, "runtype Docking (Vina)", asked)
-                    mol = None
-                    end = time.time() + 60
-                    while time.time() < end and mol is None:
-                        for root, _d, files in os.walk(tmpdir):
-                            for f in files:
-                                if f.endswith(".molecules"):
-                                    mol = os.path.join(root, f)
-                        time.sleep(1)
-                    # The editor flushes line by line, so the file can be
-                    # seen empty or half written; wait for the full list.
-                    lines = []
-                    end = time.time() + 30
-                    while mol and time.time() < end and lines != WANT:
-                        try:
-                            lines = open(mol, encoding="utf-8").read().splitlines()
-                        except OSError:
-                            lines = []
-                        time.sleep(0.5)
-                    check(lines == WANT, "side file lists the candidates: %r" % lines)
                     # The dialog fills the key from the first line (it
                     # reports back over the editor's socket).
                     val = ""
