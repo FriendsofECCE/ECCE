@@ -205,7 +205,10 @@ void SetupArea::submittedChanged(bool on)
   if (!on) { p_autoOutput = false; return; }
   if (p_autoOutput) return;
   p_autoOutput = true;
-  if (p_kind == INPUT || p_kind == LAUNCH) showOutput();
+  // Deferred: the launch panel that reported the state is still running.
+  CallAfter([this]() {
+    if (p_kind == INPUT || p_kind == LAUNCH) showOutput();
+  });
 }
 
 
