@@ -1010,10 +1010,11 @@ def runTabIdentity(display):
         print("      tabtips: " + str(tips))
         print("      windowitems: " + str(items))
         dots = pb.answers(log, "tabs dots")
-        check(len(dots) == 1 and dots[0].split(" dots=")[-1].strip().lower()
-              == "0:#3060b0 1:#705090 2:#705090 3:#409020",
-              "Viewer tabs use purple dots after their titles change; "
-              "Organizer stays blue and Editor green", str(dots))
+        check(len(dots) == 1 and re.fullmatch(
+                  r"0:role:#3060b0 1:state:\w+ 2:state:\w+ 3:state:\w+",
+                  dots[0].split(" dots=")[-1].strip().lower()) is not None,
+              "the Organizer keeps its blue dot; the Viewer and Editor tabs "
+              "of a calculation show its run state", str(dots))
         dash = " \u2013 "
         tipList = re.findall(r"\d+:([^|]*)\|", tips[0]) if tips else []
         check(len(tipList) == 4,
@@ -1093,9 +1094,11 @@ def runBuilderRoleDot(display):
         tabs = re.findall(r"ECCE_TEST_ORGANIZER: tabs: (.*)$", log, re.M)
         dots = pb.answers(log, "tabs dots")
         got = dots[0].split(" dots=")[-1].strip().lower() if dots else ""
-        check(got == "0:#3060b0 1:#705090 2:#c02020",
-              "a finished calculation's Builder and Viewer share one purple "
-              "Viewer tab; an editable one's Builder is red",
+        check(re.fullmatch(r"0:role:#3060b0 1:state:\w+ 2:role:#c02020", got)
+              is not None,
+              "a finished calculation's Builder and Viewer share one Viewer "
+              "tab with its state icon; an editable one's Builder keeps its "
+              "red dot",
               str(dots) + str(tabs))
     finally:
         shutil.rmtree(data, ignore_errors=True)
@@ -2144,9 +2147,13 @@ def runSetupLaunch(display):
             append("setup launch get greyed", 2)
             append("setup launch info", 2)
             shot("setup-after-launch.png")
-            append("setup results output", 5)
             append("setup info", 2)
             shot("setup-output.png")
+            append("setup results", 2)
+            append("setup input", 2)
+            append("setup info", 2)
+            append("setup output", 2)
+            append("setup info", 2)
             append("setup results viewer", 25)
             append("tabs", 2)
             append("close", 3)
@@ -2201,10 +2208,17 @@ def runSetupLaunch(display):
         check(len(res) == 3 and "results=hidden" in res[0]
               and "editlaunch=enabled" in res[0]
               and all("results=shown" in r and "editlaunch=disabled" in r
-                      and "pressed" in r for r in res[1:]),
-              "after the launch a Viewer/Output row is shown and the "
-              "editor's Launch... is off", str(res))
-        out = [i for i in pb.answers(log, "setup info") if "area=output" in i]
+                      and re.search(r"actions=(terminate|duplicate,rerun)", r)
+                      and "state=" in r for r in res[1:]),
+              "after the launch the Results box is shown with Terminate or "
+              "Duplicate and Reset, and the editor's Launch... is off",
+              str(res))
+        infos = pb.answers(log, "setup info")
+        check(len(infos) >= 3 and "area=output" in infos[0]
+              and "area=input" in infos[-2] and "area=output" in infos[-1],
+              "the panel opens on the output file after the launch without "
+              "a click, and the Input/Output switch changes it", str(infos))
+        out = [i for i in infos if "area=output" in i]
         m = re.search(r"lines=(\d+)", out[-1]) if out else None
         check(m and int(m.group(1)) > 20 and "editor=1" in out[-1]
               and "following=0" in out[-1],
