@@ -3791,9 +3791,9 @@ if(PYTHON3_EXECUTABLE)
                        SKIP_RETURN_CODE 77)
   # Builder and Calculation Editor as windows of the Organizer's process,
   # ECCE_ONE_PROCESS=1 (#983).
-  # The tabbed window (layouts, tabs, tools) in five ctests of under 30 min
+  # The tabbed window (layouts, tabs, tools) in six ctests of under 30 min
   # each (ECCE_TABS_PART, #1253) and the core start/Quit checks.
-  foreach(part 1 2 3 4 5)
+  foreach(part 1 2 3 4 5 6)
     add_test(NAME apps_organizer_one_process_tabs${part}
              COMMAND ${CMAKE_COMMAND} -E env ECCE_TABS_ONLY=1 ECCE_TABS_PART=${part}
                      ${PYTHON3_EXECUTABLE}

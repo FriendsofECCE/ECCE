@@ -2651,8 +2651,8 @@ TABS_PARTS = [
     [runTabsEditor, runSetupTab],
     [runTabsTools, runTabsLauncher, runSetupLaunch],
     [runQuitDuringClose, runQuitJob, runReopenViewer, runTabPaint],
-    [runTabsPopups, runUtilityWindows, runTabs1088, runTabIdentity,
-     runPanelTeardown],
+    [runTabsPopups, runUtilityWindows],
+    [runTabs1088, runTabIdentity, runPanelTeardown],
 ]
 
 
