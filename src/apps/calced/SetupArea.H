@@ -26,7 +26,7 @@ class wxTimer;
 class SetupArea : public wxPanel
 {
 public:
-  enum Kind { INPUT, THEORY, RUNTYPE, BASIS, LAUNCH };
+  enum Kind { INPUT, THEORY, RUNTYPE, BASIS, LAUNCH, OUTPUT };
 
   SetupArea(wxWindow *parent, CalcEd *editor);
   ~SetupArea();
@@ -35,6 +35,10 @@ public:
   // would run) names; false when it has no .dlg (the Python dialog runs).
   bool showDetails(Kind kind, const std::string& cmd);
   void showInput();
+  // The job's primary output, read-only; it follows a running job.
+  void showOutput();
+  // The calculation's state changed: the output view reloads.
+  void outputStateChanged();
   // The basis panel (BasisPanel) in place of the details; test hooks follow.
   void showBasis();
   // The Launcher's panel (LaunchEmbed.H); false when the Launcher is not
@@ -95,6 +99,9 @@ private:
   wxTextCtrl *p_input;
   wxWindow *p_body;
   wxTimer *p_timer;
+  wxTimer *p_outTimer;       // reloads the output of a running job
+  wxButton *p_openEditor;    // the output in the external editor
+  bool loadOutput(bool first);
   bool p_dry = false;   // the preview shows unsaved settings
   void dryRun();
   std::unique_ptr<Embedded> p_emb;

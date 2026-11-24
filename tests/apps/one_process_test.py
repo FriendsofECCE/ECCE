@@ -2143,7 +2143,9 @@ def runSetupLaunch(display):
             append("setup launch go", 90)
             append("setup launch get greyed", 2)
             append("setup launch info", 2)
-            append("setup results press", 25)
+            append("setup results output", 5)
+            append("setup info", 2)
+            append("setup results viewer", 25)
             append("tabs", 2)
             append("close", 3)
             append("answer", 3)
@@ -2194,14 +2196,20 @@ def runSetupLaunch(display):
         check(tt and "Launcher" not in tt[0],
               "no Launcher tab was opened", str(tt))
         res = pb.answers(log, "setup results")
-        check(len(res) >= 2 and "results=hidden" in res[0]
+        check(len(res) == 3 and "results=hidden" in res[0]
               and "editlaunch=enabled" in res[0]
-              and "results=shown" in res[-1] and "editlaunch=disabled" in res[-1]
-              and "pressed" in res[-1],
-              "after the launch the log header has a Results button and the "
+              and all("results=shown" in r and "editlaunch=disabled" in r
+                      and "pressed" in r for r in res[1:]),
+              "after the launch a Viewer/Output row is shown and the "
               "editor's Launch... is off", str(res))
+        out = [i for i in pb.answers(log, "setup info") if "area=output" in i]
+        m = re.search(r"lines=(\d+)", out[-1]) if out else None
+        check(m and int(m.group(1)) > 20 and "editor=1" in out[-1]
+              and "following=0" in out[-1],
+              "Output shows the finished job's output in the Set-up area, "
+              "with Open in editor", str(out))
         check(tt and "Viewer" in tt[-1],
-              "Results opens the calculation's Viewer tab", str(tt))
+              "Viewer opens the calculation's Viewer tab", str(tt))
         m = re.search(r"ecce:state\t\t(\w+)",
                       open(os.path.join(calc, ".ecce-meta")).read())
         state = m.group(1) if m else "?"

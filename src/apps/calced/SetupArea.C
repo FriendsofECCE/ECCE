@@ -11,8 +11,10 @@
 
 #include "dsm/ICalculation.H"
 #include "dsm/JCode.H"
+#include "dsm/ResourceDescriptor.H"
 #include "util/StringConverter.H"
 #include "wxgui/ToolTabs.H"
+#include "wxgui/WxEditSessionMgr.H"
 #include "wxgui/WxFeedback.H"
 
 #include "DetailsPanel.h"
@@ -25,6 +27,7 @@
 
 using std::string;
 using std::vector;
+using std::istream;
 
 namespace {
 
@@ -88,7 +91,8 @@ struct SetupArea::Embedded {
 const char *SetupArea::kindName(Kind k)
 {
   return k == THEORY ? "theory" : k == RUNTYPE ? "runtype" :
-         k == BASIS ? "basis" : k == LAUNCH ? "launch" : "input";
+         k == BASIS ? "basis" : k == LAUNCH ? "launch" :
+         k == OUTPUT ? "output" : "input";
 }
 
 
@@ -108,6 +112,20 @@ SetupArea::SetupArea(wxWindow *parent, CalcEd *editor)
   p_title->SetFont(bold);
   head->Add(p_fold, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 6);
   head->Add(p_title, 1, wxALIGN_CENTER_VERTICAL);
+  p_openEditor = new wxButton(this, wxID_ANY, "Open in editor");
+  p_openEditor->SetToolTip("Show the whole output file in the external text editor");
+  p_openEditor->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
+    ICalculation *calc = p_ed->p_iCalc;
+    istream *is = calc ? calc->getDataFile(JCode::PRIMARY_OUTPUT) : 0;
+    if (!is) return;
+    string text;
+    StringConverter::streamToText(*is, text);
+    delete is;
+    WxEditSessionMgr sessionMgr;
+    sessionMgr.edit(text, "output", p_ed, true, "Calculation Output");
+  });
+  p_openEditor->Hide();
+  head->Add(p_openEditor, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, 6);
   top->Add(head, 0, wxEXPAND | wxALL, 6);
   p_note = new wxStaticText(this, wxID_ANY, "");
   top->Add(p_note, 0, wxEXPAND | wxLEFT | wxRIGHT, 6);
@@ -128,7 +146,11 @@ SetupArea::SetupArea(wxWindow *parent, CalcEd *editor)
   SetSizer(top);
   // The preview follows unsaved changes, 500 ms after the last one.
   p_timer = new wxTimer(this);
-  Bind(wxEVT_TIMER, [this](wxTimerEvent&) { dryRun(); });
+  Bind(wxEVT_TIMER, [this](wxTimerEvent&) { dryRun(); }, p_timer->GetId());
+  p_outTimer = new wxTimer(this);
+  Bind(wxEVT_TIMER, [this](wxTimerEvent&) {
+    if (p_kind != OUTPUT || !loadOutput(false)) p_outTimer->Stop();
+  }, p_outTimer->GetId());
   showInput();
 }
 
@@ -138,11 +160,14 @@ SetupArea::~SetupArea()
   p_timer->Stop();
   delete p_timer;
   drop();
+  delete p_outTimer;
 }
 
 
 void SetupArea::drop()
 {
+  p_outTimer->Stop();
+  p_openEditor->Hide();
   p_launch.reset();
   if (p_basisPanel) {
     p_basisPanel->Destroy();
@@ -519,6 +544,70 @@ void SetupArea::showInput()
 }
 
 
+void SetupArea::showOutput()
+{
+  fold(false);   // a view asked for is shown
+  drop();
+  p_kind = OUTPUT;
+  p_input->Show();
+  fitBody();
+  p_title->SetLabel("Output file");
+  p_openEditor->Show();
+  p_input->ChangeValue("");
+  if (loadOutput(true)) p_outTimer->Start(5000);
+  mark();
+  Layout();
+  p_body->Layout();
+}
+
+
+void SetupArea::outputStateChanged()
+{
+  if (p_kind != OUTPUT) return;
+  if (loadOutput(false)) {
+    if (!p_outTimer->IsRunning()) p_outTimer->Start(5000);
+  } else {
+    p_outTimer->Stop();
+  }
+}
+
+
+// Reads the output again; true while the job may still write to it.  The
+// view stays at the end unless the reader has moved away from it.
+bool SetupArea::loadOutput(bool first)
+{
+  ICalculation *job = p_ed->p_iCalc;
+  if (!job) return false;
+  const ResourceDescriptor::RUNSTATE st = job->getState();
+  const bool running = st == ResourceDescriptor::STATE_SUBMITTED ||
+                       st == ResourceDescriptor::STATE_RUNNING ||
+                       st == ResourceDescriptor::STATE_WAITING;
+  istream *is = job->getDataFile(JCode::PRIMARY_OUTPUT);
+  wxString note;
+  string text;
+  if (is) {
+    StringConverter::streamToText(*is, text);
+    delete is;
+  } else {
+    note = running ? "No output yet: it appears here while the job runs."
+                   : "This calculation has no output file.";
+  }
+  if (p_note->GetLabel() != note) p_note->SetLabel(note);
+  p_note->Show(!note.empty());
+  wxString shown = wxString::FromUTF8(text.c_str());
+  if (p_input->GetValue() != shown) {
+    const long ip = p_input->GetInsertionPoint();
+    const bool atEnd = first || ip >= p_input->GetLastPosition();
+    p_input->ChangeValue(shown);
+    const long to = atEnd ? p_input->GetLastPosition() : ip;
+    p_input->SetInsertionPoint(to);
+    p_input->ShowPosition(to);
+  }
+  Layout();
+  return running;
+}
+
+
 void SetupArea::statusChanged()
 {
   if (p_kind != INPUT) return;
@@ -565,6 +654,11 @@ wxString SetupArea::describe() const
   if (p_kind == INPUT) {
     out += wxString::Format(" lines=%d dry=%d", p_input->GetNumberOfLines(),
                             (int)p_dry);
+  } else if (p_kind == OUTPUT) {
+    out += wxString::Format(" lines=%d following=%d editor=%d",
+                            p_input->GetNumberOfLines(),
+                            (int)p_outTimer->IsRunning(),
+                            (int)p_openEditor->IsShown());
   } else if (p_kind == LAUNCH && p_launch) {
     out += " " + wxString::FromUTF8(p_launch->get("info").c_str());
   } else if (p_kind == BASIS && p_basisPanel) {

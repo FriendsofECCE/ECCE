@@ -94,6 +94,9 @@
 #include "SetupArea.H"
 #include "wx/display.h"
 
+static const wxWindowID ID_BUTTON_CALCED_VIEWER = wxNewId();
+static const wxWindowID ID_BUTTON_CALCED_OUTPUT = wxNewId();
+
 //#define DEBUG
 
 namespace {
@@ -1436,16 +1439,19 @@ wxString CalcEd::setupCommand(const wxString& arg)
       top->SetSize(wxSize(width, top->GetSize().y));
       top->Layout();
     }
-  } else if (arg == "results" || arg == "results press") {
-    // The log header's Results button and the editor's own Launch... button.
-    const bool shown = p_resultsButton && p_resultsButton->IsShown();
+  } else if (arg == "results" || arg == "results viewer" ||
+             arg == "results output") {
+    // The Viewer/Output row and the editor's own Launch... button.
+    const bool shown = p_resultsRow && p_guessColumn->IsShown(p_resultsRow);
     wxWindow *launch = FindWindow(ID_BUTTON_CALCED_LAUNCH);
     wxString out = wxString("results=") + (shown ? "shown" : "hidden") +
         " editlaunch=" + (launch && launch->IsEnabled() ? "enabled" : "disabled");
-    if (shown && arg == "results press") {
-      wxCommandEvent ev(wxEVT_BUTTON, p_resultsButton->GetId());
-      ev.SetEventObject(p_resultsButton);
-      p_resultsButton->GetEventHandler()->ProcessEvent(ev);
+    if (shown && arg != "results") {
+      wxWindow *b = FindWindow(arg == "results viewer" ? ID_BUTTON_CALCED_VIEWER
+                                                       : ID_BUTTON_CALCED_OUTPUT);
+      wxCommandEvent ev(wxEVT_BUTTON, b->GetId());
+      ev.SetEventObject(b);
+      b->GetEventHandler()->ProcessEvent(ev);
       out += " pressed";
     }
     return out;
@@ -3057,6 +3063,24 @@ void CalcEd::spinMCB(wxCommandEvent& event)
 }
 
 
+void CalcEd::showOutput()
+{
+  if (p_setupArea) { p_setupArea->showOutput(); return; }
+  // A separate editor window has no Set-up area: the external editor.
+  istream *is = p_iCalc ? p_iCalc->getDataFile(JCode::PRIMARY_OUTPUT) : 0;
+  if (!is) {
+    p_feedback->setMessage("This calculation has no output file yet.",
+                           WxFeedback::WARNING);
+    return;
+  }
+  string text;
+  StringConverter::streamToText(*is, text);
+  delete is;
+  WxEditSessionMgr sessionMgr;
+  sessionMgr.edit(text, "output", this, true, "Calculation Output");
+}
+
+
 void CalcEd::stateMCB(wxCommandEvent& event)
 {
   if (p_iCalc->getState() > ResourceDescriptor::STATE_READY) {
@@ -3066,6 +3090,7 @@ void CalcEd::stateMCB(wxCommandEvent& event)
     setEditStatus(WxFeedback::EDIT);
   }
   enableAllFields();
+  if (p_setupArea) p_setupArea->outputStateChanged();
 }
 
 
@@ -3159,17 +3184,24 @@ void CalcEd::CreateControls()
   p_buttonRow->Insert(p_buttonRow->GetItemCount() - 1, save, 0,
                       wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT, 5);
 
-  // After a launch the next step is the job's progress and results: the
-  // Viewer, one click from the log that reports the submit.
-  p_resultsButton = new wxButton(p_feedback, wxID_ANY, _("Results"),
-                                 wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
-  p_resultsButton->SetToolTip(_("Open the Viewer: the job's progress and results"));
-  p_resultsButton->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
+  // After a launch the next step is the job's progress and results.
+  p_resultsRow = new wxBoxSizer(wxHORIZONTAL);
+  wxButton *viewer = new wxButton(this, ID_BUTTON_CALCED_VIEWER, _("Viewer"));
+  viewer->SetToolTip(_("Open the Viewer: the job's progress and results"));
+  viewer->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
     startApp(CALCVIEWER, 0, p_context);
   });
-  p_feedback->p_topLineSizer->Insert(3, p_resultsButton, 0,
-                                     wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT, 4);
-  p_resultsButton->Hide();
+  wxButton *output = new wxButton(this, ID_BUTTON_CALCED_OUTPUT, _("Output"));
+  output->SetToolTip(_("Show the job's output file"));
+  output->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { showOutput(); });
+  p_resultsRow->Add(viewer, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT, 5);
+  p_resultsRow->Add(output, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT, 5);
+  for (size_t i = 0; i < p_guessColumn->GetItemCount(); i++)
+    if (p_guessColumn->GetItem(i)->GetSizer() == p_buttonRow) {
+      p_guessColumn->Insert(i + 1, p_resultsRow, 0, wxGROW|wxRIGHT|wxBOTTOM, 5);
+      break;
+    }
+  p_guessColumn->Show(p_resultsRow, false);
 
   replaceBuilderButton();
   replaceBasisSetButton();
@@ -4792,9 +4824,9 @@ void CalcEd::enableChemSysFields()
   }
 
   p_builderTool->Enable(hasCalc && !p_tsSource);
-  if (p_resultsButton && p_resultsButton->IsShown() != isSubmitted) {
-    p_resultsButton->Show(isSubmitted);
-    p_feedback->Layout();
+  if (p_resultsRow && p_guessColumn->IsShown(p_resultsRow) != isSubmitted) {
+    p_guessColumn->Show(p_resultsRow, isSubmitted);
+    Layout();
   }
   if (p_tsPanel) {
     for (int k = 0; k < 3; k++) p_tsChoice[k]->Enable(!isSubmitted);
