@@ -158,6 +158,27 @@ int InProcessTools::count(const string& app)
 }
 
 
+static InProcessTools::CalcAction& calcActionFn()
+{
+  static auto *f = new InProcessTools::CalcAction;
+  return *f;
+}
+
+
+void InProcessTools::setCalcAction(CalcAction fn)
+{
+  calcActionFn() = fn;
+}
+
+
+string InProcessTools::calcAction(const string& action, const string& url,
+                                  const string& answer)
+{
+  if (!calcActionFn()) return "no Organizer in this process";
+  return calcActionFn()(action, url, answer);
+}
+
+
 string InProcessTools::context(const wxTopLevelWindow *frame)
 {
   for (const Window& w : windows())

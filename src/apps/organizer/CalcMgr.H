@@ -184,6 +184,12 @@ public:
 
   /// One command of the ECCE_TEST_ORGANIZER hook (see CalcMgr::Create).
   void runTestCommand(const string& line);
+  /// What the editor's Results box asks for (InProcessTools::calcAction).
+  string runCalcAction(const string& action, const string& url,
+                       const string& answer);
+  // "yes" or "cancel" stands in for the reset/terminate confirm dialog.
+  string p_dlgAnswer;
+  int askOrAnswer(wxDialog& dlg);
 
   void OnExitClick( wxCommandEvent& event );
 
