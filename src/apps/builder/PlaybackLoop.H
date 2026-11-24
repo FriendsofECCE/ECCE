@@ -1,11 +1,32 @@
 #ifndef PLAYBACKLOOP__H
 #define PLAYBACKLOOP__H
 
+#include <string>
 #include <vector>
 
-// Back-and-forth looping for the Relaxed Scan and IRC Path
-// panels.  No wx here, so the order of the points is testable.
+// What Play does at the last point (Repeat: off / from the start / back and
+// forth).  No wx here, so the order of the points is testable.
 namespace playbackloop {
+
+enum Repeat { OFF, FROM_START, BACK_AND_FORTH };
+
+// The names the Repeat choice shows, in enum order, and the script words.
+inline const char *repeatLabel(Repeat r)
+{
+  return r == OFF ? "off" : r == FROM_START ? "from the start" : "back and forth";
+}
+inline const char *repeatWord(Repeat r)
+{
+  return r == OFF ? "off" : r == FROM_START ? "start" : "backforth";
+}
+inline bool parseRepeat(const std::string& w, Repeat& r)
+{
+  if (w == "off") r = OFF;
+  else if (w == "start") r = FROM_START;
+  else if (w == "backforth" || w == "on") r = BACK_AND_FORTH;
+  else return false;
+  return true;
+}
 
 struct Pos {
   long cur;
@@ -23,14 +44,18 @@ inline Pos next(Pos p, long n)
   return Pos{c, p.dir};
 }
 
-// The points shown by <ticks> ticks of play from the first point.
-inline std::vector<long> sequence(long n, long ticks)
+// The points shown by <ticks> ticks of play from the first point; with OFF
+// play stops at the last point.
+inline std::vector<long> sequence(long n, long ticks, Repeat r = BACK_AND_FORTH)
 {
   std::vector<long> out;
   Pos p{0, 1};
   if (n > 0) out.push_back(0);
   for (long t = 0; t < ticks && n > 0; t++) {
-    p = next(p, n);
+    if (r == BACK_AND_FORTH) p = next(p, n);
+    else if (p.cur < n - 1) p.cur++;
+    else if (r == FROM_START) p.cur = 0;
+    else break;
     out.push_back(p.cur);
   }
   return out;

@@ -69,6 +69,8 @@ class PlaybackControl : public ewxPanel
 
     // Getters
     bool IsPlaying() const { return p_timer->IsRunning(); }
+    /** Off: Play stops at the last point instead of starting again. */
+    void SetRepeat(bool on) { p_repeat = on; }
     bool IsRecording() const { return p_record->GetValue(); }
     int GetDelay() const { return *p_delay; }
     long GetStartIndex() const { return *p_startIndex; }
@@ -102,6 +104,7 @@ class PlaybackControl : public ewxPanel
     long * p_stepSize;
     long * p_currentStep;
 
+    bool p_repeat = true;
     bool p_delayInternal;
     bool p_startIndexInternal;
     bool p_stopIndexInternal;

@@ -301,7 +301,7 @@ void PlaybackControl::SendLoopEvent(const bool& isForward)
 
 void PlaybackControl::OnTimer(wxTimerEvent& event)
 {
-  DoTimer(p_play->GetValue());
+  DoTimer(p_play->GetValue() && p_repeat);
 }
 
 

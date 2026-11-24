@@ -100,7 +100,7 @@ GeomTracePropertyPanel::GeomTracePropertyPanel()
     p_playback(NULL),
     p_propChoice(NULL),
     p_delay(500),
-    p_loop(NULL),
+    p_repeat(NULL),
     p_recompute(false),
     p_fold(true),
     p_currentProp(""),
@@ -124,7 +124,7 @@ GeomTracePropertyPanel::GeomTracePropertyPanel(IPropCalculation *calculation,
     p_playback(NULL),
     p_propChoice(NULL),
     p_delay(500),
-    p_loop(NULL),
+    p_repeat(NULL),
     p_recompute(false),
     p_fold(false),
     p_currentProp(""),
@@ -286,10 +286,18 @@ void GeomTracePropertyPanel::initialize()
   p_playback->SetStopIndex(numSteps()-1);
   FindWindow(PlaybackControl::ID_RECORD)->Hide();
   sizer->Add(p_playback, 0, wxALIGN_CENTER_VERTICAL);
-  p_loop = new wxCheckBox(this, wxID_ANY, "Loop");
-  p_loop->SetToolTip("Play forward to the last step, then backward to the "
-                     "first, and repeat until stopped");
-  sizer->Add(p_loop, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, 8);
+  sizer->Add(new wxStaticText(this, wxID_ANY, "Repeat:"), 0,
+             wxALIGN_CENTER_VERTICAL | wxLEFT | wxRIGHT, 8);
+  p_repeat = new wxChoice(this, wxID_ANY);
+  for (playbackloop::Repeat r : {playbackloop::OFF, playbackloop::FROM_START,
+                                 playbackloop::BACK_AND_FORTH})
+    p_repeat->Append(playbackloop::repeatLabel(r));
+  p_repeat->SetToolTip("What Play does at the last step: stop there, start "
+                       "again from the first, or play backward to the first "
+                       "and on until stopped");
+  sizer->Add(p_repeat, 0, wxALIGN_CENTER_VERTICAL);
+  setRepeat(playbackloop::FROM_START);
+  p_repeat->Bind(wxEVT_CHOICE, [this](wxCommandEvent&) { setRepeat(repeat()); });
   GetSizer()->Add(sizer, 0);
 
   restoreSettings();
@@ -532,12 +540,25 @@ void GeomTracePropertyPanel::OnPlaybackTick(wxCommandEvent& event)
 }
 
 
-// With Loop on, the control's wrap from one end to the other becomes a
-// reversal, as in the IRC Path and Relaxed Scan panels.
+void GeomTracePropertyPanel::setRepeat(int r)
+{
+  p_repeat->SetSelection(r);
+  p_playback->SetRepeat(r != playbackloop::OFF);
+}
+
+
+int GeomTracePropertyPanel::repeat() const
+{
+  return p_repeat ? p_repeat->GetSelection() : playbackloop::OFF;
+}
+
+
+// With Repeat back and forth, the control's wrap from one end to the other
+// becomes a reversal, as in the IRC Path and Relaxed Scan panels.
 void GeomTracePropertyPanel::OnPlaybackLoop(wxCommandEvent& event)
 {
   const long n = numSteps();
-  if (p_loop && p_loop->GetValue() && n > 0) {
+  if (repeat() == playbackloop::BACK_AND_FORTH && n > 0) {
     const bool wasForward = event.GetInt() != 0;
     const playbackloop::Pos p = playbackloop::next(
         wasForward ? playbackloop::Pos{n - 1, 1} : playbackloop::Pos{0, -1}, n);

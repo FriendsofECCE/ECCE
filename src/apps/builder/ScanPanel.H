@@ -1,6 +1,7 @@
 #ifndef SCANPANEL__H
 #define SCANPANEL__H
 
+#include "PlaybackLoop.H"
 #include <string>
 #include <vector>
 #include <wx/timer.h>
@@ -66,8 +67,8 @@ class ScanPanel : public VizPropertyPanel
       /** Playback delay (ms per step) and Loop, as the controls do. For scripts and tests. */
       void setPlaybackSpeed(const std::string& name);
       std::string playbackSpeed() const;
-      void setPlaybackLoop(bool on);
-      bool playbackLoop() const;
+      void setPlaybackRepeat(playbackloop::Repeat r);
+      playbackloop::Repeat playbackRepeat() const;
 
       /** The points shown by <ticks> playback ticks from the first, without timers. */
       std::vector<int> playOrder(int ticks);

@@ -35,6 +35,7 @@
 
 #include "XYPlotCanvas.H"
 #include "wxgui/PlaybackControl.H"
+#include "PlaybackLoop.H"
 #include <wx/checkbox.h>
 #include "wxgui/ThingToggle.H"
 
@@ -237,6 +238,24 @@ bool Builder::traceStressCommand(SceneScript& s, const vector<string>& w)
     if (!gt || !plot) return s.fail("gtframe: no Geometry Trace panel");
     const int frame = w[1] == "last" ? gt->frameCount() - 1 : atoi(w[1].c_str());
     return traceFrame(frame);
+  }
+
+  //  "gtrepeat [off|start|backforth]": set the Repeat choice and log it with
+  //  the frames two passes of play would show (stderr).
+  if (c == "gtrepeat") {
+    if (!gt) return s.fail("gtrepeat: no Geometry Trace panel");
+    playbackloop::Repeat r;
+    if (w.size() == 2) {
+      if (!playbackloop::parseRepeat(w[1], r)) return s.fail("gtrepeat: " + w[1] + "?");
+      gt->setRepeat(r);
+    }
+    r = (playbackloop::Repeat)gt->repeat();
+    string order;
+    for (long i : playbackloop::sequence(gt->frameCount(), 2 * gt->frameCount(), r))
+      order += " " + std::to_string(i + 1);
+    fprintf(stderr, "GTSTRESS: repeat=%s frames=%d order:%s\n",
+            playbackloop::repeatWord(r), gt->frameCount(), order.c_str());
+    return true;
   }
 
   //  "gtinview": whether an atom is outside the 3-D view, the atoms and

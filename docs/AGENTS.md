@@ -286,6 +286,19 @@ table and playback refer to the active calculation. Test:
 `tests/apps/scan_compare_test.py`, with isolated stored fixtures copied from
 an existing scan example. Put `background 1 1 1` before screenshots.
 
+### Playback Repeat (#1229)
+
+The Relaxed Scan, IRC Path and Geometry Trace panels have **Repeat: off /
+from the start / back and forth** next to the play buttons: what **Play**
+does at the last point. Back and forth is the default for scans and IRC
+paths, from the start for the Geometry Trace. Builder script:
+`scanplayopt repeat off|start|backforth` and `ircplayopt repeat ...`
+(`loop on|off` still works: on = backforth); `... order <ticks>` logs the
+points that many ticks of play show, and the reply carries `repeat=<word>`.
+`gtrepeat [off|start|backforth]` sets the Geometry Trace choice and logs
+`GTSTRESS: repeat=<word> frames=<n> order: ...` (two passes). Test:
+`tests/apps/irc_panel_test.py`.
+
 ## Checking the Basis Set Tool window
 
 The window is retired (#1063): with tabs, `start Basistool URL`, the

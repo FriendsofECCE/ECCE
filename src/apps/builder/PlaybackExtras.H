@@ -4,19 +4,25 @@
 #include <string>
 #include <wx/panel.h>
 
+#include "PlaybackLoop.H"
+
+class PlaybackControl;
 class wxCheckBox;
+class wxChoice;
 class wxTextCtrl;
 class wxSizer;
 
 /**
- * The playback delay (ms per step) and Loop toggle under the playback buttons of
- * the Relaxed Scan and IRC Path panels.
+ * The playback delay (ms per step) and Repeat choice under the playback buttons
+ * of the Relaxed Scan and IRC Path panels.
  */
 class PlaybackExtras
 {
    public:
-      /** Adds the row to <sizer>; <delay> is the playback control's delay. */
+      /** Adds the row to <sizer>; <delay> is <control>'s delay, <repeat>
+          the Repeat choice to start with. */
       PlaybackExtras(wxWindow *parent, wxSizer *sizer, int *delay,
+                     PlaybackControl *control, playbackloop::Repeat repeat,
                      bool withMo = false);
 
       /** The "Show MO while playing" check box (IRC Path only; off by default). */
@@ -29,13 +35,14 @@ class PlaybackExtras
       /** Milliseconds per step, 1 to 10000; false for anything else. */
       bool setSpeed(const std::string& name);
       std::string speed() const;
-      void setLoop(bool on);
-      bool loop() const;
+      void setRepeat(playbackloop::Repeat r);
+      playbackloop::Repeat repeat() const;
 
    private:
       void onSpeed();
       wxTextCtrl *p_speed;
-      wxCheckBox *p_loop;
+      wxChoice *p_repeat;
+      PlaybackControl *p_control;
       wxCheckBox *p_mo = 0;
       int *p_delay;
 };
