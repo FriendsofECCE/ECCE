@@ -2646,6 +2646,16 @@ def runPanelTeardown(display):
         shutil.rmtree(work, ignore_errors=True)
 
 
+TABS_PARTS = [
+    [runLayouts, runTabs, runQuitHost, runUntrustedDir, runGeometry],
+    [runTabsEditor, runSetupTab],
+    [runTabsTools, runTabsLauncher, runSetupLaunch],
+    [runQuitDuringClose, runQuitJob, runReopenViewer, runTabPaint],
+    [runTabsPopups, runUtilityWindows, runTabs1088, runTabIdentity,
+     runPanelTeardown],
+]
+
+
 def main():
     # A stalled run is killed by its wall-clock limit without saying where;
     # every 10 min the Python stacks go to stderr so the log shows it.
@@ -2741,27 +2751,18 @@ def main():
             if failures:
                 results.fail("one-process", "; ".join(failures))
             return
-        runLayouts(display)
-        runTabs(display)
-        runQuitHost(display)
-        runSingleInstance(display)
-        runUntrustedDir(display)
-        runGeometry(display)
-        runTabsEditor(display)
-        runSetupTab(display)
-        runBasisContractions(display)
-        runTabsTools(display)
-        runTabsLauncher(display)
-        runSetupLaunch(display)
-        runQuitDuringClose(display)
-        runQuitJob(display)
-        runReopenViewer(display)
-        runTabPaint(display)
-        runTabsPopups(display)
-        runUtilityWindows(display)
-        runTabs1088(display)
-        runTabIdentity(display)
-        runPanelTeardown(display)
+        # The tabbed part in groups, one ctest each (ECCE_TABS_PART=N), so
+        # each stays under 30 min; ECCE_TABS_ONLY=1 alone runs them all.
+        # runSingleInstance and runBasisContractions have ctests of their own.
+        part = os.environ.get("ECCE_TABS_PART", "")
+        for n, group in enumerate(TABS_PARTS, 1):
+            if part and part != str(n):
+                continue
+            for step in group:
+                began = time.time()
+                step(display)
+                print("time %s %.0f s" % (step.__name__, time.time() - began))
+                sys.stdout.flush()
         if os.environ.get("ECCE_TABS_ONLY") == "1":
             if failures:
                 results.fail("one-process", "; ".join(failures))
@@ -2772,9 +2773,9 @@ def main():
         if failures:
             results.fail("one-process", "; ".join(failures))
     run_tests.checkApp = checkApp
-    # The tabbed part alone takes ~74 min on the offload hosts (#1253);
-    # ctest runs the parts separately, each inside its TIMEOUT.
-    sys.argv = ([sys.argv[0], "--app", "organizer", "--budget", "5700"] +
+    # ctest runs the parts separately, each inside its TIMEOUT (#1253).
+    budget = "1700" if os.environ.get("ECCE_TABS_PART") else "5700"
+    sys.argv = ([sys.argv[0], "--app", "organizer", "--budget", budget] +
                 sys.argv[1:])
     return run_tests.main()
 
