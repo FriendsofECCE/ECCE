@@ -16,7 +16,12 @@ code icon is a placeholder.
 ## The score
 
 Vina reports a score for every pose, shown as **Vina score (kcal/mol)**. It is
-an estimate of the binding affinity from a fitted function, not an energy from
+an estimate of the binding affinity from a fitted function, chosen in
+**Theory Details** as **Scoring function:** **vina** (the default) or
+**vinardo**, a simpler function with retuned atom terms. vinardo needs Vina
+1.2 or later; on an older Vina the job warns in its output and scores with
+vina. Scores of the two functions are not comparable with each other. It is
+not an energy from
 a quantum calculation. A more negative score is a better pose. Scores are
 never comparable with the energies of other codes, and ECCE does not offer to
 compare them. Only compare Vina scores with other Vina scores from the same

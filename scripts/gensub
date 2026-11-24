@@ -2600,6 +2600,12 @@ sub vina()
   $retval .= "  echo \"ecce-pdbqt failed: the receptor or ligand could not be prepared\" >> $::outFile\n";
   $retval .= "else\n";
 
+  # Vina 1.1 rejects an unknown config key: warn and fall back to its only
+  # scoring function rather than fail the job.
+  $retval .= "  if grep -q '^scoring' $::inFile && ! \"\$vina\" --help 2>&1 | grep -q -- '--scoring'; then\n";
+  $retval .= "    echo \"ECCE warning: this Vina has no --scoring option (Vina 1.2 or later); scoring with vina\" >> $::outFile\n";
+  $retval .= "    grep -v '^scoring' $::inFile > $::inFile.tmp && mv $::inFile.tmp $::inFile\n";
+  $retval .= "  fi\n";
   if ($cmd ne "") {
     $retval .= "$cmd\n";
   } else {

@@ -540,7 +540,7 @@ each tool's row (Builder / Viewer, Calculation Editor, Basis Set Tool, MD
 editors, MD Prepare) to Tab or Window, which makes the layout Custom. Under
 Normal the Calculation Editor's tab is the Set-up tab: a detail area right
 of the editor shows the Theory or Runtype Details (codes with a `.dlg`
-description: ECCE-QM, ORCA, xTB, Gaussian 16, MOPAC, Vina Runtype; others open the Python
+description: ECCE-QM, ORCA, xTB, Gaussian 16, MOPAC, Vina; others open the Python
 dialog's window) or, with no detail chosen, the input file (after an
 unsaved change, a dry run of the generator with the editor's settings,
 500 ms after the last change; the calculation is not written). MOPAC now has
@@ -911,6 +911,12 @@ residues (the editor writes them to `<dialog out file>.molecules`, one
 the first. The key can still be typed. The same ranking and range formatter
 are `LigandSelect::ligandCandidates`/`atomRangeString` (`include/tdat/LigandSelect.H`).
 In the Organizer's editor tab Runtype Details opens in the Set-up area (`setup runtype`; `setup info` reports `ligandpick=N`, the candidates listed, and `setup set ES.Runtype.Docking.LigandAtoms 10-15` sets the key); the standalone editor runs the Python dialog. `ECCE_VINA_TRACE=1` makes the Python dialog print how it chose the default (`VINADLG:` lines on the editor's stderr).
+
+**Vina scoring (#1278).** Theory Details key `ES.Theory.Vina.Scoring`,
+`vina` (default) or `vinardo` (`setup set ES.Theory.Vina.Scoring vinardo`).
+ai.vina writes `scoring = vinardo` only for vinardo; on a Vina without
+`--scoring` (before 1.2) the job script drops that line and writes an
+`ECCE warning:` line to the output, so the run scores with vina.
 
 **Docking.** Vina calculations (`vina`); `ecce-pdbqt` prepares PDBQT files;
 CREST/xTB docking is a run type of xTB.
