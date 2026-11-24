@@ -410,6 +410,16 @@ Binary files show size and extension. **Open in editor** downloads a separate
 that copy. Text viewing currently refuses sizes above the signed-int EDSI
 range limit (2 GiB); the editor download is still available.
 
+Organizer thumbnails (#1238): selecting a calculation with a structure requests
+`Parameters/Thumbnail.jpeg` if it is missing or unreadable, once per URL per
+session. The structure itself determines eligibility, including periodic
+structures without formula metadata. VizThumbnail publishes `ecce_url_property`
+with `name=thumbnail` after storing each image, so the selected button updates
+without reselecting. Rendering and thumbnail styling are unchanged.
+`ECCE_NO_VIZIMAGES` disables generation. stderr records requests, missing
+structures, unreadable images and render failures; `ECCE_TIMING=1` also records
+`Organizer: thumbnail displayed <URL>` when the button receives the image.
+
 Organizer details pane timing (#1237): selecting a calculation fills the
 pane and lays it out first; the progress backfill and the thumbnail follow
 from the event loop. `ECCE_TIMING=1` prints one stderr line per refresh,
