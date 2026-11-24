@@ -1,4 +1,5 @@
 
+#include <wx/tokenzr.h>
 #include "util/ResourceUtils.H"
 #include "util/STLUtil.H"
 
@@ -31,6 +32,32 @@ OpenCalculationDialog::~OpenCalculationDialog()
 
 bool OpenCalculationDialog::Create(wxWindow *parent)
 {
+  if (!ewxGenericFileDialog::Create(parent,
+          "Open",
+          wxEmptyString, wxEmptyString, wildcard(),
+          wxFD_OPEN|wxFD_FILE_MUST_EXIST)) {
+    return false;
+  }
+
+  SetName("OpenCalculationDialog");
+
+  return true;
+}
+
+
+wxString OpenCalculationDialog::wildcardLabel(int index)
+{
+  wxStringTokenizer tok(wildcard(), "|", wxTOKEN_RET_EMPTY_ALL);
+  for (int i = 0; i < index && tok.HasMoreTokens(); i++) {
+    tok.GetNextToken();
+    tok.GetNextToken();
+  }
+  return tok.HasMoreTokens() ? tok.GetNextToken() : wxString();
+}
+
+
+wxString OpenCalculationDialog::wildcard()
+{
   map<string,string> filters;
   map<string,string>::iterator filtersIt;
   string currentWildcard;
@@ -53,16 +80,6 @@ bool OpenCalculationDialog::Create(wxWindow *parent)
     filter_string.append(filtersIt->second + "|");
   }
   filter_string.erase(filter_string.end() - 1); // remove last "|"
-
-  if (!ewxGenericFileDialog::Create(parent,
-          "Open",
-          wxEmptyString, wxEmptyString, filter_string,
-          wxFD_OPEN|wxFD_FILE_MUST_EXIST)) {
-    return false;
-  }
-
-  SetName("OpenCalculationDialog");
-
-  return true;
+  return filter_string;
 }
 

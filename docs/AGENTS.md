@@ -912,6 +912,16 @@ the first. The key can still be typed. The same ranking and range formatter
 are `LigandSelect::ligandCandidates`/`atomRangeString` (`include/tdat/LigandSelect.H`).
 In the Organizer's editor tab Runtype Details opens in the Set-up area (`setup runtype`; `setup info` reports `ligandpick=N`, the candidates listed, and `setup set ES.Runtype.Docking.LigandAtoms 10-15` sets the key); the standalone editor runs the Python dialog. `ECCE_VINA_TRACE=1` makes the Python dialog print how it chose the default (`VINADLG:` lines on the editor's stderr).
 
+**Local file chooser (#342).** Builder File > Open... and Add Structure from
+File... use the platform's file dialog (`ecceLocalFile`,
+`include/wxgui/LocalFileDialog.H`, last folder per use in
+`LocalFileDialog.ini`); "... from Remote Machine..." keeps ECCE's dialog for
+registered machines and data servers. A native dialog cannot be driven, so
+`ECCE_TEST_LOCAL_FILE=<path>` makes the chooser return that path without
+showing (stderr `LOCALFILE: <key> -> <path>`); Builder script
+`menu File|Add Structure from File...` then reads it. `ECCE_TEST_OPEN` drives
+the remote item. Test: `tests/apps/local_file_test.py`.
+
 **Vina scoring (#1278).** Theory Details key `ES.Theory.Vina.Scoring`,
 `vina` (default) or `vinardo` (`setup set ES.Theory.Vina.Scoring vinardo`).
 ai.vina writes `scoring = vinardo` only for vinardo; on a Vina without

@@ -32,12 +32,16 @@ You can also open the Builder on a calculation, as in
 ### Load a file into the Builder
 
 1. In the Builder, choose **File > Add Structure from File...**.
-2. In the file window, choose
-   **Local Filesystem** in the server list at the top-left. The same list
-   offers the data servers ECCE knows about.
-3. Go to the folder with your file. **Files of type:** lists the formats
-   above; "All Supported Types" shows all of them.
-4. Select the file and click **OK**.
+2. Your desktop's own file window opens, in the folder you last used for
+   this (the home folder the first time), with its bookmarks, recent files
+   and search. The file-type list offers the formats above; "All Supported
+   Types" shows all of them.
+3. Select the file and click **Open**.
+
+For a file on a registered machine or a data server, choose **File > Add
+Structure from Remote Machine...** instead: ECCE's own file window, with the
+machines and data servers in the list at the top-left. **File > Open from
+Remote Machine...** is the same for **Open...**.
 
 The structure is added to what is already in the Builder, so start from an
 empty structure if you want only the file.

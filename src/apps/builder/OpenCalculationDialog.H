@@ -14,6 +14,12 @@ class OpenCalculationDialog : public ewxGenericFileDialog
     virtual ~OpenCalculationDialog();
 
     bool Create(wxWindow *parent);
+
+    /** The file types the Builder opens, as a wx wildcard ("All Supported
+        Types" first, then one entry per calculation type). */
+    static wxString wildcard();
+    /** The label of entry <index> of wildcard(). */
+    static wxString wildcardLabel(int index);
 };
 
 #endif // OPENCALCULATIONDIALOG_H_
