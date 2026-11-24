@@ -4,6 +4,7 @@
  */
 
 #include <iostream>
+#include <cstdlib>
 using std::cerr;
 using std::endl;
 
@@ -188,7 +189,8 @@ void VizThumbnailApp::render(JMSMessage& msg)
       changed->addProperty("name", "thumbnail");
       publish("ecce_url_property", *changed);
       delete changed;
-      cerr << "VizThumbnailApp: thumbnail stored " << calcurl << endl;
+      if (getenv("ECCE_TIMING"))
+        cerr << "VizThumbnailApp: thumbnail stored " << calcurl << endl;
     }
   }
   notifySuccess(msg.getSender().getName(), error);

@@ -416,9 +416,11 @@ session. The structure itself determines eligibility, including periodic
 structures without formula metadata. VizThumbnail publishes `ecce_url_property`
 with `name=thumbnail` after storing each image, so the selected button updates
 without reselecting. Rendering and thumbnail styling are unchanged.
-`ECCE_NO_VIZIMAGES` disables generation. stderr records requests, missing
-structures, unreadable images and render failures; `ECCE_TIMING=1` also records
-`Organizer: thumbnail displayed <URL>` when the button receives the image.
+`ECCE_NO_VIZIMAGES` disables generation. stderr always records unreadable
+images and render failures; `ECCE_TIMING=1` also records `Organizer: thumbnail
+requested|displayed <URL>`, `Organizer: no structure for thumbnail <URL>` and
+`VizThumbnailApp: thumbnail stored <URL>`. Open Editors ignore the
+`name=thumbnail` message, so it never triggers their auto-save.
 
 Organizer details pane timing (#1237): selecting a calculation fills the
 pane and lays it out first; the progress backfill and the thumbnail follow

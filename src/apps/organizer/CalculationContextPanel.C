@@ -320,13 +320,17 @@ void CalculationContextPanel::refreshThumbnail(const std::string &url)
   if (getenv("ECCE_NO_VIZIMAGES") || asked.count(url)) return;
   // Imported structures need not carry formula metadata. Read the structure
   // itself before deciding whether the generic icon is appropriate.
+  // Marked before the read so a calculation without a structure is read once.
+  asked.insert(url);
+  const bool timing = getenv("ECCE_TIMING") != 0;
   Fragment fragment;
   if (!chemTask->getFragment(fragment) || fragment.numAtoms() == 0) {
-    std::cerr << "Organizer: no structure for thumbnail " << url << std::endl;
+    if (timing)
+      std::cerr << "Organizer: no structure for thumbnail " << url << std::endl;
     return;
   }
-  asked.insert(url);
-  std::cerr << "Organizer: thumbnail requested " << url << std::endl;
+  if (timing)
+    std::cerr << "Organizer: thumbnail requested " << url << std::endl;
   VizThumbnail::thumbnail(ORGANIZER, url);
 }
 

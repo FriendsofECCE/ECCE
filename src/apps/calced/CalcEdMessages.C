@@ -287,7 +287,9 @@ void CalcEdMessages::calcPropertyMCB(JMSMessage& msg)
     EDSIFactory::changePoolResource(urlstr);
 
     string name = msg.getProperty("name");
-    if (name.find("reviewed") == string::npos) {
+    // A new thumbnail changes nothing in the input; reloading would
+    // auto-save an open editor (#1238).
+    if (name.find("reviewed") == string::npos && name != "thumbnail") {
       wxCommandEvent event;
       p_calced->propertyMCB(event);
     }
