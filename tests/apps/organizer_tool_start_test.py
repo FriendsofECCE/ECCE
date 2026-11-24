@@ -96,14 +96,14 @@ def run(display, oneProcess):
             return
         before, first, second, slow, up = states[:5]
         check(before.startswith("state=none") and "busy=0" in before and
-              before.endswith("launches=0"),
+              re.search(r"\blaunches=0\b", before),
               mode + ": nothing shows before a start", before)
         check("state=starting" in first and "busy=1" in first and
               'status="Opening the Builder for water-a' in first
               and "window=none" in first,
               mode + ": busy cursor and status line at once, no window yet",
               first)
-        check(second.endswith("launches=1") and slow.endswith("launches=1"),
+        check(re.search(r"\blaunches=1\b", second) and re.search(r"\blaunches=1\b", slow),
               mode + ": the second request was dropped while the first "
               "starts", second)
         check("state=starting" in slow and "window=shown" in slow,

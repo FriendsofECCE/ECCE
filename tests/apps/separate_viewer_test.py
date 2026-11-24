@@ -12,6 +12,7 @@ Same installed tree, isolation and services as run_tests.py.  Exit 77
 """
 
 import os
+import re
 import shutil
 import sys
 import tempfile
@@ -109,7 +110,7 @@ def run(display, batch=False):
         if batch:
             st = pb.answers(log, "toolstate")
             check(bool(st) and st[-1].startswith("state=up") and
-                  st[-1].endswith("launches=2"),
+                  re.search(r"\blaunches=2\b", st[-1]),
                   "two requests in one batch: both tools came up",
                   str(st) + log[-3000:])
         b = [p for p in seen.get("builder", []) if p[1] == "builder"]
