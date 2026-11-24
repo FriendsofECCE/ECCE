@@ -24,6 +24,7 @@
 #include "util/PrefDateTime.H"
 #include <ctime>
 #include "tdat/TFormula.H"
+#include "tdat/Fragment.H"
 #include "tdat/SpinMult.H"
 #include "tdat/TProperty.H"
 #include "tdat/PropVector.H"
@@ -251,9 +252,6 @@ void CalculationContextPanel::refresh()
   // window lost and regained focus (#1237); ask for the paint explicitly.
   Refresh();
 
-  string formula;
-  p_properties->findValue(VDoc::getEcceNamespace() + ":empiricalFormula",
-                          formula);
   const bool isTask = dynamic_cast<ChemistryTask *>(p_itemData->getResource()) != 0;
   const long tSync = total.Time();
   const string url = getUrl().toString();
@@ -267,7 +265,7 @@ void CalculationContextPanel::refresh()
 
   // The panel can be replaced or the calculation changed before this runs.
   wxWeakRef<wxWindow> self(this);
-  CallAfter([this, self, url, name, formula, needBackfill, isTask, tSync,
+  CallAfter([this, self, url, name, needBackfill, isTask, tSync,
              tProps, tLaunch]() {
     if (!self || getUrl().toString() != url) return;
     wxStopWatch sw;
@@ -275,7 +273,7 @@ void CalculationContextPanel::refresh()
     const long tBackfill = sw.Time();
 
     sw.Start();
-    if (isTask) refreshThumbnail(url, formula);
+    if (isTask) refreshThumbnail(url);
     const long tThumb = sw.Time();
 
     const long all = tSync + tBackfill + tThumb;
@@ -292,32 +290,45 @@ void CalculationContextPanel::refresh()
  * Replaces the Builder button's icon by the stored thumbnail, or asks once
  * per session for one when the calculation has a structure but no thumbnail.
  */
-void CalculationContextPanel::refreshThumbnail(const std::string &url,
-                                               const std::string &formula)
+void CalculationContextPanel::refreshThumbnail(const std::string &url)
 {
   ChemistryTask *chemTask = dynamic_cast<ChemistryTask *>(p_itemData->getResource());
   if (!chemTask) return;
   SFile *thumbnail = TempStorage::getTempFile();
+  bool displayed = false;
   if (chemTask->getThumbnail(thumbnail)) {
     wxWindow *window = this->FindWindow(BUILDER);
     EcceTool *button = window ? dynamic_cast<EcceTool*>(window) : 0;
     if (button) {
-      wxLogNull quiet;   // an unreadable thumbnail is shown as the plain icon
+      wxLogNull quiet;
       wxBitmap bitmap(thumbnail->path(), wxBITMAP_TYPE_JPEG);
-      if (bitmap.Ok()) button->setBitMap(bitmap);
+      if (bitmap.IsOk()) {
+        button->setBitMap(bitmap);
+        displayed = true;
+        if (getenv("ECCE_TIMING"))
+          std::cerr << "Organizer: thumbnail displayed " << url << std::endl;
+      } else {
+        std::cerr << "Organizer: unreadable thumbnail " << url << std::endl;
+      }
     }
-  } else if (!getenv("ECCE_NO_VIZIMAGES")) {
-    // Only the Builder's Save and the example import write a thumbnail, so
-    // a calculation made by a script, an import or a copy has none; it shows
-    // the next time the calculation is selected.
-    static std::set<string> asked;
-    if (!formula.empty() && asked.insert(url).second)
-      VizThumbnail::thumbnail(ORGANIZER, url);
   }
   thumbnail->remove();
   delete thumbnail;
-}
+  if (displayed) return;
 
+  static std::set<string> asked;
+  if (getenv("ECCE_NO_VIZIMAGES") || asked.count(url)) return;
+  // Imported structures need not carry formula metadata. Read the structure
+  // itself before deciding whether the generic icon is appropriate.
+  Fragment fragment;
+  if (!chemTask->getFragment(fragment) || fragment.numAtoms() == 0) {
+    std::cerr << "Organizer: no structure for thumbnail " << url << std::endl;
+    return;
+  }
+  asked.insert(url);
+  std::cerr << "Organizer: thumbnail requested " << url << std::endl;
+  VizThumbnail::thumbnail(ORGANIZER, url);
+}
 
 
 //  Cores x wall time, to the completion date or, while running, to now.
