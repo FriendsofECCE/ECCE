@@ -2061,8 +2061,10 @@ def runSetupLaunch(display):
                 re.sub(r"(ecce:state\t\t)\w+", r"\g<1>" + name, text))
 
         def inspect(_display):
+            append("greywatch on", 2)
             append("start CalculationEditor " + url, 30)
             append("setup launch", 6)
+            append("greywatch", 2)
             append("setup launch info", 2)
             append("tabs", 2)
             shot("setup-launch.png")
@@ -2132,6 +2134,11 @@ def runSetupLaunch(display):
               and states[1].lower() == "ready",
               "a state notice reaches the open Set-up panel (running, then "
               "ready again)", str(states))
+        grey = pb.answers(log, "greywatch")
+        check(grey and grey[-1] == "0",
+              "opening the editor from the Organizer does not grey the "
+              "main window: its flushed status line no longer yields "
+              "through wxSafeYield (#1268)", str(grey))
         greyed = pb.answers(log, "setup launch get greyed")
         check(greyed == ["0"],
               "the editor is not greyed out during the launch: no window "
