@@ -1346,7 +1346,10 @@ calculation Ready. A copy of an imported or Created calculation (a stored
 example, say) gets its input deck written and is Ready when its settings are
 complete as the Calculation Editor judges them (structure without open bonds,
 a cell where the code needs one, a basis covering every element); otherwise
-it is Created. The original stays untouched. Names are `<name>_r2`,
+it is Created. The original stays untouched, including its imported (Loaded)
+state with Launch disabled. For copies left Created by the reset, stderr's
+`Duplicate readiness:` lines report the stored setup, readiness decision and
+deck generation outcome or failure. Names are `<name>_r2`,
 `_r3`, and so on, taking the first free name. Submitted, Running and Waiting
 for Login calculations and non-calculations are refused with their reason.
 
