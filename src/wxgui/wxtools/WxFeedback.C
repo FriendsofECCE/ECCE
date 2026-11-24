@@ -24,6 +24,7 @@
 #endif
 
 #include "wx/bitmap.h"  // for wxNullBitmap
+#include "wx/evtloop.h"
 
 #include "util/Preferences.H"
 #include "util/PreferenceLabels.H"
@@ -350,9 +351,10 @@ void WxFeedback::setMessage(const string& message,
    //  UI events (paint, size) are processed; wxSafeYield would disable
    //  every top-level window, which greys the whole main window when the
    //  tools are tabs. Input waits in the queue instead of being dropped.
-   if (flush && wxTheApp) {
+   if (flush) {
       text->Update();
-      wxTheApp->YieldFor(wxEVT_CATEGORY_UI);
+      if (wxEventLoopBase *loop = wxEventLoopBase::GetActive())
+         loop->YieldFor(wxEVT_CATEGORY_UI);
    }
 }
 
