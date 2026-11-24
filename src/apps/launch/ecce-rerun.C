@@ -79,25 +79,7 @@ string sessionKey()
 // A path inside the data folder is the calculation's URL there.
 bool toUrl(const string& arg, string& url, string& why)
 {
-  if (arg.find("://") != string::npos) { url = arg; return true; }
-  string root = LocalData::dir();
-  if (root.empty()) {
-    why = "this session uses a data server: give the calculation's URL";
-    return false;
-  }
-  std::error_code ec;
-  const auto path = ecce::fs::canonical(arg, ec);
-  if (ec) { why = "no such folder"; return false; }
-  const auto base = ecce::fs::canonical(root, ec);
-  if (ec) { why = "cannot read the data folder"; return false; }
-  const auto relative = path.lexically_relative(base);
-  if (relative.empty() || relative == "." || *relative.begin() == "..") {
-    why = "not inside the data folder " + base.generic_string();
-    return false;
-  }
-  const string full = path.generic_string();
-  url = "file://" + (full[0] == '/' ? string() : string("/")) + full;
-  return true;
+  return LocalData::toUrl(arg, url, why);
 }
 
 }  // namespace

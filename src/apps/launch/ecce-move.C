@@ -40,6 +40,7 @@
 #include "dsm/VDoc.H"
 #include "tdat/AuthCache.H"
 #include "util/Ecce.H"
+#include "util/Filesystem.H"
 #include "util/JMSMessage.H"
 #include "util/JMSPublisher.H"
 #include "util/JMSSubscriber.H"
@@ -103,22 +104,7 @@ string sessionKey()
 // A path inside the data folder is the calculation's URL there.
 bool toUrl(const string& arg, string& url, string& why)
 {
-  if (arg.find("://") != string::npos) { url = arg; return true; }
-  string root = LocalData::dir();
-  if (root.empty()) {
-    why = "this session uses a data server: give the calculation's URL";
-    return false;
-  }
-  char buf[PATH_MAX], rbuf[PATH_MAX];
-  if (!realpath(arg.c_str(), buf)) { why = "no such folder"; return false; }
-  string path = buf;
-  string base = realpath(root.c_str(), rbuf) ? string(rbuf) : root;
-  if (path.compare(0, base.size() + 1, base + "/") != 0) {
-    why = "not inside the data folder " + base;
-    return false;
-  }
-  url = "file://" + path;
-  return true;
+  return LocalData::toUrl(arg, url, why);
 }
 
 // ecce-mkdir: the URL of a folder that need not exist yet. The deepest
@@ -131,39 +117,33 @@ bool mkUrl(const string& arg, string& url, string& why)
     why = "this session uses a data server: give the folder's URL";
     return false;
   }
-  char cwd[PATH_MAX], buf[PATH_MAX], rbuf[PATH_MAX];
-  string abs = arg;
-  if (abs.empty() || abs[0] != '/') {
-    if (!getcwd(cwd, sizeof cwd)) { why = "no current folder"; return false; }
-    abs = string(cwd) + "/" + abs;
+  //  The deepest part that exists goes through LocalData::pathUrl (paths
+  //  compared as paths, so a Windows path works too); the rest is appended.
+  std::error_code ec;
+  ecce::fs::path abs = ecce::fs::absolute(arg, ec).lexically_normal();
+  if (ec) { why = "no current folder"; return false; }
+  string rest;
+  ecce::fs::path existing = abs;
+  while (!existing.empty() && !ecce::fs::exists(existing, ec)) {
+    if (!existing.filename().empty())
+      rest = "/" + existing.filename().generic_string() + rest;
+    if (existing.parent_path() == existing) break;
+    existing = existing.parent_path();
   }
-  vector<string> parts;   // lexical normalisation: "." and ".." without the disk
-  size_t i = 0;
-  while (i <= abs.size()) {
-    size_t j = abs.find('/', i);
-    if (j == string::npos) j = abs.size();
-    string seg = abs.substr(i, j - i);
-    if (seg == "..") { if (!parts.empty()) parts.pop_back(); }
-    else if (!seg.empty() && seg != ".") parts.push_back(seg);
-    i = j + 1;
-  }
-  string existing, rest;
-  size_t keep = parts.size();
-  for (; keep > 0; keep--) {
-    existing.clear();
-    for (size_t k = 0; k < keep; k++) existing += "/" + parts[k];
-    if (realpath(existing.c_str(), buf)) break;
-  }
-  if (keep == 0) { why = "not inside the data folder"; return false; }
-  for (size_t k = keep; k < parts.size(); k++) rest += "/" + parts[k];
-  string base = realpath(root.c_str(), rbuf) ? string(rbuf) : root;
-  string path = string(buf);
-  if (path != base && path.compare(0, base.size() + 1, base + "/") != 0) {
-    why = "not inside the data folder " + base;
+  if (existing.empty() || !ecce::fs::exists(existing, ec)) {
+    why = "not inside the data folder";
     return false;
   }
-  if (path == base && rest.empty()) { why = "that is the data folder itself"; return false; }
-  url = "file://" + path + rest;
+  const auto base = ecce::fs::canonical(root, ec);
+  if (!ec && ecce::fs::canonical(existing, ec) == base && !ec) {
+    if (rest.empty()) { why = "that is the data folder itself"; return false; }
+    const string full = base.generic_string();
+    url = "file://" + (full[0] == '/' ? string() : string("/")) + full + rest;
+    return true;
+  }
+  if (!LocalData::pathUrl(existing.string(), root, url, why)) return false;
+  while (!url.empty() && url.back() == '/') url.pop_back();
+  url += rest;
   return true;
 }
 

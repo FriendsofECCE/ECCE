@@ -37,6 +37,7 @@
 #include "util/Ecce.H"
 #include "util/EcceURL.H"
 #include "util/LocalData.H"
+#include "util/Filesystem.H"
 
 using std::string;
 using std::vector;
@@ -45,19 +46,19 @@ namespace {
 
 bool toUrl(const string& arg, string& url, string& why)
 {
-  if (arg.find("://") != string::npos) { url = arg; return true; }
-  string root = LocalData::dir();
-  if (root.empty()) { why = "this session uses a data server: give a URL"; return false; }
-  char buf[PATH_MAX], rbuf[PATH_MAX];
-  if (!realpath(arg.c_str(), buf)) { why = "no such calculation or folder"; return false; }
-  string path = buf;
-  string base = realpath(root.c_str(), rbuf) ? string(rbuf) : root;
-  if (path != base && path.compare(0, base.size() + 1, base + "/") != 0) {
-    why = "not inside the data folder " + base;
-    return false;
+  if (LocalData::toUrl(arg, url, why)) return true;
+  //  The data folder itself is a valid place here, unlike for the others.
+  std::error_code ec;
+  const auto path = ecce::fs::canonical(arg, ec);
+  if (!ec && !LocalData::dir().empty() &&
+      path == ecce::fs::canonical(LocalData::dir(), ec) && !ec) {
+    const string full = path.generic_string();
+    url = "file://" + (full[0] == '/' ? string() : string("/")) + full;
+    return true;
   }
-  url = "file://" + path;
-  return true;
+  if (why == "no such folder") why = "no such calculation or folder";
+  else if (LocalData::dir().empty()) why = "this session uses a data server: give a URL";
+  return false;
 }
 
 int usage()
