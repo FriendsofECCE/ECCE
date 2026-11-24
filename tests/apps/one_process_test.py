@@ -986,6 +986,7 @@ def runTabIdentity(display):
                 append(c, 2)
             for k in ("next", "prev", "pgup", "pgdn"):
                 append("tabkey " + k, 2)
+            append("tabsteps 3", 3)
             append("windowmenu 2", 3)
             append("tabs", 2)
             append("close", 3)
@@ -1036,6 +1037,10 @@ def runTabIdentity(display):
               ["3", "0", "1", "0", "3", "0"],
               "Next/Previous Tab and Ctrl+Tab, Ctrl+Shift+Tab, Ctrl+PgUp, "
               "Ctrl+PgDn step through the tabs and wrap around", str(steps))
+        rows = pb.answers(log, "tabsteps 3")
+        check(rows == ["selected=3 selects=2"],
+              "three steps in a row draw only the first tab and the last "
+              "(#1267)", str(rows))
         it = items[0].split("|") if items else []
         check(len(it) >= 7 and it[0].startswith("Next Tab[") and
               it[1].startswith("Previous Tab[") and it[2] == "-" and
