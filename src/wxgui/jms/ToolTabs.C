@@ -1537,6 +1537,14 @@ bool ToolTabs::testCommand(const wxString& cmd, const wxString& arg,
   }
   if (cmd == "tabs") {
     outcome = describe();
+    if (arg == "dots" && s_book) {
+      outcome += " dots=";
+      for (size_t i = 0; i < s_book->GetPageCount(); i++) {
+        Tab *t = findPage(s_book->GetPage(i));
+        if (t) outcome += wxString::Format("%d:%s ", (int)i,
+                         t->dot.GetAsString(wxC2S_HTML_SYNTAX));
+      }
+    }
   } else if (cmd == "livecount") {
     outcome = LiveCount::report();
   } else if (cmd == "mainwindow") {
