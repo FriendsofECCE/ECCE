@@ -220,6 +220,18 @@ def main():
         check(s["type_counts"].get("Mgo") == 4 and abs(s["total_charge"] + 4) < 1e-4,
               "substitution: 4 Mgo, total charge -4")
         minimise(out, "substitution", charged=True)
+        check(s["substitutions"][0]["made"] == 4 and not any(
+            "substitutions" in w for w in s["warnings"]),
+            "substitution: all 4 made, no shortfall warning (#1228)")
+
+    # 3b. more substitutions than fit at 5.5 A apart: the summary says so (#1228)
+    out = os.path.join(work, "pyro-short")
+    s = build(cell, out, "--substitute", "Al", "Mgo", "4", "--seed", "1")
+    if s:
+        made = s["substitutions"][0]["made"]
+        check(made < 4 and any(("%d of the 4 substitutions Al -> Mgo" % made) in w
+                                for w in s["warnings"]),
+              "a shortfall is reported with the count made (%d)" % made)
 
     # 4. the other angle constants and the mineral list are selectable
     out = os.path.join(work, "k1500")

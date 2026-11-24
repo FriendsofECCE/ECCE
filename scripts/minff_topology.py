@@ -662,12 +662,15 @@ def build(cell, outdir, replicate=(1, 1, 1), substitutions=(), min_distance=5.5,
             raise MinffError("no atoms read from %s" % cell)
         if tuple(replicate) != (1, 1, 1):
             atoms, box, _cell = ap.replicate_system(atoms, box, list(replicate))
+        made = {}
         if substitutions:
             import numpy as np
             if seed is not None:
                 np.random.seed(seed)
             for frm, to, count in substitutions:
+                before = sum(1 for a in atoms if str(a.get("type", "")) == to)
                 atoms, box, _ = ap.substitute(atoms, box, count, frm, to, min_distance)
+                made[(frm, to)] = sum(1 for a in atoms if str(a.get("type", "")) == to) - before
         names0 = [str(a.get("type", "")) for a in atoms]   # what minff() started from
         charge_diff = {}
         if clay:
@@ -718,7 +721,8 @@ def build(cell, outdir, replicate=(1, 1, 1), substitutions=(), min_distance=5.5,
         "water": water,
         "cell": os.path.basename(cell),
         "replicate": list(replicate),
-        "substitutions": [{"from": a, "to": b, "count": c} for a, b, c in substitutions],
+        "substitutions": [{"from": a, "to": b, "count": c, "made": made.get((a, b), c)}
+                          for a, b, c in substitutions],
         "seed": seed,
         "n_atoms": len(itp),
         "type_counts": dict(sorted(counts.items())),
@@ -732,6 +736,15 @@ def build(cell, outdir, replicate=(1, 1, 1), substitutions=(), min_distance=5.5,
     z, c = read_gro_z(os.path.join(outdir, "conf.gro"))
     edges = itp_edges(os.path.join(outdir, "min.itp"))
     summary["warnings"] = []
+    # atomipy places substitutions at random, each at least min_distance from
+    # the others, and stops quietly when no site is left.
+    for s in summary["substitutions"]:
+        if s["made"] < s["count"]:
+            summary["warnings"].append(
+                "%d of the %d substitutions %s -> %s were made: no other %s site lies at "
+                "least %g nm from the ones made. Ask for fewer, or repeat the cell more "
+                "times (Repeat); the total charge follows the substitutions made"
+                % (s["made"], s["count"], s["from"], s["to"], s["from"], min_distance / 10))
     if clay and abs(summary["total_charge"] - round(summary["total_charge"])) > 1e-4:
         summary["warnings"].append(
             "the charges of Table 1 of the ClayFF paper give this structure a net charge "

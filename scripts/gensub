@@ -1964,7 +1964,14 @@ MDPEOF
     cp step3.gro ion.gro
   else
     [ $MINFF_SYSTEM = 1 ] && echo "The structure's total charge is $QSYS: genion replaces water by $PNAME/$NNAME to neutralise it." >> @@OUT@@
-    prepRun genionRun || exit 1
+    if ! prepRun genionRun; then
+      # gmx's own text names neither the cause nor the editor's fields.
+      if grep -q 'No more replaceable solvent' prep.step; then
+        if [ "$SOURCE" = minff ]; then WFIELD="Water layer above the mineral"; else WFIELD="Distance to edge"; fi
+        echo "genion could not place every ion: too few waters lie at least $RMIN nm (Minimum ion distance) from the structure and from the ions already placed. Make \"$WFIELD\" larger or \"Minimum ion distance\" smaller." >> @@OUT@@
+      fi
+      exit 1
+    fi
     if [ "$SOURCE" = minff ]; then
       # genion names the ion atom after the molecule (Na), but min.ff's
       # ions.itp calls the atom Na+; grompp warns about the mismatch and the
