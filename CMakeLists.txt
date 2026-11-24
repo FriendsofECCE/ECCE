@@ -5544,6 +5544,13 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_stress_tensor PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
+  # MOs <-> Surfaces paints only the settled panel (#1263).
+  add_test(NAME apps_props_switch_paint
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/props_switch_paint_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_props_switch_paint PROPERTIES TIMEOUT 600
+                       SKIP_RETURN_CODE 77)
   add_test(NAME apps_property_list_click
            COMMAND ${PYTHON3_EXECUTABLE}
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/property_list_click_test.py
