@@ -73,7 +73,7 @@ def check_preview(s, url, display, tmpdir, wrappers):
     open(cmds, "w").close()
     logpath = os.path.join(s.state, "organizer.log")
     env = s.env({"DISPLAY": display.name, "GTK_THEME": "Adwaita", "ECCE_ONE_PROCESS": "1",
-                 "ECCE_TEST_ORGANIZER": cmds, "ECCE_TMPDIR": tmpdir,
+                 "ECCE_TEST_ORGANIZER": cmds, "ECCE_TMPDIR": tmpdir, "ECCE_VINA_TRACE": "1",
                  "ECCE_REALUSERHOME": home,
                  "PATH": wrappers + os.pathsep + s.env()["PATH"]})
     with open(logpath, "w") as log:
@@ -130,6 +130,25 @@ def check_embedded(s, cmds, logpath, proc):
     """Runtype Details fills the Set-up area, lists the ligand molecules,
     and an edit there is saved under the dialog's key (#1277)."""
     say("  setup runtype: %s" % ask_org(cmds, logpath, proc, "setup runtype", 1, 30))
+    # Values-only dialogs delete their side files on exit; inspect the open dialog's file.
+    lines = []
+    mol = None
+    end = time.monotonic() + 30
+    while time.monotonic() < end and proc.poll() is None:
+        with open(logpath, errors="replace") as log:
+            paths = re.findall(r"^VINADLG: candidates from (.+\.molecules) "
+                               r"\(GUIValues, loop ", log.read(), re.MULTILINE)
+        if paths:
+            mol = paths[-1]
+            try:
+                with open(mol, encoding="utf-8") as handle:
+                    lines = handle.read().splitlines()
+            except OSError:
+                lines = []
+            if lines == WANT:
+                break
+        time.sleep(0.5)
+    check(lines == WANT, "side file %r lists the candidates: %r" % (mol, lines))
     info = ""
     count = 0
     end = time.time() + 30
@@ -240,25 +259,6 @@ def main():
                 try:
                     time.sleep(12)
                     ask(cmdfile, logpath, proc, "runtype Docking (Vina)", asked)
-                    mol = None
-                    end = time.time() + 60
-                    while time.time() < end and mol is None:
-                        for root, _d, files in os.walk(tmpdir):
-                            for f in files:
-                                if f.endswith(".molecules"):
-                                    mol = os.path.join(root, f)
-                        time.sleep(1)
-                    # The editor flushes line by line, so the file can be
-                    # seen empty or half written; wait for the full list.
-                    lines = []
-                    end = time.time() + 30
-                    while mol and time.time() < end and lines != WANT:
-                        try:
-                            lines = open(mol, encoding="utf-8").read().splitlines()
-                        except OSError:
-                            lines = []
-                        time.sleep(0.5)
-                    check(lines == WANT, "side file lists the candidates: %r" % lines)
                     # The dialog fills the key from the first line (it
                     # reports back over the editor's socket).
                     val = ""
