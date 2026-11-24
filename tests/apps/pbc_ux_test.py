@@ -62,6 +62,18 @@ def readState(path):
     return out
 
 
+def replicationClipped(path, label):
+    """#1243: the Replication row's spin boxes and their a:/b:/c: labels
+    must have the room they need; a squeezed spin box showed as a small
+    empty box with a line beside "b:"."""
+    if not os.path.exists(path):
+        return ["%s: no clipping audit written" % label]
+    found = [l for l in open(path).read().splitlines()
+             if "SpinCtrl" in l or '"a:"' in l or '"b:"' in l or '"c:"' in l
+             or '"Uniform"' in l]
+    return ["%s: replication row clipped: %s" % (label, f) for f in found]
+
+
 def paneProblems(st, label, want):
     """Problems with the Periodic Builder pane in state `st`."""
     if st is None:
@@ -165,7 +177,7 @@ def check(display, results, png=None, only=None):
             shot = ["xshot " + os.path.join(png, "pbc-%s.png" % mode)]
         script = (["panelmode " + mode, "toolmenu %s on" % PBC,
                    "pbcpress create"] + shot +
-                  ["panestate open " + " ".join(TOOLS)] +
+                  ["pbcclip clip", "panestate open " + " ".join(TOOLS)] +
                   ["paneclose " + PBC, "panestate closed " + " ".join(TOOLS),
                    "toolmenu %s on" % PBC, "panestate reopen " + " ".join(TOOLS)])
         args = ("-pipe", fixture.authFile(
@@ -178,6 +190,8 @@ def check(display, results, png=None, only=None):
             problems += paneProblems(readState(os.path.join(work,
                                      label + ".txt")),
                                      "%s layout, %s" % (mode, label), want)
+        problems += replicationClipped(os.path.join(work, "clip.txt"),
+                                       "%s layout" % mode)
         for p in problems:
             results.fail("pbc ux pane", p)
         if problems:

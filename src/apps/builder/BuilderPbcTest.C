@@ -28,6 +28,7 @@
 #include "inv/nodes/SoGroup.H"
 
 #include "wxviz/SceneScript.H"
+#include "wxgui/ewxWindowUtils.H"
 
 #include "Builder.H"
 #include "PBC.H"
@@ -80,6 +81,15 @@ bool Builder::pbcTestCommand(SceneScript& s, const vector<string>& w,
     SoGroup *top = getSG()->getTopLabel();
     fprintf(stderr, "SHOTHOOK: measure %s labels=%d selected=%d\n", w[1].c_str(),
             top ? top->getNumChildren() : 0, (int)frag->m_atomHighLight.size());
+    return true;
+  }
+
+  //  "pbcclip <name>": the clipping audit of the Periodic Builder panel as
+  //  it is laid out now -> <name>.txt, one finding per line.
+  if (c == "pbcclip" && w.size() == 2) {
+    if (!pbc) return s.fail("pbcclip: no Periodic Builder panel");
+    std::ofstream out(outdir + "/" + w[1] + ".txt");
+    for (const string& f : ewxWindowUtils::clipFindings(pbc)) out << f << "\n";
     return true;
   }
 
