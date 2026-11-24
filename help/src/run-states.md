@@ -81,3 +81,10 @@ eye. **Run Mgmt > Reset for Rerun** returns an ended calculation to
 The dates in the summary are those of the job itself: **Start Date** when
 the job script started on the machine, **Comp. Date** when it ended,
 including after a later Reconnect.
+
+## State icons on the tabs
+
+In the single window, the tab of a calculation's Calculation Editor and the
+tab of its Viewer show the same icon as the Run States strip, in place of the
+coloured dot, and it changes when the state changes. The Organizer, a Builder
+tab without a calculation and the other tools keep their dots.
