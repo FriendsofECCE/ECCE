@@ -7360,7 +7360,9 @@ void Builder::updatePropertyMenus()
           std::ofstream out(outdir + "/" + w[1] + ".txt");
           for (auto& e : paints.seen) {
             if (!e.first) { out << "paint gone\n"; continue; }
-            out << "paint " << e.first->GetClassInfo()->GetClassName() << " "
+            out << "paint "
+                << wxString(e.first->GetClassInfo()->GetClassName()).utf8_str()
+                << " "
                 << e.second.x << "x" << e.second.y << " now "
                 << e.first->GetSize().x << "x" << e.first->GetSize().y
                 << " shown " << (e.first->IsShownOnScreen() ? 1 : 0) << "\n";
