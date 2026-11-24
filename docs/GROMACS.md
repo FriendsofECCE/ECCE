@@ -218,9 +218,9 @@ changes the oxygens around it); its `write_itp` writes the bonds and
 angles, with the angle constant `--angle-k` written into every O-M-O
 angle. `topol.top` then selects the parameters the way min.ff expects:
 
-* GMINFF: `#define GMINFF_k<k>` and `#include "min.ff/forcefield.itp"`.
-* TMINFF: `#define <Mineral>_k<k>` and the tailored
-  `min.ff/ffnonbonded_tminff_k<k>.itp` in place of the general file that
+* GMINFF: `#define MINFF_k<k>` and `#include "min.ff/forcefield.itp"`.
+* TMINFF: `#define <Mineral>` and `#define MINFF_k<k>`, and the tailored
+  `min.ff/ffnonbonded_tminff.itp` in place of the general file that
   `forcefield.itp` includes. `ffbonded.itp` lists bond and angle types a
   single mineral block does not define, which `grompp` rejects, so
   `min_bonded.itp` is `ffbonded.itp` restricted to the types of the block.

@@ -205,8 +205,9 @@ def main():
             "montmorillonite: types and charges equal the MATLAB min27.itp")
         check(s["total_charge"] == -48.0 and not s["untyped_atoms"],
               "montmorillonite: charge -48 (48 Mg), no untyped atoms")
-        check("Montmorillonite_k500" in open(os.path.join(out, "topol.top")).read(),
-              "montmorillonite: topol.top selects Montmorillonite_k500")
+        top = open(os.path.join(out, "topol.top")).read()
+        check("#define Montmorillonite " in top and "#define MINFF_k500 " in top,
+              "montmorillonite: topol.top defines Montmorillonite and MINFF_k500")
         minimise(out, "montmorillonite", charged=True)
 
     # 3. Al -> Mg substitution in pyrophyllite
@@ -226,7 +227,7 @@ def main():
               "--angle-k", "1500")
     if s:
         itp = open(os.path.join(out, "min.itp")).read()
-        check("1500.00" in itp and "GMINFF_k1500" in open(os.path.join(out, "topol.top")).read(),
+        check("1500.00" in itp and "#define MINFF_k1500 " in open(os.path.join(out, "topol.top")).read(),
               "k=1500 reaches the angles and topol.top")
     check("Kaolinite" in mt.list_minerals(500, ffdir), "mineral list has Kaolinite")
 
