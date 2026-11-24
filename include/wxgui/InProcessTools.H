@@ -25,6 +25,10 @@ public:
   using Opener = std::function<WxJMSMessageDispatch*()>;
 
   static void add(const string& app, Opener opener);
+  // The tool to open instead of app for this calculation URL, or "" for app
+  // itself (the Builder on a run calculation is its Viewer, #1254).
+  using Alias = std::function<string(const string& url)>;
+  static void alias(const string& app, Alias to);
   // True if the switch is on and the tool opens in this process.
   static bool handles(const string& app);
   // The start request (appname, forcenew, calcurl, codename, ...): reuses

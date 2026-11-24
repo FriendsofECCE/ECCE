@@ -1057,6 +1057,51 @@ def runTabIdentity(display):
         shutil.rmtree(work, ignore_errors=True)
 
 
+def runBuilderRoleDot(display):
+    """#1254: on a finished calculation the Builder opens its Viewer, one
+    purple tab for both buttons; on an editable one it stays a red Builder."""
+    data = tempfile.mkdtemp(prefix="ecce-oneproc-data-")
+    work = tempfile.mkdtemp(prefix="ecce-oneproc-")
+    try:
+        project = os.path.join(data, "users", "local", "oneproc")
+        os.makedirs(project)
+        shutil.copy(pb.PROJECT_META, os.path.join(project, ".ecce-meta"))
+        done = "file://" + pb.makeCalc(project, "role-done", "complete", None)
+        edit = "file://" + pb.makeCalc(project, "role-edit", "created", None)
+        cmds = os.path.join(work, "commands")
+        open(cmds, "w").close()
+
+        def append(line, wait):
+            with open(cmds, "a") as handle:
+                handle.write(line + "\n")
+            time.sleep(wait)
+
+        def inspect(_display):
+            append("start Builder " + done, 25)
+            append("start CalculationViewer " + done, 15)  # the same tab
+            append("start Builder " + edit, 25)
+            append("tabs", 2)
+            append("tabs dots", 2)
+
+        setLayout(display, "small")
+        result = apps.run(display, "organizer", windowTimeout=60, settle=20,
+                          env={"ECCE_ONE_PROCESS": "1",
+                               "ECCE_TEST_ORGANIZER": cmds,
+                               "ECCE_LOCAL_DATA": data},
+                          inspect=inspect)
+        log = result.log or ""
+        tabs = re.findall(r"ECCE_TEST_ORGANIZER: tabs: (.*)$", log, re.M)
+        dots = pb.answers(log, "tabs dots")
+        got = dots[0].split(" dots=")[-1].strip().lower() if dots else ""
+        check(got == "0:#3060b0 1:#705090 2:#c02020",
+              "a finished calculation's Builder and Viewer share one purple "
+              "Viewer tab; an editable one's Builder is red",
+              str(dots) + str(tabs))
+    finally:
+        shutil.rmtree(data, ignore_errors=True)
+        shutil.rmtree(work, ignore_errors=True)
+
+
 def runTabsEditor(display):
     """#983 stage 2: the Calculation Editor as a tab, beside a Builder tab.
     Menus follow the active tab, Open in Window / Move to Tabs, Quit.
@@ -2714,6 +2759,7 @@ def main():
             return
         if os.environ.get("ECCE_1256_ONLY") == "1":
             runTabIdentity(display)
+            runBuilderRoleDot(display)
             if failures:
                 results.fail("one-process", "; ".join(failures))
             return
@@ -2767,6 +2813,7 @@ def main():
         runUtilityWindows(display)
         runTabs1088(display)
         runTabIdentity(display)
+        runBuilderRoleDot(display)
         runPanelTeardown(display)
         if os.environ.get("ECCE_TABS_ONLY") == "1":
             if failures:

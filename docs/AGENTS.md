@@ -507,7 +507,9 @@ started. Files are also opened (one Builder each) when the tabbed mode is off. A
 
 In one-program mode (the default) the Viewer (`CalculationViewer`) is an in-process
 Builder tab as well; `start TOOL URL` twice for one calculation reuses the
-tool's tab (`inprocess` reports `Viewer=N`); closing a tool's tab never
+tool's tab (`inprocess` reports `Viewer=N`); `start Builder URL` for a
+run (read-only) calculation opens or selects its Viewer tab instead
+(`InProcessTools::alias`, #1254); closing a tool's tab never
 asks to quit the Organizer (`ToolTabs::closingTool`). Input is blocked
 during tool start and job submit by `InputBlock` (swallows mouse and key
 events, nothing disabled; the separate-window path keeps `wxWindowDisabler`).

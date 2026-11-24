@@ -5,6 +5,8 @@
  * BuilderApp::OnInit does for a start from the Organizer, without the
  * once-per-process part (login, preferences, the app's own listeners).
  */
+#include "dsm/EDSIFactory.H"
+#include "dsm/PropertyTask.H"
 #include "dsm/ResourceDescriptor.H"
 #include "viz/SGContainer.H"
 #include "viz/SGFragment.H"
@@ -76,4 +78,12 @@ void registerBuilderInProcess()
   });
   InProcessTools::add(BUILDER, openBuilder);
   InProcessTools::add(CALCVIEWER, openViewer);
+  // A run calculation cannot be edited: its Builder would be a second,
+  // read-only Viewer tab of the same calculation.
+  InProcessTools::alias(BUILDER, [](const string& url) -> string {
+    if (url.empty()) return "";
+    PropertyTask *calc =
+        dynamic_cast<PropertyTask*>(EDSIFactory::getResource(EcceURL(url)));
+    return calc && calc->isReadOnly() ? CALCVIEWER : "";
+  });
 }

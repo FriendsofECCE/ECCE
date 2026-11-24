@@ -319,7 +319,9 @@ in its own window and the tab says so.
 
 Opening the Builder, Viewer, Calculation Editor or Launcher again for a
 calculation that already has that tool open switches to its tab; Viewers
-of different calculations open side by side. A tab shows the tool's name;
+of different calculations open side by side. A calculation that has run
+can no longer be edited, so its Builder button opens its Viewer: both
+buttons lead to the same Viewer tab. A tab shows the tool's name;
 rest the pointer on it to see the calculation's full path and the tool,
 for example `(HOME)/Solids/urea_r2 – Viewer`. Closing a tool's tab
 closes only that tool. While a tool starts or a job is submitted, clicks

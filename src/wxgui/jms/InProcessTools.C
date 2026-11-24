@@ -61,6 +61,19 @@ void InProcessTools::add(const string& app, Opener opener)
 }
 
 
+static std::map<string, InProcessTools::Alias>& aliases()
+{
+  static auto *m = new std::map<string, InProcessTools::Alias>;
+  return *m;
+}
+
+
+void InProcessTools::alias(const string& app, Alias to)
+{
+  aliases()[app] = to;
+}
+
+
 bool InProcessTools::handles(const string& app)
 {
   return MqttLink::localDelivery() && openers().count(app) > 0;
@@ -71,6 +84,11 @@ bool InProcessTools::open(JMSMessage& startMsg)
 {
   string app = startMsg.getProperty("appname");
   if (!handles(app)) return false;
+  auto al = aliases().find(app);
+  if (al != aliases().end()) {
+    string other = al->second(startMsg.getProperty("calcurl"));
+    if (!other.empty() && handles(other)) app = other;
+  }
 
   WxJMSMessageDispatch *d = 0;
   if (!startMsg.getIntProperty("forcenew")) {
@@ -102,6 +120,7 @@ bool InProcessTools::open(JMSMessage& startMsg)
   // process.
   JMSPublisher pub("Organizer");
   JMSMessage invoke(startMsg);
+  invoke.addProperty("appname", app);
   invoke.setSender(Sender("Organizer", MqttLink::processId()));
   invoke.setTarget(Target("", d->getMyID()));
   return pub.publish("ecce_invoke", invoke);
