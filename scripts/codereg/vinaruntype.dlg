@@ -9,7 +9,7 @@ dialog title="ECCE Vina Editor: Runtype Details"
 # while Ligand atoms is empty, what the generator chose to <out>.note.
 box label="Receptor and Ligand"
 ligandpick name=LigandMolecule label="Ligand molecule:" target=ES.Runtype.Docking.LigandAtoms file=molecules other="Other (atom numbers)"
-text name=ES.Runtype.Docking.LigandAtoms label="Other (atom numbers; empty: chosen automatically):" default="" export=1
+text name=ES.Runtype.Docking.LigandAtoms label="Other (atom numbers):" default="" export=1
 filenote name=LigandNote file=note show_if="!ES.Runtype.Docking.LigandAtoms"
 int name=ES.Runtype.Docking.LigandCharge label="Ligand charge:" default=0 hard="[-10..10]" export=1
 
