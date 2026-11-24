@@ -22,6 +22,7 @@ const std::vector<WindowLayout::Tool>& WindowLayout::tools()
     {"mdeditors", "MD editors (Energy, Optimize, Dynamics, GROMACS Prepare)"},
     {"mdprepare", "MD Prepare"},
     {"launcher", "Launcher"},
+    {"pertable", "Periodic Table"},
   };
   return t;
 }

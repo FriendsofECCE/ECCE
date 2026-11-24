@@ -152,7 +152,8 @@ menu is grey.
   [Registering machines](register-machines.md).
 - **Machine Browser...**: shows the registered machines.
 - **Allocations...**: see [Allocations](allocations.md).
-- **Periodic Table...** (Ctrl+P).
+- **Periodic Table...** (Ctrl+P): a tab of the main window, or a window of
+  its own with the Wide layout.
 - **Energy Calculator...**: see [Energy Calculator](energy-calculator.md).
 - **New Calculations in Another Code...**: one new calculation in another
   code from each selected calculation, with a setup you make once; see
@@ -401,7 +402,8 @@ greyed out.
   **About** are the Organizer's whichever tab is active, so Quit from a
   Builder tab asks "Quit ECCE" for the whole session.
 - **Customize...**: one row per tool (Builder / Viewer, Calculation Editor,
-  Basis Set Tool, MD editors, MD Prepare, Launcher), each **Tab** or **Window**,
+  Basis Set Tool, MD editors, MD Prepare, Launcher, Periodic Table), each
+  **Tab** or **Window**,
   filled from the chosen layout. Changing a row and pressing **OK** makes
   the layout Custom.
 - Below the dropdown: which tools are tabs and which are windows.

@@ -3,8 +3,8 @@
  *
  * A periodic table window inside the Organizer's process (#1066): what
  * PerTabApp::OnInit does, without the once-per-process part (the pipe
- * login, the auth listener, which stay the Organizer's). A small utility
- * window, so it stays a window of its own rather than a tab.
+ * login, the auth listener, which stay the Organizer's). A tab when the
+ * window layout puts it in one (#1213), so ECCE stays one window.
  */
 #include <sstream>
 
@@ -13,6 +13,7 @@
 #include "util/JMSMessage.H"
 #include "wxgui/InProcessTools.H"
 #include "wxgui/PerTabFrame.H"
+#include "wxgui/ToolTabs.H"
 #include "wxgui/WxJMSMessageDispatch.H"
 #include "wxgui/ewxWindowUtils.H"
 
@@ -39,6 +40,9 @@ public:
   void invokeMCB(JMSMessage&)
   {
     if (!frame) return;
+    // A tab is brought forward by InProcessTools; showing the emptied frame
+    // would map a blank window.
+    if (ToolTabs::hosts(frame)) { ToolTabs::select(frame); return; }
     frame->Iconize(false);
     frame->Show(true);
     ewxRaiseWindow(frame);
@@ -75,6 +79,7 @@ public:
 WxJMSMessageDispatch *openPerTab()
 {
   PerTabFrame *frame = new PerTabFrame(NULL);
+  ToolTabs::open(frame, 0, _("Periodic Table"), "pertable");
   PerTabMessages *msgs = new PerTabMessages(frame);
   msgs->registerTopShell(frame);
   msgs->subscribeMessages();
