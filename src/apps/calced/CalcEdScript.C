@@ -457,6 +457,8 @@ void CalcEd::runCalcEdScript(const string& file)
                 label(ID_STATICTEXT_CALCED_CD).utf8_str().data());
         fprintf(stderr, "CALCED: xcfitting=%s\n",
                 label(ID_STATICTEXT_CALCED_XC).utf8_str().data());
+        fprintf(stderr, "CALCED: results=%s\n",
+                p_resultsButton && p_resultsButton->IsShown() ? "shown" : "hidden");
         fprintf(stderr, "CALCED: basisbox=%s\n",
                 p_basisMark && p_basisMark->IsShown() ? "shown" : "hidden");
         //  The Verify lamp: empty (not checked), else its tooltip.

@@ -465,6 +465,7 @@ class CalcEd: public CalcEdGUI,
 
     WxFeedback *p_feedback;
     EcceTool   *p_builderTool;
+    wxButton   *p_resultsButton = nullptr;  // log header: opens the Viewer
     EcceTool   *p_basisSetTool;
 
     string                  p_codeName;

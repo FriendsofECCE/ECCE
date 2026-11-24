@@ -1436,6 +1436,19 @@ wxString CalcEd::setupCommand(const wxString& arg)
       top->SetSize(wxSize(width, top->GetSize().y));
       top->Layout();
     }
+  } else if (arg == "results" || arg == "results press") {
+    // The log header's Results button and the editor's own Launch... button.
+    const bool shown = p_resultsButton && p_resultsButton->IsShown();
+    wxWindow *launch = FindWindow(ID_BUTTON_CALCED_LAUNCH);
+    wxString out = wxString("results=") + (shown ? "shown" : "hidden") +
+        " editlaunch=" + (launch && launch->IsEnabled() ? "enabled" : "disabled");
+    if (shown && arg == "results press") {
+      wxCommandEvent ev(wxEVT_BUTTON, p_resultsButton->GetId());
+      ev.SetEventObject(p_resultsButton);
+      p_resultsButton->GetEventHandler()->ProcessEvent(ev);
+      out += " pressed";
+    }
+    return out;
   } else if (arg == "input") {
     p_setupArea->showInput();
   } else if (arg == "fold" || arg == "unfold") {
@@ -3146,6 +3159,18 @@ void CalcEd::CreateControls()
   p_buttonRow->Insert(p_buttonRow->GetItemCount() - 1, save, 0,
                       wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT, 5);
 
+  // After a launch the next step is the job's progress and results: the
+  // Viewer, one click from the log that reports the submit.
+  p_resultsButton = new wxButton(p_feedback, wxID_ANY, _("Results"),
+                                 wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
+  p_resultsButton->SetToolTip(_("Open the Viewer: the job's progress and results"));
+  p_resultsButton->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
+    startApp(CALCVIEWER, 0, p_context);
+  });
+  p_feedback->p_topLineSizer->Insert(3, p_resultsButton, 0,
+                                     wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT, 4);
+  p_resultsButton->Hide();
+
   replaceBuilderButton();
   replaceBasisSetButton();
   createTsControls();
@@ -4767,6 +4792,10 @@ void CalcEd::enableChemSysFields()
   }
 
   p_builderTool->Enable(hasCalc && !p_tsSource);
+  if (p_resultsButton && p_resultsButton->IsShown() != isSubmitted) {
+    p_resultsButton->Show(isSubmitted);
+    p_feedback->Layout();
+  }
   if (p_tsPanel) {
     for (int k = 0; k < 3; k++) p_tsChoice[k]->Enable(!isSubmitted);
   }
@@ -4943,7 +4972,10 @@ void CalcEd::enableLaunch()
     //  (Andy, 2026-09-29: Verify is what should flag a bad deck; Launch
     //  should let people do what they want with it).  A missing deck is
     //  written by the Launch click itself.
-    FindWindow(ID_BUTTON_CALCED_LAUNCH)->Enable(togo);
+    //  A submitted job is launched again only after Reset for Rerun.
+    const bool hasRun =
+        p_iCalc->getState() >= ResourceDescriptor::STATE_SUBMITTED;
+    FindWindow(ID_BUTTON_CALCED_LAUNCH)->Enable(togo && !hasRun);
     FindWindow(ID_BUTTON_CALCED_VERIFY)->Enable(togo);
 
     int box;
@@ -4951,7 +4983,10 @@ void CalcEd::enableLaunch()
     markBlockingBox(ready ? (int)BOX_NONE : box, why);
     wxString tip(why.c_str(), wxConvUTF8);
     FindWindow(ID_BUTTON_CALCED_FINAL_EDIT)->SetToolTip(tip);
-    FindWindow(ID_BUTTON_CALCED_LAUNCH)->SetToolTip(tip);
+    FindWindow(ID_BUTTON_CALCED_LAUNCH)->SetToolTip(hasRun
+        ? wxString("This calculation has been launched. To run it again, "
+                   "use Run Mgmt > Reset for Rerun in the Organizer.")
+        : tip);
     FindWindow(ID_BUTTON_CALCED_VERIFY)->SetToolTip(tip);
 
     //  Deliberately NOT running the checker here.  enableLaunch() is

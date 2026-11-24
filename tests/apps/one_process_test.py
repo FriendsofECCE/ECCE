@@ -2139,9 +2139,12 @@ def runSetupLaunch(display):
             setState("ready")
             append("setup launch notify state ready", 5)
             append("setup launch get state", 2)
+            append("setup results", 2)
             append("setup launch go", 90)
             append("setup launch get greyed", 2)
             append("setup launch info", 2)
+            append("setup results press", 25)
+            append("tabs", 2)
             append("close", 3)
             append("answer", 3)
             append("answer no", 3)
@@ -2190,6 +2193,15 @@ def runSetupLaunch(display):
         tt = pb.answers(log, "tabs")
         check(tt and "Launcher" not in tt[0],
               "no Launcher tab was opened", str(tt))
+        res = pb.answers(log, "setup results")
+        check(len(res) >= 2 and "results=hidden" in res[0]
+              and "editlaunch=enabled" in res[0]
+              and "results=shown" in res[-1] and "editlaunch=disabled" in res[-1]
+              and "pressed" in res[-1],
+              "after the launch the log header has a Results button and the "
+              "editor's Launch... is off", str(res))
+        check(tt and "Viewer" in tt[-1],
+              "Results opens the calculation's Viewer tab", str(tt))
         m = re.search(r"ecce:state\t\t(\w+)",
                       open(os.path.join(calc, ".ecce-meta")).read())
         state = m.group(1) if m else "?"

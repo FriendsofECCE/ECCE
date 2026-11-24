@@ -411,7 +411,10 @@ greyed out.
   as a large calculation or a missing MPI program, appears in the panel and
   the button becomes **Launch anyway**; nothing blocks the launch. Close it
   from the Launcher's own menu or by choosing Theory, Runtype or Basis Set
-  Details again.
+  Details again. Once the job is submitted, the editor's **Launch...** is
+  off (Run Mgmt > Reset for Rerun allows a new launch) and a **Results**
+  button in the header of the editor's log opens the calculation's Viewer:
+  the job's progress and, when it ends, its results.
 
 A change applies to tools opened afterwards. The tab strip is made when the
 Organizer starts: after changing from Wide to a layout with tabs, start
