@@ -1312,6 +1312,12 @@ void ToolTabs::release(wxTopLevelWindow *tlw, bool showFrame)
   wxWindow *page = t->page;
   wxSize size = page->GetSize();
   int idx = s_book->GetPageIndex(page);
+  // Bring the tab that stays to the front before this one is taken apart,
+  // or the window shows a blank page for a few frames on each close
+  // (#1210). No Freeze: on GTK a frozen frame is shown black meanwhile.
+  if (idx != wxNOT_FOUND && idx == s_book->GetSelection() &&
+      s_book->GetPageCount() > 1)
+    s_book->SetSelection(idx > 0 ? idx - 1 : 1);
   // The tab's menu bar leaves the main window first.
   if (s_hostFrame->wxFrame::GetMenuBar() == t->menubar)
     putBar(!t->pinned && mainTab() ? mainTab()->menubar : 0);

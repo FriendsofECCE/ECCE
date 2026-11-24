@@ -68,6 +68,13 @@ DetailsPanel::DetailsPanel(wxWindow *frame, Model& model,
   helpURL_ = model.helpURL;
   build();
   buildFooter();
+  // The editor rewrites the side files after each Save.
+  if (model_.usesSideFiles()) {
+    sideTimer_.SetOwner(this);
+    Bind(wxEVT_TIMER, [this](wxTimerEvent&) { model_.pollSideFiles(); },
+         sideTimer_.GetId());
+    sideTimer_.Start(1000);
+  }
   if (wxTopLevelWindow *tlw = wxDynamicCast(frame, wxTopLevelWindow))
     tlw->SetTitle(model.title);
 }
@@ -105,7 +112,7 @@ void DetailsPanel::build()
     W& w = w_[i];
     wxString nm(it.name);
     const string& k = it.kind;
-    if (k == "note") {
+    if (k == "note" || k == "filenote") {
       wxStaticText *t = new wxStaticText(this, wxID_ANY, wxString::FromUTF8(it.label));
       w.w = t;
       grid->Add(t, 0, fl, 3);
@@ -135,7 +142,7 @@ void DetailsPanel::build()
       a->Bind(wxEVT_RADIOBUTTON, cb);
       b->Bind(wxEVT_RADIOBUTTON, cb);
       b->SetToolTip(nm);
-    } else if (k == "combo" || k == "calcpick") {
+    } else if (k == "combo" || k == "calcpick" || k == "ligandpick") {
       wxArrayString ch;
       for (const string& s : it.choices) ch.Add(wxString::FromUTF8(s));
       wxBoxSizer *row = new wxBoxSizer(wxHORIZONTAL);
@@ -153,6 +160,8 @@ void DetailsPanel::build()
         const Item& m = model_.items()[i];
         if (k == "calcpick")
           model_.userEdit(i, sel >= 0 ? m.urls[sel] : "");
+        else if (k == "ligandpick")
+          model_.userEdit(i, sel >= 0 ? m.choices[sel] : "");
         else
           model_.userEdit(i, c->GetStringSelection().ToStdString());
       });
@@ -180,8 +189,11 @@ void DetailsPanel::build()
         s->Bind(wxEVT_SPINCTRL, [cb](wxCommandEvent&) { cb(); });
         s->Bind(wxEVT_KILL_FOCUS, [cb](wxFocusEvent& ev) { cb(); ev.Skip(); });
       } else {
+        // A free-text entry (atom lists, keywords) gets room to be read; a
+        // number keeps the narrow field.
         wxTextCtrl *t = new wxTextCtrl(this, wxID_ANY,
-            wxString::FromUTF8(it.value), wxDefaultPosition, wxSize(80, -1),
+            wxString::FromUTF8(it.value), wxDefaultPosition,
+            FromDIP(wxSize(k == "text" ? 240 : 80, -1)),
             wxTE_PROCESS_ENTER, wxDefaultValidator, nm);
         w.w = t;
         auto cb = [this, i, t]() {
@@ -289,6 +301,18 @@ void DetailsPanel::itemUpdated(int i)
     for (size_t j = 0; j < it.urls.size(); j++)
       if (it.urls[j] == it.value) sel = (int)j;
     ((wxChoice*)w.w)->SetSelection(sel);
+  } else if (k == "ligandpick") {
+    wxChoice *c = (wxChoice*)w.w;
+    wxArrayString ch;
+    for (const string& s : it.choices) ch.Add(wxString::FromUTF8(s));
+    if (c->GetStrings() != ch) {
+      c->Set(ch);
+      c->InvalidateBestSize();
+    }
+    c->SetStringSelection(wxString::FromUTF8(it.value));
+  } else if (k == "filenote") {
+    wxString l = wxString::FromUTF8(it.label);
+    if (w.w->GetLabel() != l) w.w->SetLabel(l);
   } else if (k == "int") {
     wxSpinCtrl *s = (wxSpinCtrl*)w.w;
     if (s->GetValue() != atoi(it.value.c_str()))

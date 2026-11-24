@@ -3831,6 +3831,14 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_launch_button PROPERTIES TIMEOUT 600
                        SKIP_RETURN_CODE 77)
+  # The release workflow scripts W1-W6 (wiki Release-9.6.0) in one run;
+  # launches real jobs, so label long.
+  add_test(NAME releaseround
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/releaseround/run_round.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/releaseround)
+  set_tests_properties(releaseround PROPERTIES TIMEOUT 9000
+                       SKIP_RETURN_CODE 77 LABELS long)
   # Busy cursor, status line and slow-start window while a tool starts (#1071).
   add_test(NAME apps_organizer_tool_start
            COMMAND ${PYTHON3_EXECUTABLE}
@@ -3939,6 +3947,14 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/xwayland_paint_test.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_xwayland_paint PROPERTIES TIMEOUT 600
+                       SKIP_RETURN_CODE 77)
+  # The same on Xvfb with a stand-in compositor that never answers frame
+  # sync (#1249): the Starting window and the Viewer tab still paint.
+  add_test(NAME apps_frame_sync_x11
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/frame_sync_x11_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_frame_sync_x11 PROPERTIES TIMEOUT 600
                        SKIP_RETURN_CODE 77)
   # Preferences > Colours run-state icon style reaches the Organizer's tree.
   add_test(NAME apps_state_icon_style
@@ -4195,6 +4211,14 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/ssh_root_menu_test.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_ssh_root_menu PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
+
+  # A password-only host: no empty or silently repeated password (#1274).
+  add_test(NAME apps_ssh_password_refused
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/ssh_password_refused_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_ssh_password_refused PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
 
   # Organizer file view: bounded reads, Follow, binary files (#1084).

@@ -1457,7 +1457,13 @@ wxString CalcEd::setupCommand(const wxString& arg)
     return "unknown: " + arg;
   }
   wxWindow *col = ToolTabs::client(this);
-  return p_setupArea->describe() + (col ? columnOverlaps(col) : wxString());
+  wxWindow *charge = FindWindow(ID_COMBOBOX_CALCED_CHARGE);
+  wxString chargeSpin = wxString(" chargespin=") +
+      (charge && charge->IsShown() ? "shown" : "hidden");
+  wxWindow *sym = FindWindow(ID_CHECKBOX_CALCED_USE_SYMMETRY);
+  chargeSpin += wxString(" symmetry=") + (sym && sym->IsShown() ? "shown" : "hidden");
+  return p_setupArea->describe() + chargeSpin +
+         (col ? columnOverlaps(col) : wxString());
 }
 
 
@@ -3567,7 +3573,7 @@ void CalcEd::setOpenShells(const int& value)
   ewxStaticText *text =
           (ewxStaticText*)FindWindow(ID_STATICTEXT_CALCED_OPEN_SHELLS);
   text->SetLabel(valueString);
-  text->Show(value >= 0);
+  text->Show(value >= 0 && usesChargeAndSpin());
 }
 
 
@@ -5003,6 +5009,26 @@ void CalcEd::showChemSysFields()
           && p_code->getIrreducibleFragmentSupported());
   FindWindow(ID_CHECKBOX_CALCED_IRREDUCIBLE)->Show(
           isIrreducibleFragmentSupported);
+  //  Hidden, not greyed: a greyed "Doublet" still reads as a statement about
+  //  the system (a radical protein for Vina).
+  bool chargeSpin = usesChargeAndSpin();
+  FindWindow(ID_STATIC_CALCED_CHARGE)->Show(chargeSpin);
+  FindWindow(ID_COMBOBOX_CALCED_CHARGE)->Show(chargeSpin);
+  FindWindow(ID_STATIC_CALCED_SPIN_MULT)->Show(chargeSpin);
+  FindWindow(ID_COMBOBOX_CALCED_SPIN_MULT)->Show(chargeSpin);
+  FindWindow(ID_STATIC_CALCED_OPEN_SHELLS)->Show(chargeSpin);
+  FindWindow(ID_STATICTEXT_CALCED_OPEN_SHELLS)->Show(chargeSpin &&
+          getOpenShells() >= 0);
+  bool symmetry = !p_code || p_code->usesSymmetry();
+  FindWindow(ID_STATIC_CALCED_SYMMETRY_LABEL)->Show(symmetry);
+  FindWindow(ID_STATICTEXT_CALCED_SYMMETRY)->Show(symmetry);
+  FindWindow(ID_CHECKBOX_CALCED_USE_SYMMETRY)->Show(symmetry);
+}
+
+
+bool CalcEd::usesChargeAndSpin() const
+{
+  return !p_code || p_code->usesChargeAndSpin();
 }
 
 

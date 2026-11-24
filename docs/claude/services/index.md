@@ -104,6 +104,7 @@ what the deployment mode needs (GETTING_STARTED, "Deployment modes"):
 - [A calculation's start date is set by the first "running" only; a restarted monitor used to move it to the restart, and dates now show seconds (#463)](job-start-date-is-the-first-running.md)
 - [passdialog exit status and ecce-askpass](passdialog-exit-status.md) — a wx OnInit returning false exits 255; askpass took OK as cancel (#487)
 - [Ubuntu 26.04 mosquitto AppArmor profile blocks the per-user broker; ecce-client adds a local block (#646)](ubuntu-26-mosquitto-apparmor-profile.md)
+- [An askpass that fails makes ssh send an empty password: never use /bin/false or a silent exit as "do not ask"](askpass-empty-password.md)
 - [A host that accepts TCP but never sends the ssh banner: bounded connect, no libssh retry after a timeout, Organizer connects off the GUI thread with a working Cancel](silent-host-connect.md)
 - [Popup menu items Bind()-ed on the menu did nothing (ewxPopupMenu), and a connected server root got no Disconnect](popup-menu-bound-items.md)
 - [A right-click menu on an SSH folder must not look anything up on the server (#1273)](remote-folder-menu-no-round-trips-1273.md)

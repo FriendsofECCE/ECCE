@@ -13,7 +13,7 @@ returns it instead of `python3 <x>.py` only when `ECCE_NATIVE_DIALOGS` is set (n
 0), `<x>.dlg` sits next to `<x>.py` and `bin/ecce-dialog` exists; otherwise the
 Python dialog runs, so every dialog without a .dlg is unaffected.
 
-ECCE-QM Theory and Runtype, xTB Theory and Runtype, ORCA Theory and Runtype and Gaussian 16 Theory and Runtype have a .dlg (also embedded in the Set-up tab, #983) (`orcatheory.dlg`,
+ECCE-QM Theory and Runtype, xTB Theory and Runtype, ORCA Theory and Runtype and Gaussian 16 Theory and Runtype, and Vina Runtype (`vinaruntype.dlg`, #1277: no native_test case, its ligand list reads editor side files) have a .dlg (also embedded in the Set-up tab, #983) (`orcatheory.dlg`,
 `orcaruntype.dlg`, `ged16theory.dlg`, `ged16runtype.dlg`, `ecceqmruntype.dlg`, `xtbtheory.dlg`, `xtbruntype.dlg`: ctests `dialogs_native_orcatheory`/`_orcaruntype`; the NEB
 pickers are `calcpick`, the product/guess warnings `status`). Keep each in step
 with its .py: the

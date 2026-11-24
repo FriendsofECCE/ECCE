@@ -48,6 +48,7 @@ $runtype
 $solvent
 $symbol
 $theory
+$title
 $useexplicitbasis
 $value
 $wrote
@@ -252,6 +253,7 @@ coordinants
 core
 couldn't
 cpcm
+cpfrag.pl
 cs
 custom
 d
@@ -305,6 +307,7 @@ dsd-blyp
 dsd-pbep86
 dump
 ecce
+ecce-run
 ecce_ai_debug
 ecp
 end\n
@@ -566,6 +569,7 @@ supported:
 sv
 svp
 symbol
+symbol:
 symmetry
 t
 tag

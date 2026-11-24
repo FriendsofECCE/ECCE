@@ -16,8 +16,20 @@ sdir=
 [ -z "${ECCE_ASKPASS_ANSWER:-}" ] || sdir=$(dirname "$ECCE_ASKPASS_ANSWER")
 user=${ECCE_ASKPASS_USER:-}
 
+# OpenSSH sends an empty password for every prompt askpass does not answer
+# (up to three, which with the keys it offered first can use up the
+# server's MaxAuthTries).  When ECCE runs ssh for a login, a prompt nobody
+# answers ends that ssh instead.
+stop_ssh() {
+  [ -n "${ECCE_ASKPASS_STATE:-}" ] || return 0
+  c=$(ps -o comm= -p "$PPID" 2>/dev/null)
+  [ "${c##*/}" = ssh ] && kill "$PPID" 2>/dev/null
+  return 0
+}
+
 cancel() {
   [ -z "${ECCE_ASKPASS_STATE:-}" ] || : > "$ECCE_ASKPASS_STATE"
+  stop_ssh
   exit 1
 }
 
@@ -35,7 +47,7 @@ kind=${SSH_ASKPASS_PROMPT:-}
 # Older ssh does not say that this is a yes/no question.
 case $prompt in *"continue connecting"*) kind=confirm ;; esac
 [ "$kind" = none ] && exit 0
-[ -z "${ECCE_ASKPASS_STATE:-}" ] || [ ! -e "$ECCE_ASKPASS_STATE" ] || exit 1
+[ -z "${ECCE_ASKPASS_STATE:-}" ] || [ ! -e "$ECCE_ASKPASS_STATE" ] || { stop_ssh; exit 1; }
 
 case $kind in
   confirm)
@@ -66,7 +78,14 @@ case $kind in
         exit 0
       fi
     fi
-    [ -x "$bin/passdialog" ] || exit 1
+    [ -x "$bin/passdialog" ] || { stop_ssh; exit 1; }
+    # ssh asks for the password again only after the last one was refused:
+    # the one fed from the FIFO or the one typed in the previous dialog.
+    note=
+    if [ "$what" = password ] && [ -n "$sdir" ] &&
+       { [ -e "$sdir/fed" ] || [ "$(cat "$sdir/typed" 2>/dev/null)" = "$user@$host" ]; }; then
+      note="The password was refused. Please try again."
+    fi
     if [ -n "$sdir" ]; then
       [ "$what" != password ] || [ ! -e "$sdir/fed" ] || : > "$sdir/refused"
       : > "$sdir/asked"
@@ -75,7 +94,7 @@ case $kind in
     # 255 after OK.  It prints nothing when it is cancelled.
     rem=
     [ "$what" = password ] && [ "${ECCE_ASKPASS_REMEMBER:-}" = 1 ] && rem=remember
-    reply=$("$bin/passdialog" "$what" "$host" "$user" $rem)
+    reply=$(ECCE_PASSDIALOG_NOTE=$note "$bin/passdialog" "$what" "$host" "$user" $rem)
     # Line 1 is the password, an optional line 2 "remember" (the checkbox).
     answer=$(printf '%s\n' "$reply" | sed -n 1p)
     [ -n "$answer" ] || cancel
@@ -83,6 +102,10 @@ case $kind in
     if [ "$what" = password ] && [ -n "${ECCE_ASKPASS_ANSWER:-}" ]; then
       ( umask 077; printf '%s\n' "$reply" > "$ECCE_ASKPASS_ANSWER" )
     fi
+    # A jump host's prompt comes first on some routes: a refusal is a second
+    # prompt for the same login.
+    [ "$what" != password ] || [ -z "$sdir" ] || printf '%s\n' "$user@$host" > "$sdir/typed"
+
     printf '%s\n' "$answer"
     ;;
 esac

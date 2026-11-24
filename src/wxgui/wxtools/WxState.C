@@ -92,7 +92,10 @@ vector<wxPen*>   WxState::p_pens[2];
  */
 WxState::WxState( ) : WxStateGUI()
 {
-  SetBackgroundColour(GetParent()->GetBackgroundColour());
+  // No colour of its own: on GTK3 any set colour is filled by the theme
+  // as a square that differs from what the parent draws (#1241). The icon
+  // paints only its shape over whatever is behind it.
+  SetBackgroundStyle(wxBG_STYLE_PAINT);
   initializeColors();
   p_currentState = ResourceDescriptor::STATE_CREATED;
   p_useSystemColor = false;
@@ -108,7 +111,10 @@ WxState::WxState( ) : WxStateGUI()
 WxState::WxState( wxWindow* parent, wxWindowID id, const wxPoint& pos, const wxSize& size, long style )
   : WxStateGUI(parent, id, pos, size, style)
 {
-  SetBackgroundColour(GetParent()->GetBackgroundColour());
+  // No colour of its own: on GTK3 any set colour is filled by the theme
+  // as a square that differs from what the parent draws (#1241). The icon
+  // paints only its shape over whatever is behind it.
+  SetBackgroundStyle(wxBG_STYLE_PAINT);
   initializeColors();
   p_currentState = ResourceDescriptor::STATE_CREATED;
   p_useSystemColor = false;
@@ -509,13 +515,16 @@ ewxPanel* WxState::createLegend(wxWindow* parent)
 void WxState::OnPaint( wxPaintEvent& event )
 {
   wxPaintDC dc(this);
-  // The parent's colour now, not at construction: styling applied to the
-  // parent afterwards left a differently coloured square behind the icon.
-  SetBackgroundColour(GetParent()->GetBackgroundColour());
-  dc.SetBackground(GetBackgroundColour());
+#ifdef __WXGTK__
+  // GTK3 draws the parent under a child that paints no background.
+  const bool clear = false;
+#else
+  const bool clear = true;
+  dc.SetBackground(GetParent()->GetBackgroundColour());
+#endif
   draw(dc, p_outOfContact && p_currentState == ResourceDescriptor::STATE_RUNNING
            ? (ResourceDescriptor::RUNSTATE)OUT_OF_CONTACT : p_currentState,
-       p_useSystemColor);
+       p_useSystemColor, wxRect(), clear);
 }
 
 

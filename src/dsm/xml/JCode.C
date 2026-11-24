@@ -782,6 +782,23 @@ bool JCode::isPeriodic(void) const
   return periodic;
 }
 
+//  Whether the system's charge and spin multiplicity mean anything to the
+//  code; Vina scores a ligand pose and takes no total charge or spin.
+bool JCode::usesChargeAndSpin(void) const
+{
+  bool uses = true;
+  get_bool("ChargeAndSpin", uses);
+  return uses;
+}
+
+//  Whether a point group means anything to the code; Vina docks without it.
+bool JCode::usesSymmetry(void) const
+{
+  bool uses = true;
+  get_bool("Symmetry", uses);
+  return uses;
+}
+
 bool JCode::getBasisSetQuickListSupported(void) const
 {
   bool supportedFlag = true;

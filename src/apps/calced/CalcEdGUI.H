@@ -208,6 +208,8 @@ public:
     static const wxWindowID ID_BUTTON_CALCED_GUESS_DEFAULT;
     static const wxWindowID ID_STATICTEXT_CALCED_VERIFY_LIGHT;
     static const wxWindowID ID_STATICTEXT_CALCED_OPEN_SHELLS;
+    static const wxWindowID ID_STATIC_CALCED_OPEN_SHELLS;
+    static const wxWindowID ID_STATIC_CALCED_SYMMETRY_LABEL;
     static const wxWindowID ID_STATICTEXT_CALCED_FUNCTIONS;
     static const wxWindowID ID_STATICTEXT_CALCED_FORMULA;
     static const wxWindowID ID_STATICTEXT_CALCED_SYMMETRY;

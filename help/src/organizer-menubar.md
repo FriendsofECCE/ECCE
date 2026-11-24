@@ -445,7 +445,7 @@ For separate Details windows, start ECCE with `ECCE_NATIVE_DIALOGS=1`
 to use the native versions.
 They offer the same settings and defaults as the Python versions, including
 COSMO solvent and custom dielectric constant, SCF and thread settings,
-geometry steps and gradient norm (kcal/mol/Angstrom), and thermochemistry.
+geometry steps and gradient norm (kcal/mol/Å), and thermochemistry.
 Energy and Gradient have no run type settings. For separate Details windows,
 set `ECCE_NATIVE_DIALOGS=0` to use the Python versions.
 

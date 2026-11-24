@@ -42,6 +42,17 @@ public:
   void setPassword(const std::string& pw) { p_password = pw; }
   // Forgets which hosts had a refused or cancelled attempt (tests).
   static void forgetMasterAttempts();
+  // While one of these lives, logins on this thread never ask: no master is
+  // opened through askpass, so ssh sends no password at all.  Thread-local:
+  // a background caller must not silence (or answer) another thread's login.
+  class NoPrompt {
+  public:
+    explicit NoPrompt(bool on = true);
+    ~NoPrompt();
+  private:
+    bool p_on;
+  };
+  static bool promptsSuppressed();
   // The front end (ssh -J); the target is reached through it by OpenSSH.
   void setJumpHost(const std::string& host, int port = 0,
                    const std::string& user = "");

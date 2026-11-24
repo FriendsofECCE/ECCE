@@ -1,9 +1,9 @@
 ---
 type: pitfall
-title: "XWayland: a GTK 3 window stops repainting after its first frame or two when Mutter sends no _NET_WM_FRAME_DRAWN; ewxModalGuard turns frame sync off for every top-level window"
+title: "XWayland and loaded Xorg: a GTK 3 window stops repainting after its first frame or two when Mutter sends no _NET_WM_FRAME_DRAWN; ewxModalGuard turns frame sync off for every top-level window"
 area: wx-viewer
-paths: ["src/wxgui/ewxClasses/ewxModalGuard.C", "include/wxgui/ewxModalGuard.H", "CMakeLists.txt", "src/apps/builder/BuilderScript.C", "tests/apps/xwayland_paint_test.py"]
-issues: [311, 332, 120]
+paths: ["src/wxgui/ewxClasses/ewxModalGuard.C", "include/wxgui/ewxModalGuard.H", "CMakeLists.txt", "src/apps/builder/BuilderScript.C", "tests/apps/xwayland_paint_test.py", "tests/apps/frame_sync_x11_test.py", "src/apps/organizer/CalcMgr.C"]
+issues: [311, 332, 120, 1249]
 ---
 GTK 3.24 on X11 (`gdk/x11/gdkwindow-x11.c`, `gdkdisplay-x11.c`): a
 top-level window has an extended `_NET_WM_SYNC_REQUEST` counter when the
@@ -50,9 +50,8 @@ frame is complete. `ewxModalGuard::install()` (from `ewxApp::OnInit`)
 does it from an emission hook on `GtkWidget::map` for every GtkWindow, so
 for frames, dialogs, native GTK dialogs and menus alike: the hook runs
 before the class handler, after realize, before the first frame (a new
-top-level is frozen until MapNotify). Only when the X server has the
-XWAYLAND extension; `ECCE_FRAME_SYNC=1` keeps GTK's default, `=0` turns
-it off on any X server. `modal.log` lines carry `frameSync=on|off` and
+top-level is frozen until MapNotify). On every X server since #1249;
+`ECCE_FRAME_SYNC=1` keeps GTK's default. `modal.log` lines carry `frameSync=on|off` and
 `frameDrawn=<n>` (the compositor's replies to that dialog).
 
 Not covered: the wxPython dialogs (`scripts/codereg/*.py`) and other
@@ -62,3 +61,16 @@ and the Builder on the headless shell and checks that their frame counters
 advance (Builder script `info` prints `frame=`; `atompos N` / `viewpos fx
 fy` print screen positions for a test that clicks through the X server);
 it fails with `ECCE_FRAME_SYNC=1`.
+
+Xorg too (#1249): on an X11 GNOME session with the machine busy (a -j4
+build), the first Viewer tab was up but drawn greyed and the Organizer's
+"Starting the Viewer..." window kept its text past the 30-s give-up; gdb
+had every thread idle in `gtk_main`, timers ran, Alt+Tab repainted all at
+once. That is this freeze on two top-level windows, and it also leaves
+widgets unallocated (GTK size-allocates in the frame clock's layout phase),
+which `allocateNeverSized` in `ToolTabs.C` only papers over.
+`tests/apps/frame_sync_x11_test.py` reproduces it deterministically on
+Xvfb: the test process claims `_NET_WM_FRAME_DRAWN` in `_NET_SUPPORTED`
+(a stand-in compositor) and never sends it; with `ECCE_FRAME_SYNC=1` the
+Starting window's frame counter stops (the Organizer's `toolstate` prints
+`frames['<title>']=N` per shown window).

@@ -2,8 +2,8 @@
 type: map
 title: ".dlg grammar and the engine behind it: what each line means and which Python behaviour it reproduces"
 area: codereg
-paths: ["src/wxgui/details", "src/apps/codereg-dialog/ecce-dialog.cpp", "scripts/codereg/ecceqmtheory.dlg", "scripts/codereg/orcatheory.dlg", "scripts/codereg/orcaruntype.dlg", "scripts/codereg/ged16theory.dlg", "scripts/codereg/ged16runtype.dlg", "tests/dialogs/grammar_test.dlg", "tests/dialogs/native_test.py", "tests/details/details_unit_test.cpp"]
-issues: [411]
+paths: ["src/wxgui/details", "src/apps/codereg-dialog/ecce-dialog.cpp", "scripts/codereg/ecceqmtheory.dlg", "scripts/codereg/orcatheory.dlg", "scripts/codereg/orcaruntype.dlg", "scripts/codereg/ged16theory.dlg", "scripts/codereg/ged16runtype.dlg", "scripts/codereg/vinaruntype.dlg", "tests/dialogs/grammar_test.dlg", "tests/dialogs/native_test.py", "tests/details/details_unit_test.cpp"]
+issues: [411, 1277]
 ---
 Engine: `src/wxgui/details/` = `DetailsRules` (line parser, expressions, ranges,
 Python float formatting; no wx), `DetailsModel` (values, enabled/shown, the
@@ -17,7 +17,8 @@ argv and the frame. Tests: `details_unit` (ctest, headless, every construct on
 
 **Lines.** `# comment`; `list NAME = a|b|c`; `dialog title= help= minwidth= message=hide`;
 `box label= cols= when=`; widgets `check radiopair combo calcpick int float text note`;
-`force`, `status`. Items before the first box, or in a box whose `when` is false,
+`force`, `status`, and the side-file kinds `ligandpick` and `filenote`
+(below). Items before the first box, or in a box whose `when` is false,
 are not built.
 
 **Expressions** (`when`, `enable_if`, `show_if`, `export_if`, `default_if`, `force`/`status when`):
@@ -63,6 +64,18 @@ stores the URL, empty unit, `menu_input`, default (none).
 always), sends again when its enabled state changes, like combo/number. inRange
 messages print a bound like Python `str()`: an integer bound as `1`, a float
 bound as `1.0`/`0.5`.
+
+**Side files** (`vinaruntype.dlg`, #1277): the editor writes files next to
+the restore file after each Save, `<restore>.<file>`. `ligandpick name=N
+label= target=KEY file=molecules other="Other (atom numbers)"` is a list of
+`label TAB atom range` lines plus the `other` entry, hidden while there are
+none; a candidate chosen is an edit of KEY; the list follows KEY's value; an
+empty KEY takes the first candidate once (values-only run: set before the
+batch; shown dialog: an edit after `#INITIALIZED`). `filenote name=N
+file=note show_if=...` shows the file's first line. Neither is a setting
+(never exported, `find` skips them). A panel with either polls the files
+once a second (`Model::pollSideFiles`); the Python dialog defaulted again
+whenever the field was emptied, the engine defaults once.
 
 Not done yet: no C++ hook registry.
 

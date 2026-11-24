@@ -260,6 +260,7 @@ static bool askPassdialog(const char* type, const string& machine,
                           const string& user, string& answer)
 {
   string out;
+  if (OpenSshTransport::promptsSuppressed()) return false;
   if (runDialog("passdialog", {type, machine, user}, out) < 0) return false;
   answer = out.substr(0, out.find('\n'));
   while (!answer.empty() && answer[answer.size()-1]=='\r')
@@ -273,7 +274,7 @@ static bool askHostKeyDialog(const string& host, const string& fp,
                              const string& keyType, bool& ran)
 {
   ran = false;
-  if (!Ecce::guiAvailable()) return false;
+  if (!Ecce::guiAvailable() || OpenSshTransport::promptsSuppressed()) return false;
   string out;
   int st = runDialog("hostkeydialog", {host, fp, keyType}, out);
   // 126/127: the shell could not run the program at all.
@@ -521,6 +522,7 @@ bool RCommand::sshConnectOpenssh(const string& machine, const string& userName,
     // again, and a full master needs no login): the built-in client still
     // logs in with its own dialog.
     if (tryLibssh && t->ownsMaster() && !t->loginCancelled() &&
+        !OpenSshTransport::promptsSuppressed() &&
         !t->loginRefused() && !t->sessionsFull() &&
         !OpenSshTransport::configSharesConnection(machine, userName) &&
         !OpenSshTransport::configProxiesConnection(machine, userName) &&

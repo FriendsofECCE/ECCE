@@ -1,4 +1,5 @@
 
+#include <fstream>
 #include <cstdlib>
 #include <iostream>
   using std::cout;
@@ -31,7 +32,9 @@ bool PasswordDialogApp::OnInit()
                            type == "password";
   authDlg.enableRemember(canRemember);
 
-  authDlg.setPrompt("");
+  // ECCE_PASSDIALOG_NOTE: why it asks again (ecce-askpass: the last answer was refused).
+  const char* note = getenv("ECCE_PASSDIALOG_NOTE");
+  authDlg.setPrompt(note ? note : "");
   authDlg.setServerLabel("Host:");
   authDlg.setServer(host);
 
@@ -47,6 +50,11 @@ bool PasswordDialogApp::OnInit()
   // (ecce-askpass) cannot tell from a failure: say OK or cancel instead.
   // ECCE_TEST_AUTH_ANSWER: the answer without the dialog ("cancel" cancels).
   const char* test = getenv("ECCE_TEST_AUTH_ANSWER");
+  // ECCE_TEST_AUTH_LOG: each test-answered dialog appends what it showed.
+  const char* testLog = getenv("ECCE_TEST_AUTH_LOG");
+  if (test && testLog && *testLog)
+    std::ofstream(testLog, std::ios::app) << type << "\t" << host << "\t" << user
+                                          << "\tnote=" << (note ? note : "") << "\n";
   const bool ok = test ? std::string(test) != "cancel"
                        : authDlg.ShowModal() == wxID_OK;
   if (ok) {
