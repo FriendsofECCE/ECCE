@@ -33,6 +33,7 @@
 #include "util/Ecce.H"
 #include "util/EcceMap.H"
 #include "util/Filesystem.H"
+#include "util/ResourceUtils.H"
 #include "util/SDirectory.H"
 #include "util/SFile.H"
 #include "util/STLUtil.H"
@@ -645,12 +646,22 @@ bool DeckWriter::makeReadyIfComplete(ICalculation *calc, string& why)
 {
   TaskJob *job = dynamic_cast<TaskJob*>(calc);
   if (!job) { why = "not a calculation"; return false; }
+  const string url = job->getURL().toString();
   {
     std::unique_ptr<Fragment> frag(calc->fragment());
     std::unique_ptr<TGBSConfig> basis(calc->gbsConfig());
     std::unique_ptr<TTheory> theory(calc->theory());
-    if (!theory || !setupComplete(frag.get(), basis.get(),
-                                  calc->application(), theory.get())) {
+    const JCode *code = calc->application();
+    const bool complete = theory && setupComplete(frag.get(), basis.get(),
+                                                  code, theory.get());
+    std::fprintf(stderr, "Duplicate readiness: %s state=%s structure=%d "
+                 "basis=%d theory=%d code=%d open-bonds=%d missing-cell=%d "
+                 "complete=%d\n", url.c_str(),
+                 ResourceUtils::stateToString(job->getState()).c_str(),
+                 bool(frag), bool(basis), bool(theory), bool(code),
+                 frag && frag->containsNubs(), missingCell(code, frag.get()),
+                 complete);
+    if (!complete) {
       why = "its settings are not complete";
       return false;
     }
@@ -662,6 +673,15 @@ bool DeckWriter::makeReadyIfComplete(ICalculation *calc, string& why)
     std::unique_ptr<EcceURL> made(edsi ? edsi->makeCollection("Inputs") : 0);
   }
   Result r = generate(calc);
-  if (!r.ok) { why = r.message; return false; }
-  return job->setState(ResourceDescriptor::STATE_READY);
+  if (!r.ok) {
+    why = r.message;
+    std::fprintf(stderr, "Duplicate readiness: %s deck failed: %s\n",
+                 url.c_str(), why.c_str());
+    return false;
+  }
+  const bool ready = job->setState(ResourceDescriptor::STATE_READY);
+  std::fprintf(stderr, "Duplicate readiness: %s %s\n", url.c_str(),
+               ready ? "Ready with generated deck" :
+               ("could not set Ready: " + job->messages()).c_str());
+  return ready;
 }

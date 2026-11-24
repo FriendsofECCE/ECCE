@@ -119,6 +119,14 @@ def state_of(calc):
 
 def check_states(gamma, log):
     copies = sorted(set(os.listdir(gamma)) - set(EXPECTED) - {".ecce-meta"})
+    for original in ("lif", "incomplete"):
+        source = os.path.join(gamma, original)
+        if state_of(source) != "Loaded" or os.path.exists(
+                os.path.join(source, "Inputs")):
+            fail("original " + original,
+                 "imported original changed state or gained Inputs", log)
+        else:
+            print("ok    original %s: Loaded, no Inputs" % original)
     for original, want in sorted(EXPECTED.items()):
         mine = [c for c in copies if c.startswith(original)]
         what = "copy of %s" % original
@@ -126,6 +134,16 @@ def check_states(gamma, log):
             fail(what, "expected one copy, found %s" % (mine or "none"), log)
             continue
         copy = os.path.join(gamma, mine[0])
+        if original in ("lif", "incomplete"):
+            decision = re.search(
+                r"Duplicate readiness: " + re.escape("file://" + copy) +
+                r" state=Created .*complete=([01])$", log, re.M)
+            if not decision or decision.group(1) != str(int(want == "Ready")):
+                fail(what, "missing or wrong readiness diagnostic", log)
+            if want == "Ready" and (
+                    "Duplicate readiness: file://%s Ready with generated deck"
+                    % copy) not in log:
+                fail(what, "missing deck generation diagnostic", log)
         state = state_of(copy)
         inputs = os.path.join(copy, "Inputs")
         deck = os.path.isdir(inputs) and any(
