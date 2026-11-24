@@ -1517,7 +1517,9 @@ void LaunchPanel::compactLayout()
     for (wxWindow *c : p_calcDrctyPanel->GetChildren())
         if (wxStaticText *t = dynamic_cast<wxStaticText*>(c))
             if (t->GetLabel() == "*") t->SetLabel("");
-    // One width for all of them; a path needs room to be read.
+    // One width for all of them, growing with the area; the minimum leaves
+    // the labels room in a 500 px Set-up column, which has no horizontal
+    // scrolling to spare (#1282).
     for (wxWindowID id : {ID_TEXTCTRL_WXLAUNCHER_USERNAME, ID_TEXTCTRL_WXLAUNCHER_CALCDIR,
                           ID_TEXTCTRL_WXLAUNCHER_SCRATCHDIR, ID_TEXTCTRL_WXLAUNCHER_ALLOCACCT}) {
       wxWindow *w = FindWindow(id);
@@ -1525,7 +1527,7 @@ void LaunchPanel::compactLayout()
       wxSizerItem *it = sz ? sz->GetItem(w) : 0;
       if (!it) continue;
       it->SetFlag(it->GetFlag() | wxEXPAND);
-      w->SetMinSize(FromDIP(wxSize(540, -1)));
+      w->SetMinSize(FromDIP(wxSize(300, -1)));
     }
     SetMinSize(wxDefaultSize);   // set to the width of the first layout
     Layout();
