@@ -1105,6 +1105,7 @@ bool ToolTabs::adopt(wxFrame *tool, wxAuiManager *mgr, const wxString& title)
     page->fitSash();
   }
   wxString caption = tool->GetTitle().empty() ? title : tool->GetTitle();
+  t->dot = dotFor(caption);
   s_book->AddPage(page, tabCaption(caption), true);
   hookTabCtrls();
   // AddPage selected it; make sure the menus follow even if it was the
@@ -1275,6 +1276,8 @@ void ToolTabs::setTitle(wxTopLevelWindow *tool, const wxString& title)
   if (!t || !t->page) return;
   // The Organizer's tab keeps its short caption; the window shows the title.
   if (t->pinned) { s_hostBaseTitle = title; updateHostTitle(); return; }
+  // A Viewer can still have the Builder title when its tab is created.
+  t->dot = dotFor(title);
   int idx = s_book->GetPageIndex(t->page);
   if (idx != wxNOT_FOUND) s_book->SetPageText(idx, tabCaption(title));
   updateHostTitle();
@@ -1531,6 +1534,14 @@ bool ToolTabs::testCommand(const wxString& cmd, const wxString& arg,
   }
   if (cmd == "tabs") {
     outcome = describe();
+    if (arg == "dots" && s_book) {
+      outcome += " dots=";
+      for (size_t i = 0; i < s_book->GetPageCount(); i++) {
+        Tab *t = findPage(s_book->GetPage(i));
+        if (t) outcome += wxString::Format("%d:%s ", (int)i,
+                         t->dot.GetAsString(wxC2S_HTML_SYNTAX));
+      }
+    }
   } else if (cmd == "livecount") {
     outcome = LiveCount::report();
   } else if (cmd == "mainwindow") {

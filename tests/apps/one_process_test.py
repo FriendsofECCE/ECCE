@@ -978,6 +978,7 @@ def runTabIdentity(display):
             append("start CalculationEditor " + urlA, 25)
             append("start CalculationEditor " + urlA, 15)  # reused
             append("tabs", 2)
+            append("tabs dots", 2)
             append("tabtips", 2)
             append("windowitems", 2)
             append("tab 0", 3)
@@ -1008,6 +1009,11 @@ def runTabIdentity(display):
         print("      tabs: " + "\n            ".join(tabs))
         print("      tabtips: " + str(tips))
         print("      windowitems: " + str(items))
+        dots = pb.answers(log, "tabs dots")
+        check(len(dots) == 1 and dots[0].split(" dots=")[-1].strip().lower()
+              == "0:#3060b0 1:#705090 2:#705090 3:#409020",
+              "Viewer tabs use purple dots after their titles change; "
+              "Organizer stays blue and Editor green", str(dots))
         dash = " \u2013 "
         tipList = re.findall(r"\d+:([^|]*)\|", tips[0]) if tips else []
         check(len(tipList) == 4,
