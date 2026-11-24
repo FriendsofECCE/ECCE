@@ -413,8 +413,8 @@ greyed out.
   from the Launcher's own menu or by choosing Theory, Runtype or Basis Set
   Details again. Once the job is submitted, the editor's **Launch...** is
   off (Run Mgmt > Reset for Rerun allows a new launch) and a row under it
-  has **Viewer**, which opens the calculation's Viewer (the job's progress
-  and, when it ends, its results), and **Output**, which shows the job's
+  has the Viewer icon at the left, which opens the calculation's Viewer (the job's progress
+  and, when it ends, its results), and **Output** at the right, which shows the job's
   output file in the area on the right. It follows a running job;
   **Open in editor** shows the file in your text editor.
 
