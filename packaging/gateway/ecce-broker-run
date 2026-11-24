@@ -64,6 +64,13 @@ MOSQUITTO="$("$ECCE_HOME/bin/ecce-find-mosquitto")" || die "mosquitto is not ins
 
 sync_accounts "$BASE"
 
+# Mosquitto warns about (and later versions refuse) an ACL file others can
+# read or that the broker's account does not own; the installed one is
+# root's, so the broker reads a private copy.
+( umask 077; cp "$ACL" "$BASE/mosquitto.acl.new" ) || die "cannot copy $ACL"
+[ "$(id -u)" = 0 ] && chown --reference="$BASE" "$BASE/mosquitto.acl.new"
+mv -f "$BASE/mosquitto.acl.new" "$BASE/mosquitto.acl"
+
 # A broker declared by a loopback name serves this machine only; any other
 # name is for other machines too.
 binds=""
@@ -87,7 +94,7 @@ conf="$BASE/mosquitto.conf"
     if [ "$b" = "*" ]; then echo "listener $PORT"; else echo "listener $PORT $b"; fi
     echo "allow_anonymous false"
     echo "password_file $BASE/passwd"
-    echo "acl_file $ACL"
+    echo "acl_file $BASE/mosquitto.acl"
   done
   set +f
 } >"$conf" || die "cannot write $conf"
