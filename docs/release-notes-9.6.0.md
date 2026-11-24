@@ -10,8 +10,8 @@
 
 ## One program
 
-<a href="https://raw.githubusercontent.com/wiki/FriendsofECCE/ECCE/release-images/v9.6.0/linux-tabs-builder.png"><img src="https://raw.githubusercontent.com/wiki/FriendsofECCE/ECCE/release-images/v9.6.0/linux-tabs-builder.png" width="400" alt="ECCE on Linux as one window with Organizer, Builder, Calculation Editor and Viewer tabs, the Builder tab in front"></a> <a href="https://raw.githubusercontent.com/wiki/FriendsofECCE/ECCE/release-images/v9.6.0/linux-editor-setup.png"><img src="https://raw.githubusercontent.com/wiki/FriendsofECCE/ECCE/release-images/v9.6.0/linux-editor-setup.png" width="400" alt="The Calculation Editor tab on Linux with the right panel of the Set-up area"></a>
-<a href="https://raw.githubusercontent.com/wiki/FriendsofECCE/ECCE/release-images/v9.6.0/windows-tabs.png"><img src="https://raw.githubusercontent.com/wiki/FriendsofECCE/ECCE/release-images/v9.6.0/windows-tabs.png" width="400" alt="ECCE as one window with tabs on Windows 11"></a> <a href="https://raw.githubusercontent.com/wiki/FriendsofECCE/ECCE/release-images/v9.6.0/macos-tabs.png"><img src="https://raw.githubusercontent.com/wiki/FriendsofECCE/ECCE/release-images/v9.6.0/macos-tabs.png" width="400" alt="ECCE as one window with tabs on macOS"></a>
+<a href="https://raw.githubusercontent.com/wiki/FriendsofECCE/ECCE/release-images/v9.6.0/linux-tabs-builder.png"><img src="https://raw.githubusercontent.com/wiki/FriendsofECCE/ECCE/release-images/v9.6.0/linux-tabs-builder.png" width="400" alt="ECCE on Linux as one window with Organizer, Builder, ECCE-QM Editor and Viewer tabs; the Builder tab is in front with ethanol"></a> <a href="https://raw.githubusercontent.com/wiki/FriendsofECCE/ECCE/release-images/v9.6.0/linux-editor-setup.png"><img src="https://raw.githubusercontent.com/wiki/FriendsofECCE/ECCE/release-images/v9.6.0/linux-editor-setup.png" width="400" alt="The ECCE-QM Editor tab on Linux for ethanol (B3LYP, 6-31G*), with Theory Details open in the right panel"></a>
+<a href="https://raw.githubusercontent.com/wiki/FriendsofECCE/ECCE/release-images/v9.6.0/windows-tabs.png"><img src="https://raw.githubusercontent.com/wiki/FriendsofECCE/ECCE/release-images/v9.6.0/windows-tabs.png" width="400" alt="The Organizer as one window with its tab strip, on Windows"></a> <a href="https://raw.githubusercontent.com/wiki/FriendsofECCE/ECCE/release-images/v9.6.0/macos-tabs.png"><img src="https://raw.githubusercontent.com/wiki/FriendsofECCE/ECCE/release-images/v9.6.0/macos-tabs.png" width="400" alt="The Organizer as one window with its tab strip, on macOS"></a>
 
 - **Windows and macOS:** one icon and one menu bar; Quit ends ECCE; a second start of ECCE raises the running window; structure files open in a Builder tab, and the packages register the file types (#1069).
 - **Edit > Preferences > Windows and tabs:** Normal, Small and Wide layouts, and for each tool whether it opens as a tab or in its own window. A tab can be moved to its own window and back. A fresh installation starts with the Normal layout (#983).
@@ -63,7 +63,7 @@ Each package is built by the project's CI on the system it is meant for:
 | `ecce-client_9.6.0_amd64.deb`, `ecce-server_9.6.0_amd64.deb` | Debian 13 (trixie) |
 | `ecce-client_9.6.0_ubuntu24.04_amd64.deb`, `ecce-server_9.6.0_ubuntu24.04_amd64.deb` | Ubuntu 24.04 |
 | `ecce-client-9.6.0-1.el9.x86_64.rpm`, `ecce-server-9.6.0-1.el9.x86_64.rpm` | Rocky Linux 9 (for RHEL 9 and compatible systems) |
-| `ecce-client-9.6.0-1.fedora.x86_64.rpm`, `ecce-server-9.6.0-1.fedora.x86_64.rpm` | Fedora, the current release at build time |
+| `ecce-client-9.6.0-1.fedora.x86_64.rpm`, `ecce-server-9.6.0-1.fedora.x86_64.rpm` | Fedora 45 |
 | `ECCE-9.6.0-arm64.dmg` | macOS on Apple silicon; runs on macOS 11 or later |
 | `ECCE-9.6.0-x86_64.dmg` | macOS 15 on Intel; runs on macOS 10.15 or later |
 | `ECCE-9.6.0-x86_64-macos10.13.dmg` | macOS 15 on Intel; runs on macOS 10.13 and 10.14 (experimental) |
