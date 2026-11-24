@@ -601,6 +601,11 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
     timer->StartOnce(2000);
   }
 
+  InProcessTools::setCalcAction([this](const string& a, const string& u,
+                                       const string& ans) {
+    return runCalcAction(a, u, ans);
+  });
+
   //  ECCE_TEST_ORGANIZER=<file>: lines appended to <file> are run as
   //  commands (runTestCommand), each answered on stderr with a line
   //  "ECCE_TEST_ORGANIZER: <command>: <outcome>". Inert unless set; for
@@ -3891,6 +3896,7 @@ void CalcMgr::runTestCommand(const string& line)
  */
 CalcMgr::~CalcMgr( )
 {
+  InProcessTools::setCalcAction(nullptr);
   // All of these call back into this window, the folder watcher from its
   // own thread on Windows: none may outlive it.
   delete p_autoWatcher;
@@ -12548,7 +12554,7 @@ void CalcMgr::terminateCalc()
                           wxOK | wxCANCEL | wxICON_QUESTION, 
                           wxDefaultPosition);
 
-  if(msgDlg.ShowModal() == wxID_CANCEL)
+  if(askOrAnswer(msgDlg) == wxID_CANCEL)
       {
         doit = false;
       }
@@ -12604,6 +12610,45 @@ void CalcMgr::reconnectJob()
     reconnectJob(findNode(*itor, false, true));
     updateUrl(*itor);
   }
+}
+
+
+int CalcMgr::askOrAnswer(wxDialog& dlg)
+{
+  if (p_dlgAnswer.empty()) return dlg.ShowModal();
+  return p_dlgAnswer == "cancel" ? wxID_CANCEL : wxID_OK;
+}
+
+
+string CalcMgr::runCalcAction(const string& action, const string& url,
+                              const string& answer)
+{
+  WxResourceTreeItemData *node = findNode(EcceURL(url), true, true);
+  if (!node) return "not in the tree";
+  p_treeCtrl->SelectItem(node->GetId());
+  for (int i = 0; i < 5; i++) wxYield();
+  p_dlgAnswer = answer;
+  wxCommandEvent ev;
+  string out = "ok";
+  if (action == "duplicate") OnDuplicateClick(ev);
+  else if (action == "duplicate-last") OnDuplicate2Click(ev);
+  else if (action == "duplicate-orbitals") OnDuplicate3Click(ev);
+  else if (action == "rerun") resetForRerun();
+  else if (action == "terminate") terminateCalc();
+  else out = "unknown action " + action;
+  p_dlgAnswer.clear();
+  if (out == "ok" && action.compare(0, 9, "duplicate") == 0) {
+    // The copy is the new selection; it opens in its own editor tab.
+    if (getSelection() && p_currentSelection[0].toString() != url) {
+      out = p_currentSelection[0].toString();
+      startApp(CALCED, 0, out);
+    } else {
+      out = "no copy was made";
+    }
+  } else if (out == "ok" && answer == "cancel") {
+    out = "cancelled";
+  }
+  return out;
 }
 
 
@@ -12667,7 +12712,7 @@ void CalcMgr::resetForRerun()
     ewxMessageDialog msgDlg(this, msg, title, wxOK | wxCANCEL | wxICON_QUESTION,
                             wxDefaultPosition);
 
-    if (msgDlg.ShowModal() == wxID_CANCEL) {
+    if (askOrAnswer(msgDlg) == wxID_CANCEL) {
       doit = false;
     }
   }
