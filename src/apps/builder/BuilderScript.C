@@ -837,7 +837,7 @@ void Builder::runBuilderScript(const std::string& file)
         fprintf(stderr, "BUILDER: undolabel [%s] enabled=%d\n",
                 item ? (const char*)item->GetItemLabelText().utf8_str() : "none",
                 item && item->IsEnabled() ? 1 : 0);
-      } else if (w[0] == "drawn" && w.size() == 1) {
+      } else if (w[0] == "drawnstyles") {
         //  Atoms whose display style has a node in the scene graph; an atom
         //  with a style the graph no longer has exists but is not drawn.
         int drawn = 0;

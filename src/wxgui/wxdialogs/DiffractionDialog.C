@@ -1959,7 +1959,7 @@ void DiffractionDialog::breakout(bool open)
 void DiffractionView::clearTip()
 {
   delete p_tip; p_tip = nullptr;
-  p_tipText.clear(); p_pinned = false;
+  p_pinned = false;
 }
 
 void DiffractionView::showTip(wxWindow *, const wxPoint&, const wxString& label, bool pin)
@@ -2093,7 +2093,8 @@ wxString DiffractionView::script(const vector<string>& args)
       canvas->GetEventHandler()->ProcessEvent(down);
     }
     canvas->GetEventHandler()->ProcessEvent(event);
-    return p_tipText;
+    // The readout line under the image is where the details are shown.
+    return p_pointer->GetLabel();
   }
   return "unknown xrd command";
 }

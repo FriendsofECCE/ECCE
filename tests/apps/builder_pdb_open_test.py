@@ -18,14 +18,14 @@ import fixture    # noqa: E402
 
 STRUCTURE = os.path.join(HERE, "..", "fragreaders", "data", "181L.pdb")
 SCRIPT = [
-    "wait 2500", "info", "resatoms", "drawn",
+    "wait 2500", "info", "resatoms", "drawnstyles",
     "menuenabled Build|Add Hydrogen",
     "menu Edit|Select Solvent", "wait 500",
     #  The Delete key as a hand test presses it: the frame's key hook.
     "delkey", "wait 500", "info", "resatoms", "undolabel",
-    "ctrlz", "wait 500", "info", "resatoms", "drawn",
+    "ctrlz", "wait 500", "info", "resatoms", "drawnstyles",
     "redo", "wait 500", "info",
-    "undo", "wait 500", "info", "drawn",
+    "undo", "wait 500", "info", "drawnstyles",
     "menu Build|Add Hydrogen", "wait 3000", "info",
     "savemenu", "wait 500", "savestate",
     "quit",

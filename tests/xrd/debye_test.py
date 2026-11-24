@@ -45,7 +45,9 @@ def test_analytic():
         got = xrd.debye_intensity(["Na", "Cl"], [[0, 0, 0], [r, 0, 0]], q, [.5, .8], 1.5, method)
         want_occ = ((.5*na)**2 + (.8*cl)**2 + 2*.5*.8*na*cl*sinc) * np.exp(-3*s2)
         check(np.allclose(got, want_occ, rtol=1e-13), method + ": occupancy and B match powder amplitudes")
-    got = xrd.debye_intensity(["Na", "Cl"], [[0, 0, 0], [2.824, 0, 0]], q, method="histogram")
+    # a quarter bin off r: the histogram puts it back on r's bin centre
+    got = xrd.debye_intensity(["Na", "Cl"], [[0, 0, 0], [r + .25*xrd.DEBYE_BIN_WIDTH, 0, 0]], q,
+                              method="histogram")
     check(np.allclose(got, want, rtol=1e-13), "histogram rounds distances to nearest bin centre")
     line = np.array([[0, 0, 0], [.25, 0, 0], [.8, 0, 0], [1.31, 0, 0]])
     species = ["Na", "Cl", "Na", "Cl"]
@@ -138,13 +140,15 @@ def test_cli(tmp):
           "--no-doublet retains the selected source Ka1 wavelength")
     large = os.path.join(tmp, "large.xyz")
     with open(large, "w") as f:
-        f.write("3001\ncoincident test atoms\n" + "Na 0 0 0\n" * 3001)
+        n_large = xrd.DEBYE_DIRECT_LIMIT + 1
+        f.write("%d\ncoincident test atoms\n" % n_large + "Na 0 0 0\n" * n_large)
     p = subprocess.run([*tool[:2], "debye", large, "--tt-min", "0", "--tt-max", "10", "--step", "10", "--json"],
                        text=True, capture_output=True)
     data = json.loads(p.stdout)
-    check(p.returncode == 0 and data["method"] == "histogram" and data["bin_width"] == .01 and
-          abs(data["raw_intensity"][0] / (3001*xrd.form_factor("Na", 0))**2 - 1) < 1e-12,
-          "CLI reports histogram above 3000 atoms and retains q=0 forward scattering")
+    check(p.returncode == 0 and data["method"] == "histogram" and
+          data["bin_width"] == xrd.DEBYE_BIN_WIDTH and
+          abs(data["raw_intensity"][0] / (n_large*xrd.form_factor("Na", 0))**2 - 1) < 1e-12,
+          "CLI reports histogram above DEBYE_DIRECT_LIMIT atoms and retains q=0 forward scattering")
     p = subprocess.run(tool + ["--select", "1", "--step", "5"], text=True, capture_output=True)
     check(p.returncode == 0 and "1 atoms, Debye direct sum" in p.stdout, "selection and method summary")
     for args in (("--step", "0"), ("--wavelength", "nan"), ("--tt-max", "180"), ("--doublet",)):

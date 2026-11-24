@@ -116,7 +116,6 @@ private:
   wxButton *p_update, *p_experimental;
   wxTextCtrl *p_step;
   class wxPopupWindow *p_tip = nullptr;
-  wxString p_tipText;
   bool p_pinned = false;
   void showTip(wxWindow *canvas, const wxPoint& pos, const wxString& text, bool pin = false);
   void clearTip();
