@@ -221,6 +221,8 @@ def run(display, name, args=(), windowTimeout=40, settle=8, env=None,
 
     command = [os.path.join(WRAPPERS, "ecce-" + name)] + list(args)
     environment = display.env()
+    # The start-up and repair markers some checks read (ECCE_DIAG).
+    environment.setdefault("ECCE_DIAG", "1")
     environment.update(env or {})
     if environment.get("ECCE_TEST_GDB") and shutil.which("gdb"):
         # A copy of the wrapper that runs the program under gdb and prints

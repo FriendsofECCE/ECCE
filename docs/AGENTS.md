@@ -424,7 +424,9 @@ requested|displayed <URL>`, `Organizer: no structure for thumbnail <URL>` and
 
 Organizer details pane timing (#1237): selecting a calculation fills the
 pane and lays it out first; the progress backfill and the thumbnail follow
-from the event loop. `ECCE_TIMING=1` prints one stderr line per refresh,
+from the event loop. `ECCE_DIAG=1` prints the start-up marker `Organizer:
+window shown` and the desk-panel repair line (`ORGANIZER: desk panel ...`);
+`tests/apps/apps.py` sets it for every app it runs. `ECCE_TIMING=1` prints one stderr line per refresh,
 `ORGANIZER: refresh <name> total=… props=… launch=… backfill=… thumb=…` (ms);
 a refresh over 1 s prints it without the variable. The `ECCE_TEST_ORGANIZER`
 hook `refreshtimes` answers the last such line plus `formula=[<pane text>]`

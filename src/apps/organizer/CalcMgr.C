@@ -551,7 +551,8 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
   (new OnceTimer([this]() {
     Update();
     relayoutAfterStart();
-    cerr << "Organizer: window shown" << endl;
+    // Start-up order marker for tests and diagnosis, not for users.
+    if (getenv("ECCE_DIAG")) cerr << "Organizer: window shown" << endl;
     importExamplesOnce();
   }))->StartOnce(300);
 
@@ -4782,11 +4783,12 @@ void CalcMgr::setContextPanel()
                  " strip=" + std::to_string(pos) + "/" +
                  std::to_string(ctrl ? ctrl->GetActivePage() : -9);
         }
-      std::cerr << "ORGANIZER: desk panel " << d.x << "x" << d.y
-                << " shown=" << desk->IsShownOnScreen() << " in splitter "
-                << sp.x << "x" << sp.y << " sash=" << p_splitterWindow->GetSashPosition()
-                << " chain:" << chain << book
-                << (hidden && !unselected ? " -> shown again" : "") << std::endl;
+      if (getenv("ECCE_DIAG"))
+        std::cerr << "ORGANIZER: desk panel " << d.x << "x" << d.y
+                  << " shown=" << desk->IsShownOnScreen() << " in splitter "
+                  << sp.x << "x" << sp.y << " sash=" << p_splitterWindow->GetSashPosition()
+                  << " chain:" << chain << book
+                  << (hidden && !unselected ? " -> shown again" : "") << std::endl;
       if (hidden && !unselected && !hidden->IsTopLevel()) {
         // Bring the notebook's selection back to the page on view, so the
         // next tab change hides and shows the right pages.
