@@ -5520,6 +5520,7 @@ void Builder::OnDiffraction(wxCommandEvent& event)
   const string err = writeStructureXyz(xyz, selected);
   if (!err.empty()) { showMessage(err, true); return; }
   DiffractionDialog *dlg = new DiffractionDialog(this, xyz, selected);
+  if (p_calculation) dlg->rememberViewFor(p_calculation->getURL().toString());
   dlg->Show();
 }
 
@@ -5558,7 +5559,9 @@ DiffractionDialog *Builder::openResultsDiffraction(const string& given)
           p_calculation->getProperty("GEOMTRACE") : 0);
   const string err = writeStructureXyz(xyz, none, trace ? trace->tables() - 1 : -1);
   if (!err.empty()) { showMessage(err, true); return 0; }
-  return new DiffractionDialog(this, xyz, none);
+  DiffractionDialog *dlg = new DiffractionDialog(this, xyz, none);
+  if (p_calculation) dlg->rememberViewFor(p_calculation->getURL().toString());
+  return dlg;
 }
 
 

@@ -53,7 +53,7 @@ def main():
             return 1
         path = lambda name: os.path.join(png, name)
         lines = ["wait 3000", "background 1 1 1", "xrd size 1366 768", "list Diffraction", "wait 1500", "panesize Diffraction",
-                 "xrd wait", "xrd state", "xrd export %s %s" % (path("initial.png"), path("initial.csv")),
+                 "xrd wait", "xrd views", "xrd state", "xrd export %s %s" % (path("initial.png"), path("initial.csv")),
                  "xrd screen " + path("1013-pane-powder.png"),
                  "xrd set max 70 75 80",
                  "wait 1200", "xrd wait", "xrd state",
@@ -88,11 +88,15 @@ def main():
         bo.check("pinned=1 selected=2 0 0" in text, "click pins the readout and selects the reflection row")
         bo.check("|F| =" in text, "precession spot hover includes the structure factor")
         bo.check("refused:" not in text and "Unhandled" not in text, "pane hooks finish without exceptions")
+        bo.check("BUILDER: xrd: debye:1 fibre:1 powder:1 single:1 detector:1" in text,
+                 "a crystal offers every view, Debye first (#1230)")
+        bo.check(bool(states) and states[0].startswith("1 "), "a crystal opens on Powder")
 
         url = pc.importExample(s, env, wrappers, os.path.join(example, "xtb-b_dna", "bdna.out"))
         if not bo.check(bool(url), "DNA example imports"):
             return 1
         lines = ["wait 3000", "background 1 1 1", "xrd size 1366 768", "list Diffraction", "wait 3000", "xrd wait",
+                 "xrd views", "xrd state", "xrd set view 0", "wait 1200", "xrd wait",
                  "xrd set repeat 42", "xrd set B 30", "xrd update", "xrd wait", "xrd state",
                  "xrd options", "wait 500", "xrd screen " + path("1013-options-fibre-screen.png"),
                  "xrd options-shot " + path("1013-options-fibre.png"), "xrd state",
@@ -102,7 +106,11 @@ def main():
         text, _ = bo.runScript(s, display, env, wrappers, ["-context", url], lines, png, "fibre",
                                {"ECCE_PANEL_MODE": "detail"})
         open(path("fibre.log"), "w").write(text)
-        states = re.findall(r"BUILDER: xrd: view=(.*)", text)
+        bo.check("BUILDER: xrd: debye:1 fibre:1 powder:0 single:0 detector:0" in text,
+                 "without a cell the crystal views are greyed (#1230)")
+        bo.check(re.search(r"BUILDER: xrd: view=4 ", text) is not None,
+                 "a structure without a cell opens on Debye (#1230)")
+        states = re.findall(r"BUILDER: xrd: view=(.*)", text)[1:]
         bo.check(len(states) == 3 and all("repeat=42" in st for st in states),
                  "typed pointer repeat survives calculation")
         bo.check(len(states) == 3 and len({re.search(r"generation=(\d+)", st).group(1) for st in states}) == 1,

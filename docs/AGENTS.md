@@ -934,6 +934,12 @@ Existing `diffraction`, `calcdiffraction`, `calcpowder`, `calclayer`, `calcframe
 before exporting. To use the property pane through `ECCE_BUILDER_SCRIPT`:
 
 - `list Diffraction` opens the Properties entry.
+- `xrd views` lists the View entries in order with 1 if they can be chosen
+  (`debye:1 fibre:1 powder:0 single:0 detector:0` without a cell, #1230).
+  `xrd set view N` and `xrd state` use pattern modes, not list positions:
+  0 Fibre, 1 Powder, 2 Single crystal, 3 Detector frame, 4 Debye. A
+  structure without a cell opens on Debye, a crystal on Powder, and a view
+  chosen once is reopened for that calculation in the same session.
 - `xrd wait` waits for the current run (and pending debounce); it reports
   `Update required` if a slow structure has unapplied edits. `xrd update`
   explicitly starts those edits; then use `xrd wait`.
