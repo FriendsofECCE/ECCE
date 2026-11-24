@@ -22,6 +22,8 @@ class wxButton;
 class wxStaticText;
 class wxTextCtrl;
 class wxTimer;
+class wxToggleButton;
+class wxSizerItem;
 
 class SetupArea : public wxPanel
 {
@@ -35,6 +37,12 @@ public:
   // would run) names; false when it has no .dlg (the Python dialog runs).
   bool showDetails(Kind kind, const std::string& cmd);
   void showInput();
+  // Output once the job is submitted, else the input.
+  void showDefault();
+  // The editor saw the calculation become submitted (or reset).
+  void submittedChanged(bool on);
+  // The file shown, in the external text editor.
+  void openInEditor();
   // The job's primary output, read-only; it follows a running job.
   void showOutput();
   // The calculation's state changed: the output view reloads.
@@ -102,6 +110,11 @@ private:
   wxTimer *p_outTimer;       // reloads the output of a running job
   wxButton *p_openEditor;    // the output in the external editor
   bool loadOutput(bool first);
+  bool submitted() const;
+  wxToggleButton *p_inBtn;
+  wxToggleButton *p_outBtn;
+  bool p_autoOutput = false;
+  wxSizerItem *p_headSpacer = nullptr;
   bool p_dry = false;   // the preview shows unsaved settings
   void dryRun();
   std::unique_ptr<Embedded> p_emb;

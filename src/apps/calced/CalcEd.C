@@ -81,6 +81,7 @@
 #include "wxgui/WxEditSessionMgr.H"
 #include <wx/timer.h>
 #include "wxgui/WxFeedback.H"
+#include "wxgui/WxState.H"
 
 #include "tdat/QmSolventWarning.H"
 #include "CalcEdMessages.H"
@@ -95,7 +96,9 @@
 #include "wx/display.h"
 
 static const wxWindowID ID_BUTTON_CALCED_VIEWER = wxNewId();
-static const wxWindowID ID_BUTTON_CALCED_OUTPUT = wxNewId();
+static const wxWindowID ID_BUTTON_CALCED_TERMINATE = wxNewId();
+static const wxWindowID ID_BUTTON_CALCED_DUPLICATE = wxNewId();
+static const wxWindowID ID_BUTTON_CALCED_RERUN = wxNewId();
 
 //#define DEBUG
 
@@ -1426,6 +1429,8 @@ wxString CalcEd::setupCommand(const wxString& arg)
     delete msg;
     return "sent";
   } else if (arg == "launch" || arg == "launch info" || arg == "launch go") {
+    if (p_iCalc && p_iCalc->getState() >= ResourceDescriptor::STATE_SUBMITTED)
+      return "already launched";
     if (arg == "launch") doSave();
     if (!p_setupArea->showLaunch()) return "no Launcher panel";
     if (arg == "launch go" && !p_setupArea->launchGo())
@@ -1441,20 +1446,44 @@ wxString CalcEd::setupCommand(const wxString& arg)
     }
   } else if (arg == "results" || arg == "results viewer" ||
              arg == "results output") {
-    // The Viewer/Output row and the editor's own Launch... button.
+    // The Results box and the editor's own Launch... button.
     const bool shown = p_resultsRow && p_guessColumn->IsShown(p_resultsRow);
     wxWindow *launch = FindWindow(ID_BUTTON_CALCED_LAUNCH);
-    wxString out = wxString("results=") + (shown ? "shown" : "hidden") +
-        " editlaunch=" + (launch && launch->IsEnabled() ? "enabled" : "disabled");
-    if (shown && arg != "results") {
-      wxWindow *b = FindWindow(arg == "results viewer" ? ID_BUTTON_CALCED_VIEWER
-                                                       : ID_BUTTON_CALCED_OUTPUT);
+    wxString out = wxString("results=") + (shown ? "shown" : "hidden");
+    if (p_iCalc)
+      out += wxString(" state=") + WxState::getName(p_iCalc->getState());
+    out += wxString(" editlaunch=") +
+        (launch && launch->IsEnabled() ? "enabled" : "disabled");
+    if (shown)
+      out += p_terminateBtn->IsShown() ? " actions=terminate"
+                                       : " actions=duplicate,rerun";
+    if (shown && arg == "results viewer") {
+      wxWindow *b = FindWindow(ID_BUTTON_CALCED_VIEWER);
       wxCommandEvent ev(wxEVT_BUTTON, b->GetId());
       ev.SetEventObject(b);
       b->GetEventHandler()->ProcessEvent(ev);
       out += " pressed";
     }
+    if (arg == "results output") {
+      p_setupArea->showOutput();
+      out += " output";
+    }
     return out;
+  } else if (arg == "output" || arg == "output editor") {
+    if (!p_setupArea) return "no Set-up area";
+    if (arg == "output") p_setupArea->showOutput();
+    else p_setupArea->openInEditor();
+    return arg == "output" ? "output" : "opened";
+  } else if (arg == "duplicate" || arg == "duplicate geometry" ||
+             arg == "duplicate orbitals") {
+    return resultsAction(arg == "duplicate" ? "duplicate"
+                         : arg == "duplicate geometry" ? "duplicate-last"
+                                                       : "duplicate-orbitals", "yes");
+  } else if (arg == "rerun" || arg == "rerun yes" || arg == "rerun cancel") {
+    return resultsAction("rerun", arg == "rerun cancel" ? "cancel" : "yes");
+  } else if (arg == "terminate" || arg == "terminate yes" ||
+             arg == "terminate cancel") {
+    return resultsAction("terminate", arg == "terminate cancel" ? "cancel" : "yes");
   } else if (arg == "input") {
     p_setupArea->showInput();
   } else if (arg == "fold" || arg == "unfold") {
@@ -1585,6 +1614,8 @@ void CalcEd::OnToolClick(wxCommandEvent &event)
 
 void CalcEd::showLaunchPanel()
 {
+  if (p_iCalc && p_iCalc->getState() >= ResourceDescriptor::STATE_SUBMITTED)
+    return;   // the Launch panel is offered once
   doSave();
   if (p_setupArea && p_setupArea->showLaunch()) return;
   ResourceTool *launcher =
@@ -3081,6 +3112,41 @@ void CalcEd::showOutput()
 }
 
 
+// Terminate while the job is on a machine, Duplicate and Reset once it
+// has ended.
+void CalcEd::updateResultsBox()
+{
+  if (!p_resultsRow || !p_terminateBtn) return;
+  bool live = false;
+  if (p_iCalc) {
+    const ResourceDescriptor::RUNSTATE st = p_iCalc->getState();
+    live = st == ResourceDescriptor::STATE_SUBMITTED ||
+           st == ResourceDescriptor::STATE_RUNNING ||
+           st == ResourceDescriptor::STATE_WAITING;
+  }
+  if (p_terminateBtn->IsShown() != live || p_duplicateBtn->IsShown() == live) {
+    p_terminateBtn->Show(live);
+    p_duplicateBtn->Show(!live);
+    p_rerunBtn->Show(!live);
+    p_resultsRow->Layout();
+    Layout();
+  }
+}
+
+
+string CalcEd::resultsAction(const string& action, const string& answer)
+{
+  if (!p_iCalc) return "no calculation";
+  const string r = InProcessTools::calcAction(action, p_context, answer);
+  if (r.compare(0, 2, "no") == 0 || r == "not in the tree" ||
+      r.compare(0, 7, "unknown") == 0)
+    p_feedback->setMessage(wxString::FromUTF8(
+        ("Could not do that from the editor: " + r).c_str()),
+        WxFeedback::WARNING);
+  return r;
+}
+
+
 void CalcEd::stateMCB(wxCommandEvent& event)
 {
   if (p_iCalc->getState() > ResourceDescriptor::STATE_READY) {
@@ -3091,6 +3157,7 @@ void CalcEd::stateMCB(wxCommandEvent& event)
   }
   enableAllFields();
   if (p_setupArea) p_setupArea->outputStateChanged();
+  ToolTabs::refreshStates();
 }
 
 
@@ -3185,29 +3252,61 @@ void CalcEd::CreateControls()
                       wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT, 5);
 
   // After a launch the next step is the job's progress and results.
-  p_resultsRow = new wxBoxSizer(wxHORIZONTAL);
+  p_resultsRow = new wxStaticBoxSizer(wxHORIZONTAL, this, _("Results"));
+  wxWindow *rbox = p_resultsRow->GetStaticBox();
   //  The Viewer as the same icon it has on the Organizer toolbar, at the
-  //  left; the raw output at the right, so the two read as separate things.
-  //  Own id: the Builder icon can take the Viewer tool's id (OnToolClick).
-  EcceTool *viewer = new EcceTool(this,
+  //  left.  Own id: the Builder icon can take the Viewer tool's id
+  //  (OnToolClick).
+  EcceTool *viewer = new EcceTool(rbox,
       ResourceDescriptor::getResourceDescriptor().getTool(CALCVIEWER));
   viewer->SetId(ID_BUTTON_CALCED_VIEWER);
   viewer->SetToolTip(_("Open the Viewer: the job's progress and results"));
   viewer->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
     startApp(CALCVIEWER, 0, p_context);
   });
-  wxButton *output = new wxButton(this, ID_BUTTON_CALCED_OUTPUT, _("Output"));
-  output->SetToolTip(_("Show the job's output file"));
-  output->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { showOutput(); });
-  p_resultsRow->Add(viewer, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT, 5);
+  p_terminateBtn = new wxButton(rbox, ID_BUTTON_CALCED_TERMINATE,
+                                _("Terminate..."));
+  p_terminateBtn->SetToolTip(_("Stop the job on its machine"));
+  p_terminateBtn->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
+    CallAfter([this]() { resultsAction("terminate", ""); });
+  });
+  p_duplicateBtn = new wxButton(rbox, ID_BUTTON_CALCED_DUPLICATE,
+                                wxString(_("Duplicate")) + wxT(" \u25BE"));
+  p_duplicateBtn->SetToolTip(_("Make a new calculation from this one"));
+  p_duplicateBtn->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
+    wxMenu menu;
+    const int d = wxWindow::NewControlId(), g = wxWindow::NewControlId(),
+              o = wxWindow::NewControlId();
+    menu.Append(d, _("Duplicate"));
+    menu.Append(g, _("Continue from Last Geometry"));
+    menu.Append(o, _("Continue from Final Orbitals"));
+    menu.Bind(wxEVT_MENU, [this, d, g](wxCommandEvent& e) {
+      const string a = e.GetId() == d ? "duplicate"
+                     : e.GetId() == g ? "duplicate-last"
+                                      : "duplicate-orbitals";
+      CallAfter([this, a]() { resultsAction(a, ""); });
+    });
+    p_duplicateBtn->PopupMenu(&menu, 0, p_duplicateBtn->GetSize().y);
+  });
+  p_rerunBtn = new wxButton(rbox, ID_BUTTON_CALCED_RERUN,
+                            _("Reset for Rerun..."));
+  p_rerunBtn->SetToolTip(_("Return the calculation to Ready and remove the "
+                           "outputs of its run"));
+  p_rerunBtn->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
+    CallAfter([this]() { resultsAction("rerun", ""); });
+  });
+  p_resultsRow->Add(viewer, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
   p_resultsRow->AddStretchSpacer();
-  p_resultsRow->Add(output, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT, 5);
+  p_resultsRow->Add(p_terminateBtn, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
+  p_resultsRow->Add(p_duplicateBtn, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
+  p_resultsRow->Add(p_rerunBtn, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
   for (size_t i = 0; i < p_guessColumn->GetItemCount(); i++)
     if (p_guessColumn->GetItem(i)->GetSizer() == p_buttonRow) {
       p_guessColumn->Insert(i + 1, p_resultsRow, 0, wxGROW|wxRIGHT|wxBOTTOM, 5);
       break;
     }
   p_guessColumn->Show(p_resultsRow, false);
+  updateResultsBox();
 
   replaceBuilderButton();
   replaceBasisSetButton();
@@ -4834,6 +4933,8 @@ void CalcEd::enableChemSysFields()
     p_guessColumn->Show(p_resultsRow, isSubmitted);
     Layout();
   }
+  updateResultsBox();
+  if (p_setupArea) p_setupArea->submittedChanged(isSubmitted);
   if (p_tsPanel) {
     for (int k = 0; k < 3; k++) p_tsChoice[k]->Enable(!isSubmitted);
   }
