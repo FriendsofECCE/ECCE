@@ -3186,7 +3186,12 @@ void CalcEd::CreateControls()
 
   // After a launch the next step is the job's progress and results.
   p_resultsRow = new wxBoxSizer(wxHORIZONTAL);
-  wxButton *viewer = new wxButton(this, ID_BUTTON_CALCED_VIEWER, _("Viewer"));
+  //  The Viewer as the same icon it has on the Organizer toolbar, at the
+  //  left; the raw output at the right, so the two read as separate things.
+  //  Own id: the Builder icon can take the Viewer tool's id (OnToolClick).
+  EcceTool *viewer = new EcceTool(this,
+      ResourceDescriptor::getResourceDescriptor().getTool(CALCVIEWER));
+  viewer->SetId(ID_BUTTON_CALCED_VIEWER);
   viewer->SetToolTip(_("Open the Viewer: the job's progress and results"));
   viewer->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
     startApp(CALCVIEWER, 0, p_context);
@@ -3195,6 +3200,7 @@ void CalcEd::CreateControls()
   output->SetToolTip(_("Show the job's output file"));
   output->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { showOutput(); });
   p_resultsRow->Add(viewer, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT, 5);
+  p_resultsRow->AddStretchSpacer();
   p_resultsRow->Add(output, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT, 5);
   for (size_t i = 0; i < p_guessColumn->GetItemCount(); i++)
     if (p_guessColumn->GetItem(i)->GetSizer() == p_buttonRow) {

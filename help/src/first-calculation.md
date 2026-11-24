@@ -166,8 +166,8 @@ settings (your edits are lost), and **Cancel** saves nothing.
 4. Click **Launch**.
 
 The Launcher shows progress messages and, at the end, "Successfully
-submitted job." In the editor, **Viewer** under the buttons then opens
-the Viewer for this calculation, and **Output** shows its output file.
+submitted job." In the editor, the Viewer icon under the buttons (left) then opens
+the Viewer for this calculation, and **Output** (right) shows its output file.
 
 For `localhost` the Launcher shows **Processors:**, **Priority:** and **Run
 Directory:**. There are no login, password or remote shell fields: the job
