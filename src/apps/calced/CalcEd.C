@@ -3140,9 +3140,8 @@ string CalcEd::resultsAction(const string& action, const string& answer)
   const string r = InProcessTools::calcAction(action, p_context, answer);
   if (r.compare(0, 2, "no") == 0 || r == "not in the tree" ||
       r.compare(0, 7, "unknown") == 0)
-    p_feedback->setMessage(wxString::FromUTF8(
-        ("Could not do that from the editor: " + r).c_str()),
-        WxFeedback::WARNING);
+    p_feedback->setMessage("Could not do that from the editor: " + r,
+                           WxFeedback::WARNING);
   return r;
 }
 
