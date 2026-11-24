@@ -314,17 +314,6 @@ void WxFeedback::setMessage(const string& message,
       if (a == string::npos || (a == b && message[a] == '?'))
          return;
    }
-   // Magic function that flushes the wxWidgets event queue
-   // This is needed in certain instances when the message area is updated,
-   // but control is not returned to the event loop.
-   // The Launcher message area during a launch is one instance of this.
-   // Doing this generically though can lead to odd behavior like duplicate
-   // java messages being processed on the event queue so use a flag to
-   // determine when it is needed.
-   if (flush) {
-      wxSafeYield();
-   }
-
    if (clear) {
       clearMessage();
    }
@@ -355,6 +344,15 @@ void WxFeedback::setMessage(const string& message,
       FlashOn(ewxThemeColours::statusTint(ewxThemeColours::UNSURE));
    } else if (severity==ERROR || severity==SYSTEM) {
       FlashOn(ewxThemeColours::statusTint(ewxThemeColours::BAD));
+   }
+
+   //  flush: draw the message now, for callers in synchronous work. Only
+   //  UI events (paint, size) are processed; wxSafeYield would disable
+   //  every top-level window, which greys the whole main window when the
+   //  tools are tabs. Input waits in the queue instead of being dropped.
+   if (flush && wxTheApp) {
+      text->Update();
+      wxTheApp->YieldFor(wxEVT_CATEGORY_UI);
    }
 }
 
