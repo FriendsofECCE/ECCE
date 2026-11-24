@@ -98,6 +98,9 @@ public:
   // A tool's calculation changed: its tab's tooltip and Window menu entry
   // show the new path.
   static void contextChanged();
+  // A calculation changed state: its Editor and Viewer tabs redraw the
+  // state icon.
+  static void refreshStates();
   // Open in Window: the tool's windows go back into its frame, which is
   // shown; showFrame false when the frame is about to be destroyed.
   static void release(wxTopLevelWindow *tool, bool showFrame = true);
