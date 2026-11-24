@@ -181,6 +181,14 @@ void VizThumbnailApp::render(JMSMessage& msg)
     {
       error = calcurl + ": " + VizRender::msg() + "\n";
       cerr << "VizThumbnailApp::render error: " << error << endl;
+    } else {
+      // The selected details pane must replace its fallback without a click.
+      JMSMessage *changed = newMessage();
+      changed->addProperty("url", calcurl);
+      changed->addProperty("name", "thumbnail");
+      publish("ecce_url_property", *changed);
+      delete changed;
+      cerr << "VizThumbnailApp: thumbnail stored " << calcurl << endl;
     }
   }
   notifySuccess(msg.getSender().getName(), error);

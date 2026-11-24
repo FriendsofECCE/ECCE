@@ -410,6 +410,16 @@ Binary files show size and extension. **Open in editor** downloads a separate
 that copy. Text viewing currently refuses sizes above the signed-int EDSI
 range limit (2 GiB); the editor download is still available.
 
+Organizer thumbnails (#1238): selecting a calculation with a structure requests
+`Parameters/Thumbnail.jpeg` if it is missing or unreadable, once per URL per
+session. The structure itself determines eligibility, including periodic
+structures without formula metadata. VizThumbnail publishes `ecce_url_property`
+with `name=thumbnail` after storing each image, so the selected button updates
+without reselecting. Rendering and thumbnail styling are unchanged.
+`ECCE_NO_VIZIMAGES` disables generation. stderr records requests, missing
+structures, unreadable images and render failures; `ECCE_TIMING=1` also records
+`Organizer: thumbnail displayed <URL>` when the button receives the image.
+
 Organizer details pane timing (#1237): selecting a calculation fills the
 pane and lays it out first; the progress backfill and the thumbnail follow
 from the event loop. `ECCE_TIMING=1` prints one stderr line per refresh,
@@ -552,7 +562,8 @@ menu bar is the active tab's. Right-click on a tab: **Open in Window** (this
 time) and **Always open in a window** (also sets that tool's row to Window);
 the tool's **Window > Move to Tabs** puts it back. With
 `ECCE_ONE_PROCESS=0` every tool opens in a window whatever the setting. Test
-hooks: `tabs` (tabs, `*` = active, tools in windows, the menu bar's menus),
+hooks: `tabs` (tabs, `*` = active, tools in windows, the menu bar's menus;
+`tabs dots` also appends each tab's painted dot colour as `dots=0:#3060B0 ...`),
 `launcher machine|pick NAME|launch|get WHAT` (the Launcher script's commands on the active Launcher tab; `get machines` lists the machine choice), `builderinfo` (the active Builder or Viewer tab: `atoms=N title=...`, the atoms its scene draws; `not a Builder tab` otherwise), `tab N`, `towindow N`, `totabs <title part>`, `mainwindow` (the main window: `host=MainFrame organizer=hidden ...`, or `host=none`
 when the Organizer is its own window), `menu exit|about|preferences|minimize|<id>` and `hostclose` (a menu command, or the window
 manager's close, on the main window; queued, answer the questions with `answer`; Quit, Preferences and About always reach the Organizer, also from a tool tab; a logged error never opens a modal box: a tool tab's goes to its log panel, others to a non-modal box on the main window, and with `ECCE_TEST_ORGANIZER` every log message is also on stderr), `windowmenu [N]` (the **Window** menu every bar has while hosted, `0:Organizer* 1:Viewer`; N chooses that entry and switches the tab; the main window's title then reads "ECCE Organizer <ver> - <tab>"; on macOS this menu has its own Minimize (Cmd-M; hook `menu minimize`) but no Zoom item or window list, since wx's automatic Window menu is off in one-program mode; `ECCE_DEBUG_MENUS=1` logs every menu-bar swap on stderr), `tabtips` (each tab's tooltip, `0:|1:(HOME)/proj/calc – Viewer|`; the Organizer's is empty; tab labels are the tool's name only), `nexttab` / `prevtab` (Window > Next Tab / Previous Tab, wrapping; answers the selected index), `tabkey next|prev|pgdn|pgup` (Ctrl+Tab, Ctrl+Shift+Tab, Ctrl+PgDn, Ctrl+PgUp as the key hook gets them; answers the selected index), `windowitems` (every Window menu item in order: `Next Tab[Ctrl+PgDn]|Previous Tab[Ctrl+PgUp]|-|` on Linux (Ctrl+Tab on Windows, Cmd+Shift+] on macOS) then `Organizer|Viewer – (HOME)/proj/calc*|`, `-` a separator, `*` the active tab; starting a Builder, Viewer, Calculation Editor or Launcher for a calculation that already has that tool's tab selects that tab instead of opening another), `orgwindow prefs|find|props URL` then `orgwindowinfo` (the Organizer's modeless windows sit on the main window: `transient=host inside=1 mapped=1`), `layout show|normal|small|wide|KEY=tab|window`
