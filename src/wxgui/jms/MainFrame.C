@@ -138,13 +138,35 @@ bool MainFrame::adoptMain(wxFrame *org)
 }
 
 
+std::string MainFrame::selectedTabName()
+{
+  wxTopLevelWindow *t = ToolTabs::activeTool();
+  return t ? std::string(t->GetTitle().utf8_str()) : std::string("none");
+}
+
+
+// #1291: one stderr line per close of the window and what became of it,
+// always on (the bug cannot be reproduced on demand).  Remove once the
+// cause is known.
 void MainFrame::onClose(wxCloseEvent& ev)
 {
   p_vetoable = ev.CanVeto();
+  bool skip = true;
   if (!p_shutdown && ev.CanVeto() && p_close && !p_close()) {
     ev.Veto();
-    return;
+    skip = false;
   }
+  {
+    const char *outcome = !skip ? "vetoed"
+        : p_shutdown ? "already-shutting-down"
+        : !ev.CanVeto() ? "quit-without-asking(unvetoable)"
+        : !p_close ? "quit-without-asking(no-handler)"
+        : "handler-allowed";
+    fprintf(stderr, "ECCE close: route=host can_veto=%d shutdown=%d "
+            "handler=%d tab=\"%s\" outcome=%s\n", ev.CanVeto(), p_shutdown,
+            p_close ? 1 : 0, selectedTabName().c_str(), outcome);
+  }
+  if (!skip) return;
   shutdown();
 }
 

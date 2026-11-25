@@ -5052,7 +5052,27 @@ bool CalcMgr::publishGatewayQuit()
 }
 
 
+// #1291: one stderr line per quit decision, always on, whichever route
+// reached it (File > Quit, Ctrl-Q, `menu exit`, OnCloseWindow, the host's
+// close handler, the retry timer).  The unasked quit cannot be reproduced
+// on demand, so the line must already be there when it happens.  Remove
+// once the cause is known.
 bool CalcMgr::confirmAndQuit()
+{
+  const bool confirmed = p_quitConfirmed, asking = p_quitAsking;
+  const std::string tab = MainFrame::selectedTabName();   // before teardown
+  const bool ok = confirmAndQuitImpl();
+  const char *outcome = !ok ? "refused"
+                      : confirmed ? "quit-without-asking"
+                      : "asked-and-accepted";
+  fprintf(stderr, "ECCE close: route=confirmAndQuit quit_confirmed=%d "
+          "asking=%d tab=\"%s\" outcome=%s\n", confirmed, asking,
+          tab.c_str(), outcome);
+  return ok;
+}
+
+
+bool CalcMgr::confirmAndQuitImpl()
 {
   // A second close while the dialog is open runs the dialog's own event
   // loop again; the frame's deletion then ends in that nested loop and
@@ -5100,6 +5120,9 @@ bool CalcMgr::confirmAndQuit()
 }
 
 
+static bool s_viaRetry = false;   // #1291: finishQuit run by the retry timer
+
+
 bool CalcMgr::finishQuit(int result)
 {
   // Tool windows in this process (#983) ask about their own unsaved work;
@@ -5110,13 +5133,19 @@ bool CalcMgr::finishQuit(int result)
     if (InProcessTools::closing()) {
       if (getenv("ECCE_TEST_ORGANIZER"))
         cerr << "ECCE_TEST_ORGANIZER: quit waits for a tool's close" << endl;
+      fprintf(stderr, "ECCE close: route=finishQuit quit_confirmed=%d "
+              "asking=%d tab=\"%s\" outcome=deferred-tool-closing "
+              "answer=%d\n", p_quitConfirmed, p_quitAsking,
+              MainFrame::selectedTabName().c_str(), result);
       p_quitAnswer = result;
       if (!p_quitRetry) {
         p_quitRetry = new wxTimer();
         p_quitRetry->Bind(wxEVT_TIMER, [this](wxTimerEvent&) {
           if (InProcessTools::closing()) return;
           p_quitRetry->Stop();
+          s_viaRetry = true;
           finishQuit(p_quitAnswer);
+          s_viaRetry = false;
         });
       }
       p_quitRetry->Start(100);
@@ -5124,6 +5153,11 @@ bool CalcMgr::finishQuit(int result)
     return false;
   }
 
+  if (s_viaRetry)
+    fprintf(stderr, "ECCE close: route=finishQuit quit_confirmed=%d "
+            "asking=%d tab=\"%s\" outcome=quit-via-retry-timer answer=%d\n",
+            p_quitConfirmed, p_quitAsking,
+            MainFrame::selectedTabName().c_str(), result);
   p_quitConfirmed = true;
   // Hosted: the Organizer's frame goes before the window that holds it.
   if (MainFrame *host = MainFrame::instance()) host->shutdown();

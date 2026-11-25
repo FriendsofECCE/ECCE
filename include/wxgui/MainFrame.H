@@ -11,6 +11,7 @@
 #define MAINFRAME_HH
 
 #include <functional>
+#include <string>
 #include <vector>
 
 #include "wx/string.h"
@@ -38,6 +39,9 @@ public:
   // Organizer's frame, then this one.  The Organizer must go first: its
   // destructor still uses the windows that were in the page.
   void shutdown();
+
+  // #1291 diagnostics: the title of the tab in front, for the always-on close line.
+  static std::string selectedTabName();
 
   // For #1069: a second start raises the running window; files opened from
   // the system (macOS) go to the handler.
