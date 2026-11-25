@@ -2185,6 +2185,11 @@ def runSetupLaunch(display):
         # answer is not a panel description.
         info = [i for i in pb.answers(log, "setup launch info")
                 if "area=launch" in i]
+        # Printed pass or fail: whether the panel clips depends on the
+        # machine's text metrics, so a passing run has to say what it
+        # measured for the failing one to be compared with (#1282).
+        for i in info:
+            print("      set-up Launch panel: %s" % i)
         check(info and "launch=enabled" in info[0],
               "the panel's Launch button is enabled", str(info))
         check(info and all("overlaps=0" in i for i in info),
