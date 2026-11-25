@@ -856,6 +856,16 @@ jobs:
           path: dist/*.zip
           if-no-files-found: ignore
 
+      # Test drivers that are not in the package, for runs on a Windows test
+      # machine against the unpacked zip (tests/windows/launch_local.py).
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-test-drivers
+          path: |
+            build/launchjob.exe
+            build/eccebroker.exe
+          if-no-files-found: warn
+
       - uses: actions/upload-artifact@v4
         if: always()
         with:
