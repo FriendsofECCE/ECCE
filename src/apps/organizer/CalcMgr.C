@@ -3756,6 +3756,7 @@ void CalcMgr::runTestCommand(const string& line)
                command == "launcher" || command == "windowmenu" ||
                command == "quitlabel" || command == "builderinfo" ||
                command == "livecount" || command == "paintlog" ||
+               command == "greywatch" ||
                command == "tabtips" || command == "nexttab" ||
                command == "prevtab" || command == "tabkey" || command == "tabsteps" ||
                command == "windowitems") {

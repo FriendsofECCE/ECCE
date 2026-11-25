@@ -1420,6 +1420,26 @@ public:
   std::vector<std::pair<wxString, int>> seq;
 };
 PaintLog *s_paintLog = 0;
+
+// Test hook "greywatch": times the main window was found disabled (a
+// wxSafeYield or a modal loop greys the whole window when tools are tabs).
+// Every event passes the filter, so each yield is seen.
+class GreyLog : public wxEventFilter
+{
+public:
+  int FilterEvent(wxEvent&) override
+  {
+    wxWindow *top = s_hostFrame ? (wxWindow*)s_hostFrame
+                                : (wxTheApp ? wxTheApp->GetTopWindow() : 0);
+    bool on = !top || top->IsEnabled();
+    if (was && !on) count++;
+    was = on;
+    return Event_Skip;
+  }
+  int count = 0;
+  bool was = true;
+};
+GreyLog *s_greyLog = 0;
 }
 
 namespace {
@@ -1621,6 +1641,16 @@ bool ToolTabs::testCommand(const wxString& cmd, const wxString& arg,
     if (!s_paintLog) { outcome = "off"; return true; }
     outcome = wxString::Format("paints=%d seq=", s_paintLog->count);
     for (auto& e : s_paintLog->seq) outcome += wxString::Format("%s*%d,", e.first, e.second);
+  } else if (cmd == "greywatch") {
+    // "greywatch on" starts counting from 0; "greywatch" reports the count.
+    if (arg == "on") {
+      if (!s_greyLog) { s_greyLog = new GreyLog; wxEvtHandler::AddFilter(s_greyLog); }
+      s_greyLog->count = 0;
+      s_greyLog->was = true;
+      outcome = "on";
+      return true;
+    }
+    outcome = s_greyLog ? wxString::Format("%d", s_greyLog->count) : wxString("off");
   } else if (cmd == "quitlabel") {
     // The Quit item of the menu bar on the host now.
     wxMenuBar *mb = s_hostFrame ? s_hostFrame->wxFrame::GetMenuBar() : 0;

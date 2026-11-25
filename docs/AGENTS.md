@@ -497,6 +497,12 @@ fresh log of every paint of a window in the main window; `paintlog` answers
 to see what reaches the screen while a tab opens or closes;
 `tests/apps/one_process_test.py --1210-only` runs it for a Viewer tab.
 
+Greyed main window (#1268, `ECCE_TEST_ORGANIZER`): `greywatch on` starts
+counting the times the main window is found disabled (a wxSafeYield or a
+modal loop greys it whole when tools are tabs); `greywatch` answers the
+count, or `off`. `tests/apps/one_process_test.py --launcher-only` checks
+that opening the editor leaves it at 0.
+
 Desk (#1237, `ECCE_TEST_ORGANIZER`): `desk` answers `desk WxH shown=0|1
 splitter=WxH sel=<tool-tab notebook selection or none> pages=N chain=<classes up
 to the top level, "(hidden)" after a hidden one>`. After a tool tab closes it
