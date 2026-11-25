@@ -176,6 +176,7 @@ void SetupArea::drop()
 {
   p_outTimer->Stop();
   p_openEditor->Hide();
+  if (p_launch) p_lastGreyed = p_launch->get("greyed");
   p_launch.reset();
   if (p_basisPanel) {
     p_basisPanel->Destroy();
@@ -394,7 +395,10 @@ bool SetupArea::showLaunch()
 
 string SetupArea::launchGet(const string& what)
 {
-  return p_launch ? p_launch->get(what) : "";
+  if (p_launch) return p_launch->get(what);
+  // The panel has been left after the launch: what it last said about
+  // the editor being greyed out.
+  return what == "greyed" ? p_lastGreyed : "";
 }
 
 

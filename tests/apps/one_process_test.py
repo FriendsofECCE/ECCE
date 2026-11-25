@@ -2172,7 +2172,10 @@ def runSetupLaunch(display):
         check(first and "area=launch" in first[0] and "machine=localhost" in first[0],
               "Launch... shows the Launcher panel in the Set-up area, on localhost",
               str(first))
-        info = pb.answers(log, "setup launch info")
+        # The panel is left for the output after the launch: its last
+        # answer is not a panel description.
+        info = [i for i in pb.answers(log, "setup launch info")
+                if "area=launch" in i]
         check(info and "launch=enabled" in info[0],
               "the panel's Launch button is enabled", str(info))
         check(info and all("overlaps=0" in i for i in info),
