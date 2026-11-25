@@ -2662,11 +2662,11 @@ bool Launch::startJobStore(const string& importDir)
   p_storeStarted = true;
   if (!p_storePrepared) prepareJobStore();
 
-  // A forked job store inherits the GUI process's MQTT connection state,
-  // but not libmosquitto's loop thread. On OpenSSH systems, ECCE's shared
-  // control master lets a fresh eccejobmaster process reuse the authenticated
-  // login without asking for another TOTP code. Give it its own messaging
-  // connection instead of running the store in a post-fork child.
+  // A single login (single-connection or front-end machine) can only be
+  // handed on by fork(), except over OpenSSH, where ECCE's control master
+  // lets a fresh eccejobmaster reuse it, restarts included. The forked
+  // child opens its own broker connection (MqttLink::reclaimAfterFork).
+  // Windows has no fork(): #1284.
   const bool useInheritedConnection = p_cache->frontendFlag &&
       (!p_connection || p_connection->sshBackend() != "openssh");
 

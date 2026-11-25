@@ -17,6 +17,7 @@
 #include <unistd.h>
 
 #include <chrono>
+#include <new>
 #include <fstream>
 #include <iostream>
 #include <thread>
@@ -453,8 +454,54 @@ string MqttLink::newInstanceId()
   return processId() + "." + std::to_string(++n);
 }
 
+#ifdef _WIN32
+void MqttLink::reclaimAfterFork() {}
+#else
+void MqttLink::reclaimAfterFork()
+{
+  const int me = getpid();
+  int owner = p_ownerPid.load();
+  if (owner == me) return;
+  if (owner == 0 && p_ownerPid.compare_exchange_strong(owner, me)) return;
+  if (owner == me) return;
+
+  // A forked child (Launch's job store for a single-connection machine).
+  // fork() copied the parent's mosquitto client but not its loop thread, so
+  // nothing it queues is ever sent. Neither disconnect nor destroy it: it
+  // has the parent's client id, a DISCONNECT would end the parent's session,
+  // destroy joins a thread that is not here, and a TLS close would write
+  // into the parent's stream. Close our copies of its descriptors and start
+  // from nothing; the parent's tools and handlers are not this process's.
+  // The lock may have been held by a thread that is not here either.
+  new (&p_lock) std::mutex();
+  if (p_mosq) {
+    int sock = mosquitto_socket(p_mosq);
+    if (sock >= 0) close(sock);
+  }
+  for (int fd : p_libFds) close(fd);
+  p_mosq = nullptr;
+  new (&p_libFds) std::vector<int>();
+  new (&p_endpoints) std::vector<std::shared_ptr<MqttEndpoint>>();
+  new (&p_subscribed) std::map<std::string, int>();
+  new (&p_cfg) MqttConfig();
+  new (&p_topics) MqttTopicMap();
+  new (&p_lastRefusal) std::string();
+  p_connected = false;
+  p_warnedNoLogin = false;
+  p_sessionless = false;
+  p_inflight = 0;
+  p_started = false;
+  p_ready = false;
+  refusalHandler() = nullptr;
+  noBrokerHandler() = nullptr;
+  localFlag() = 0;
+  p_ownerPid = me;
+}
+#endif
+
 bool MqttLink::ensureConnected()
 {
+  reclaimAfterFork();
   std::unique_lock<std::mutex> g(p_lock);
   if (p_started) return p_mosq != nullptr;
 
@@ -554,8 +601,12 @@ bool MqttLink::ensureConnected()
   EE_RT_ASSERT(p_mosq, EE_FATAL, "mosquitto_new failed");
 #ifndef _WIN32
   std::vector<bool> after = inheritableFds(fdLimit);
+  p_libFds.clear();
   for (int fd = 3; fd < fdLimit; fd++)
-    if (after[fd] && !before[fd]) fcntl(fd, F_SETFD, FD_CLOEXEC);
+    if (after[fd] && !before[fd]) {
+      fcntl(fd, F_SETFD, FD_CLOEXEC);
+      p_libFds.push_back(fd);
+    }
 #endif
   mosquitto_int_option(p_mosq, MOSQ_OPT_PROTOCOL_VERSION, MQTT_PROTOCOL_V5);
   if (tcp) mosquitto_username_pw_set(p_mosq, account.c_str(), password.c_str());
@@ -728,6 +779,7 @@ void MqttLink::syncSubscriptions()
 
 void MqttLink::activate(const std::shared_ptr<MqttEndpoint>& ep)
 {
+  reclaimAfterFork();
   {
     std::lock_guard<std::mutex> g(p_lock);
     bool known = false;
@@ -743,6 +795,7 @@ void MqttLink::activate(const std::shared_ptr<MqttEndpoint>& ep)
 
 void MqttLink::deactivate(const std::shared_ptr<MqttEndpoint>& ep)
 {
+  reclaimAfterFork();
   std::lock_guard<std::mutex> g(p_lock);
   for (size_t i = 0; i < p_endpoints.size(); i++) {
     if (p_endpoints[i] == ep) {
@@ -769,6 +822,7 @@ static std::vector<std::pair<string, string> > messageProps(const JMSMessage& ms
 
 size_t MqttLink::deliverLocal(const string& topic, const JMSMessage& msg)
 {
+  reclaimAfterFork();
   MqttInbound in;
   in.topic = topic;
   in.payload = msg.bodyToString();
@@ -786,12 +840,14 @@ size_t MqttLink::deliverLocal(const string& topic, const JMSMessage& msg)
 
 bool MqttLink::awaitingLogin()
 {
+  reclaimAfterFork();
   std::lock_guard<std::mutex> g(p_lock);
   return !p_started && p_warnedNoLogin;
 }
 
 bool MqttLink::publish(const string& topic, const JMSMessage& msg)
 {
+  reclaimAfterFork();
   // In-process subscribers do not need the broker: this works sessionless,
   // before a login and while the broker is away.
   bool local = localDelivery() && deliverLocal(topic, msg) > 0;
@@ -860,6 +916,7 @@ void MqttLink::onMessage(mosquitto*, void* obj, const mosquitto_message* m,
 
 void MqttLink::shutdown()
 {
+  reclaimAfterFork();
   mosquitto* m;
   {
     std::lock_guard<std::mutex> g(p_lock);

@@ -87,6 +87,7 @@ what the deployment mode needs (GETTING_STARTED, "Deployment modes"):
 - [Preferences > Advanced: environment switches applied by Ecce::initialize; an explicit variable wins (#307)](preferences-advanced-switches.md)
 - [subscribe() skips the process's own messages by default (MQTT No Local); a topic the same app publishes needs filterSelf=false](subscribe-skips-own-messages.md)
 - [Every socket in a process that starts programs needs close-on-exec; a child holding the broker's end hides EOF from its clients (#1025)](broker-sockets-close-on-exec-1025.md)
+- [A fork()ed child has the parent's broker client but not its loop thread: MqttLink starts over in the child (#1283)](forked-job-store-broker-link-1283.md)
 - [One GUI process (#983): in-process routing behind MqttLink (ECCE_ONE_PROCESS), tool-scoped self filter, OnInit split, globals audit, Quit](one-process-message-routing.md)
 - [Tools as tabs (#983 stage 2, ECCE_LAYOUT=small): the tool stays a hidden frame, its windows move into a notebook page, unhandled events go on to the frame, menus swapped; the main window is a MainFrame and the Organizer its pinned first tab (#1065)](tools-as-tabs.md)
 - [Second start of ecce raises the running window; where the check sits and how it reaches it (#1069)](second-start-1069.md)

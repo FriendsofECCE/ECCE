@@ -227,6 +227,9 @@ private:
   static void onPublish(mosquitto*, void*, int mid, int rc,
                         const mqtt5__property*);
   void syncSubscriptions();   // caller holds p_lock
+  // In a fork()ed child: gives up the parent's connection and state, so the
+  // next call connects afresh (#1283). No-op in the process that connected.
+  void reclaimAfterFork();
   size_t deliverLocal(const std::string& topic, const JMSMessage& msg);
 
   mosquitto* p_mosq = nullptr;
@@ -242,6 +245,8 @@ private:
   std::atomic<int> p_inflight{0};
   bool p_started = false;
   std::atomic<bool> p_ready{false};   // p_started, readable without p_lock
+  std::atomic<int> p_ownerPid{0};     // the process this state belongs to
+  std::vector<int> p_libFds;          // descriptors mosquitto_new opened
 };
 
 #endif
