@@ -261,6 +261,8 @@ sub VinaDeck {
   push(@out, "#| LIGAND_ATOMS=" . &ranges($lig));
   push(@out, "#| RECEPTOR_ATOMS=" . &ranges($rec));
   push(@out, "#| FLEXIBLE_AMIDES=" . (&flag("ES.Runtype.Vina.FlexibleAmides", 0) ? 1 : 0));
+  # vina.launchpp words its box warning differently for a hand-set box.
+  push(@out, "#| BOX_AUTO=" . (&flag("ES.Runtype.Vina.BoxAuto", 1) ? 1 : 0));
   # DeckWriter stores it beside the deck as the code's auxiliary input
   # (Vina.edml) and Launch puts it in the run directory.
   open(FRAGCOPY, $FragFILE) || die "ai.vina error: Couldn't open $FragFILE\n";

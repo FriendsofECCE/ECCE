@@ -213,6 +213,8 @@ def boxCheck():
         "ES.Runtype.Vina.BoxSizeY:\t20\nES.Runtype.Vina.BoxSizeZ:\t20\n"))
     check(rc == 0 and out.startswith("ECCE-LAUNCH-WARNING"),
           "a hand-set box away from the receptor warns as well")
+    check("set by hand" in out and "automatic box" not in out,
+          "a hand-set box is not described as placed around the ligand")
     # A check that cannot run must not stop a launch.
     tmp = tempfile.mkdtemp(prefix="vinalpp-")
     try:

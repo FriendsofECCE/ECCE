@@ -33,9 +33,11 @@ exit 0 if ($deckName eq "" || !-r $deckName);
 
 my %c;
 my @rec;
+my $boxAuto = 1;   # decks written before #1296 carry no BOX_AUTO; automatic is the default
 open(my $dk, "<", $deckName) or exit 0;
 while (<$dk>) {
   if (/^\s*(center|size)_([xyz])\s*=\s*(\S+)/) { $c{"$1$2"} = $3; }
+  elsif (/^#\|\s*BOX_AUTO=(\d)/) { $boxAuto = $1; }
   elsif (/^#\|\s*RECEPTOR_ATOMS=(\S*)/) {
     foreach my $r (split(/,/, $1)) {
       if ($r =~ /^(\d+)-(\d+)$/) { push(@rec, $1 .. $2); }
@@ -76,11 +78,16 @@ exit 0 if ($inside >= $MINATOMS);
 
 print "ECCE-LAUNCH-WARNING\n";
 print "The search box holds $inside receptor atoms, so it is not on a binding site.\n\n";
-print "Unless it was set by hand, the box is placed automatically around the ligand. "
-    . "That is correct when the ligand came from the receptor's own structure file "
-    . "and wrong for a ligand that was drawn or added from another file: the box then "
-    . "sits where the ligand's own coordinates put it. Vina will search this volume "
-    . "and report poses and scores for it.\n\n";
+if ($boxAuto) {
+  print "The automatic box is placed around the ligand. That is right when the ligand "
+      . "came from the receptor's own structure file, and wrong for one that was drawn "
+      . "or added from another file: the box then sits where that molecule's own "
+      . "coordinates put it. Vina will search this volume and report poses and scores "
+      . "for it.\n\n";
+} else {
+  print "The box centre and size were set by hand and do not reach the receptor. "
+      . "Vina will search this volume and report poses and scores for it.\n\n";
+}
 print "Select the binding-site residues in the Builder and use "
     . "Tools > Docking Box Around Selection.\n";
 exit 0;
