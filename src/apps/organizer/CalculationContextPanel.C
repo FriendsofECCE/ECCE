@@ -323,8 +323,12 @@ void CalculationContextPanel::refreshThumbnail(const std::string &url)
   // Marked before the read so a calculation without a structure is read once.
   asked.insert(url);
   const bool timing = getenv("ECCE_TIMING") != 0;
+  // hasFragment() first: a failed getFragment() leaves its error on the
+  // shared calculation, and the Calculation Editor then opens a new
+  // calculation read-only, without its code bar.
   Fragment fragment;
-  if (!chemTask->getFragment(fragment) || fragment.numAtoms() == 0) {
+  if (!chemTask->hasFragment() || !chemTask->getFragment(fragment) ||
+      fragment.numAtoms() == 0) {
     if (timing)
       std::cerr << "Organizer: no structure for thumbnail " << url << std::endl;
     return;
