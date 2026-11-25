@@ -242,6 +242,13 @@ public:
     // single-quoted, except that a leading ~ or ~/ stays bare so the remote
     // shell still expands it.  Windows user folders contain spaces.
     static string quotePath(const string& path);
+    // A command for execbg() with VAR=value assignments in front:
+    // execbg() puts nohup first and no shell reads the assignments, so
+    // they go through env (the Windows bundle ships it).
+    static string withEnv(const string& assignments, const string& command)
+    {
+      return assignments.empty() ? command : "env " + assignments + command;
+    }
     // A pattern whose last component is a glob: the directory part quoted,
     // the last component left to the shell.
     static string quoteGlob(const string& pattern);

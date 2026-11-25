@@ -4599,6 +4599,13 @@ if(PYTHON3_EXECUTABLE)
   add_test(NAME transport_process COMMAND testWinProcess)
   set_tests_properties(transport_process PROPERTIES TIMEOUT 180)
 
+  # A detached command's VAR=value prefix reaches the program through env:
+  # the job store's ECCE_SSH_MASTER_REQUIRE on Windows (#1284).
+  add_executable(testDetachedEnv tests/transport/detachedEnv.C)
+  target_link_libraries(testDetachedEnv PRIVATE eccercmd ecceutil)
+  add_test(NAME transport_detached_env COMMAND testDetachedEnv)
+  set_tests_properties(transport_detached_env PROPERTIES TIMEOUT 60)
+
   # The Tail window's read on a blocking pipe must not wait (Windows hang).
   add_executable(testStreamRead tests/transport/streamRead.C)
   find_package(Threads REQUIRED)

@@ -2811,7 +2811,7 @@ bool Launch::startJobStore(const string& importDir)
       if (progEnd == string::npos) progEnd = cmd.size();
       for (size_t i = 0; i < progEnd; i++)
         if (cmd[i] == '\\') cmd[i] = '/';
-      cmd = envPrefix + cmd;
+      cmd = RCommand::withEnv(envPrefix, cmd);
       string out;
       if (!p_localconn || !p_localconn->execbg(cmd, out, ""))
         status = 1;

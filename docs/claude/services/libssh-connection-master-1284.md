@@ -3,7 +3,7 @@ type: map
 title: "eccesshmaster: one libssh login per route, shared with job stores as separate programs (#1284)"
 area: services
 section: "Pitfalls"
-paths: ["src/apps/sshmaster/eccesshmaster.C", "src/comm/rcommand/SshMaster.C", "include/comm/SshMaster.H", "src/comm/rcommand/SshTransport.C", "src/comm/rcommand/RCommand.C", "src/comm/commxt/Launch.C", "tests/launch/run_tests.py", "tests/transport/sshd/monitor_login_test.sh"]
+paths: ["src/apps/sshmaster/eccesshmaster.C", "src/comm/rcommand/SshMaster.C", "include/comm/SshMaster.H", "src/comm/rcommand/SshTransport.C", "src/comm/rcommand/RCommand.C", "src/comm/commxt/Launch.C", "tests/launch/run_tests.py", "tests/transport/sshd/monitor_login_test.sh", "tests/transport/detachedEnv.C"]
 issues: [1284, 1283, 1281, 204, 599]
 ---
 **A single-connection or front-end machine on the built-in ssh client keeps
@@ -49,6 +49,13 @@ failed after the submit.
   cancelled or refused master login is final (no second dialog, #599).
   `ECCE_SSH_MASTER=off` turns it all off. OpenSSH machines are untouched
   (#1281: ECCE's ControlMaster).
+- **Pitfall (Windows).** The job store is started through
+  `RCommand::execbg()`, which runs `nohup <command>` with no shell between,
+  so a `VAR=value` prefix is taken for the program name ("nohup: failed to
+  run command 'ECCE_SSH_MASTER_REQUIRE=...'"), and the job sat at submitted.
+  The prefix goes through `RCommand::withEnv` (`env`, shipped in the
+  bundle's `usr/bin`). Linux and macOS start it with `system()`, where the
+  shell reads the prefix. Test: `ctest -R transport_detached_env`.
 - **Pitfall.** `tests/transport/sshd/build_test.sh` and `frontend_test.sh`
   compile `SshTransport.C` by hand: they need `SshMaster.C` too.
 - **Test.** `ECCE_MONLOGIN_SINGLE_ONLY=1 tests/transport/sshd/monitor_login_test.sh`
