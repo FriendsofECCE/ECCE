@@ -150,6 +150,17 @@ password, the verification code or an unknown host key in dialogs, so you
 do not need a terminal. If the machine needs a two-factor login that ECCE
 cannot answer, use the `dummy` machine instead (see below).
 
+A machine registered with **Use a single ssh connection** (Connection tab,
+Advanced), or reached through a gateway host, costs one login, so a
+verification code is asked once. ECCE keeps that login in a small
+background program, `eccesshmaster`, and the Launcher, the job monitor and
+the copies of the output files all use it. It ends five minutes after the
+last ECCE program stopped using it; a running job keeps it in use. If it
+ends while a job is running, for example because the network dropped, the
+job shows Waiting with the message "ECCE's shared login ... has ended":
+select the calculation and use **Run Mgmt > Reconnect Job Monitoring** to
+log in again.
+
 Code settings that are not paths, such as `module load` lines, go on the
 **Job script** and **Codes** tabs; see [Register
 Machines](register-machines.md). `GETTING_STARTED.md` describes the file
