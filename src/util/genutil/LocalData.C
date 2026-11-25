@@ -12,6 +12,7 @@
 #include <sys/utime.h>
 #endif
 
+#include <cwctype>
 #include <map>
 #include <vector>
 
@@ -410,12 +411,32 @@ bool LocalData::pathUrl(const string& arg, const string& root,
   if (ec) { why = "no such folder"; return false; }
   const auto base = ecce::fs::canonical(root, ec);
   if (ec) { why = "cannot read the data folder " + root; return false; }
+#ifdef _WIN32
+  // Windows paths ignore case, and canonical() keeps the case it was given:
+  // a data folder typed in other letters is still the data folder.
+  auto folded = [](const ecce::fs::path& p) {
+    std::wstring s = p.generic_wstring();
+    for (auto& c : s) c = towlower(c);
+    return ecce::fs::path(s);
+  };
+  const auto relative = folded(path).lexically_relative(folded(base));
+#else
   const auto relative = path.lexically_relative(base);
+#endif
   if (relative.empty() || relative == "." || *relative.begin() == "..") {
     why = "not inside the data folder " + base.generic_string();
     return false;
   }
+#ifdef _WIN32
+  // The data folder as ECCE names it, then the calculation's own part.
+  ecce::fs::path inside = base;
+  auto it = path.begin();
+  for (auto b = base.begin(); b != base.end() && it != path.end(); ++b) ++it;
+  for (; it != path.end(); ++it) inside /= *it;
+  const string full = inside.generic_string();
+#else
   const string full = path.generic_string();
+#endif
   url = "file://" + (full[0] == '/' ? string() : string("/")) + full;
   return true;
 }
