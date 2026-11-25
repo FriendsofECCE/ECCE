@@ -406,9 +406,7 @@ One program is the default (#1067): unless `ECCE_ONE_PROCESS=0` is in the
 environment of `ecce` (the old route, every window its own program), the Builder, the Calculation Editor, the
 Basis Set Tool, the MD editors, the Periodic Table, the Machine Browser and
 Register Machines open as windows of the Organizer's process instead (the
-Periodic Table as a tab when the layout gives it one, `pertable` in the
-window layout rows, #1213; the Machine Browser and Register Machines as
-plain windows, not tabs); job programs and the other
+last three as plain windows, not tabs); job programs and the other
 tools stay separate. Off by default. Quitting the Organizer (or the
 session's `ecce_quit`) then closes those windows first (with `ECCE_ONE_PROCESS=0` the Organizer's Quit also ends the separate tools on Windows and macOS, where Quit ends the application; on Linux they stay open and keep the session), each asking about
 its own unsaved changes; Cancel in one of them cancels the Quit. Test hooks

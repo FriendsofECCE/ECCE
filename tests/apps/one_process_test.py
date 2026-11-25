@@ -2547,10 +2547,9 @@ def runTabsPopups(display):
 
 
 def runUtilityWindows(display):
-    """#1066: the periodic table and the machine browser open in the
-    Organizer's process (the periodic table as a tab, #1213), a second
-    request reuses the open one, closing them leaves the Organizer running,
-    and a new request opens a fresh one."""
+    """#1066: the periodic table and the machine browser open as windows of
+    the Organizer's process, a second request reuses the open one, closing
+    them leaves the Organizer running, and a new request opens a fresh one."""
     work = tempfile.mkdtemp(prefix="ecce-oneproc-")
     data = tempfile.mkdtemp(prefix="ecce-oneproc-data-")
     try:
@@ -2567,7 +2566,6 @@ def runUtilityWindows(display):
             append("start MachineBrowser", 8)
             append("start MachineRegister", 10)
             append("inprocess", 2)
-            append("tabs", 2)
             append("start PeriodicTable", 4)   # the open one again
             append("start MachineRegister", 4)
             append("inprocess", 2)
@@ -2594,12 +2592,9 @@ def runUtilityWindows(display):
         if check(len(inproc) == 4, "four window counts answered",
                  str(inproc) + "\n" + "\n".join(closing[-80:])):
             check("PeriodicTable=1 MachineBrowser=1 MachineRegister=1" in inproc[0]
-                  and "MachineBrowser(hidden)" not in inproc[0],
-                  "all three open in the Organizer, the browser shown",
+                  and "PeriodicTable(hidden)" not in inproc[0],
+                  "both open in the Organizer, shown, with their menus",
                   inproc[0])
-            tabs = pb.answers(log, "tabs")
-            check(bool(tabs) and "Periodic Table" in tabs[0],
-                  "the Periodic Table opens as a tab (#1213)", str(tabs))
             check("PeriodicTable=1" in inproc[1] and "MachineRegister=1" in inproc[1],
                   "a second request reuses the open windows", inproc[1])
             check("PeriodicTable=0 MachineBrowser=0 MachineRegister=0" in inproc[2],
