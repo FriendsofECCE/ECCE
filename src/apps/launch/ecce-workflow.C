@@ -89,10 +89,8 @@ bool toUrl(const string& arg, string& url, string& why)
 
 int main(int argc, char **argv)
 {
-  if (!getenv("ECCE_REALUSERHOME")) {
-    const char *h = getenv("HOME");
-    if (h) setenv("ECCE_REALUSERHOME", h, 0);
-  }
+  // Run from a terminal there is no wrapper (#1287).
+  Ecce::commandEnvironment();
   const string verb = argc > 1 ? argv[1] : "";
   const bool make = verb == "make", create = verb == "create";
   std::vector<string> calcArgs, links;

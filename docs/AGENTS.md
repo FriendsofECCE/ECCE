@@ -1391,6 +1391,15 @@ to be running with the same data mode. Without it they print `ECCE is not
 running: start ECCE first` and do nothing. A calculation is given as a folder
 (local data) or a URL (data server). One line is printed per calculation.
 
+On Windows these programs are `bin\ecce-*.exe` in the ECCE folder
+(`%LOCALAPPDATA%\Programs\ECCE` for a per-user install) and run from any
+Command Prompt without ecce.cmd's variables: unset, `ECCE_HOME` is the folder
+above the program's `bin`, `ECCE_REALUSERHOME` is `%USERPROFILE%`, and the
+data mode is ecce.cmd's (a server session if `siteconfig\RemoteServer\DataServers`
+or `%USERPROFILE%\.ECCE\RemoteServer\DataServers` exists, otherwise the
+Preferences local data folder, default `%USERPROFILE%\ecce-local`).
+`ECCE_LOCAL_DATA` set in the prompt overrides that.
+
 Exit codes of these four: 0 everything done; 1 something was not done; 2 no
 running ECCE session; 3 the Organizer is busy with a Launch Selected batch
 (try again later); 4 no answer within the time limit (it may have been

@@ -38,6 +38,11 @@ using std::ostrstream;
 #include <unistd.h>
 #endif
 #include <stdlib.h>              // getenv
+#include <fstream>
+#ifdef _WIN32
+#include <windows.h>
+#endif
+#include "util/LocalData.H"
 #include "util/PosixCompat.H"      // access, gethostname, setenv
 #include <locale.h>
 #include <cstdint>
@@ -334,6 +339,58 @@ string Ecce::newSessionId()
     }
   }
   return id;
+}
+
+#ifdef _WIN32
+static void setIfUnset(const char* name, const string& value)
+{
+  if (!getenv(name) && !value.empty()) _putenv_s(name, value.c_str());
+}
+
+static string slashes(string p)
+{
+  for (size_t i = 0; i < p.size(); i++) if (p[i] == '\\') p[i] = '/';
+  return p;
+}
+
+static bool fileExists(const string& p)
+{
+  return std::ifstream(p.c_str()).good();
+}
+#endif
+
+void Ecce::commandEnvironment()
+{
+#ifdef _WIN32
+  const char* up = getenv("USERPROFILE");
+  const string uh = up ? slashes(up) : "";
+  setIfUnset("ECCE_REALUSERHOME", uh);
+  // The programs live in <ECCE_HOME>/bin.
+  char exe[4096];
+  DWORD n = GetModuleFileNameA(NULL, exe, sizeof(exe));
+  if (n > 0 && n < sizeof(exe)) {
+    string bin = slashes(string(exe, n));
+    bin = bin.substr(0, bin.rfind('/'));
+    size_t cut = bin.rfind('/');
+    if (cut != string::npos) setIfUnset("ECCE_HOME", bin.substr(0, cut));
+  }
+  // ecce.cmd's choice of local data folder or data server, in its order.
+  if (getenv("ECCE_LOCAL_DATA")) return;
+  const char* home = getenv("ECCE_HOME");
+  bool server = getenv("ECCE_REMOTE_SERVER") ||
+    (home && fileExists(string(home) + "/siteconfig/RemoteServer/DataServers"));
+  if (!server && !uh.empty() &&
+      fileExists(uh + "/.ECCE/RemoteServer/DataServers")) {
+    server = true;
+    setIfUnset("ECCE_REMOTE_DIR", uh + "/.ECCE/RemoteServer");
+  }
+  if (server) setIfUnset("ECCE_REMOTE_SERVER", "1");
+  else setIfUnset("ECCE_LOCAL_DATA", slashes(LocalData::prefFolder()));
+#else
+  // The installed wrappers set everything else.
+  const char* h = getenv("HOME");
+  if (!getenv("ECCE_REALUSERHOME") && h) setenv("ECCE_REALUSERHOME", h, 0);
+#endif
 }
 
 const char* Ecce::realUserHome(void)
