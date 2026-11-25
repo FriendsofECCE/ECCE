@@ -48,6 +48,9 @@ bool ForegroundCmd::execute()
   if (colors) {
     colors->atomLabelColor.set1Value(0, red, green, blue);
     colors->bondLabelColor.set1Value(0, red, green, blue);
+    // Residue labels are drawn in residueLabelColor[0], white by default:
+    // without this they vanish on a white background.
+    colors->residueLabelColor.set1Value(0, red, green, blue);
   }
 
   // Measures use this
@@ -65,6 +68,7 @@ void ForegroundCmd::undo()
   if (colors) {
     colors->atomLabelColor.set1Value(0, p_red, p_green, p_blue);
     colors->bondLabelColor.set1Value(0, p_red, p_green, p_blue);
+    colors->residueLabelColor.set1Value(0, p_red, p_green, p_blue);
   }
 }
 
