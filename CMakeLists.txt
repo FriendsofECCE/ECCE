@@ -3122,11 +3122,12 @@ add_test(NAME mqtt-builtin-session COMMAND mqtt_test session ${CMAKE_SOURCE_DIR}
 add_test(NAME mqtt-builtin-linger COMMAND mqtt_test linger ${CMAKE_SOURCE_DIR})
 add_test(NAME mqtt-builtin-socket COMMAND mqtt_test socket ${CMAKE_SOURCE_DIR})
 add_test(NAME mqtt-builtin-cloexec COMMAND mqtt_test cloexec ${CMAKE_SOURCE_DIR})
+add_test(NAME mqtt-builtin-fork COMMAND mqtt_test fork ${CMAKE_SOURCE_DIR})
 add_test(NAME mqtt-builtin-serve COMMAND mqtt_test serve ${CMAKE_SOURCE_DIR} $<TARGET_FILE:eccebroker>)
 add_test(NAME mqtt-builtin-interop COMMAND mqtt_test interop)
 set_tests_properties(mqtt-builtin-auth mqtt-builtin-session mqtt-builtin-linger mqtt-builtin-interop
                      mqtt-builtin-socket mqtt-builtin-serve mqtt-builtin-cloexec
-                     PROPERTIES TIMEOUT 180)
+                     mqtt-builtin-fork PROPERTIES TIMEOUT 180)
 set_tests_properties(mqtt-builtin-interop mqtt-builtin-cloexec PROPERTIES SKIP_RETURN_CODE 77)
 if(TARGET ecce_users_auth)
   add_test(NAME mqtt-auth-plugin

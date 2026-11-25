@@ -682,6 +682,59 @@ static int cloexecMain(const string& src)
 #endif
 }
 
+// Launch forks the job store of a single-connection machine (#1283): the
+// child's notices must reach the broker over a connection of its own, and
+// its exit must leave the parent's connection alone.
+static int forkMain(const string& src)
+{
+  string tmp = tmpDir("mqtt_fork");
+  if (tmp.empty()) { perror("mkdtemp"); return 1; }
+  setenv("ECCE_HOME", src.c_str(), 1);
+  setenv("ECCE_REALUSERHOME", tmp.c_str(), 1);
+  setenv("HOST", "testhost", 1);
+  setenv("DISPLAY", ":7", 1);
+  setenv("ECCE_SESSION_ID", S1, 1);
+  unsetenv("ECCE_HOST");
+  unsetenv("ECCE_NO_MESSAGING");
+  string err = MqttBroker::startForSession();
+  check(err.empty(), "session broker started" + (err.empty() ? string() : ": " + err));
+  Probe pa("A");
+  g_probes.push_back(&pa);
+  pa.subscribe("ecce_poll", static_cast<jmsCBFunc>(&Probe::on), false);
+  check(pa.startSubscriber(), "the parent's link connects");
+  usleep(300000);
+
+  pid_t pid = fork();
+  if (pid == 0) {
+    JMSPublisher pub("forked");
+    JMSMessage* msg = pub.newMessage();
+    msg->addProperty("tag", "from_fork");
+    bool ok = pub.publish("ecce_poll", *msg);
+    delete msg;
+    MqttLink::instance().shutdown();
+    _exit(ok ? 0 : 2);
+  }
+  check(waitFor(pa, "from_fork"), "a forked child's message reaches the broker");
+  int status = -1;
+  bool ended = false;
+  for (int i = 0; i < 200 && !ended; i++) {
+    ended = waitpid(pid, &status, WNOHANG) == pid;
+    if (!ended) pump(50);
+  }
+  if (!ended) { kill(pid, SIGKILL); waitpid(pid, &status, 0); }
+  check(ended && WIFEXITED(status) && WEXITSTATUS(status) == 0,
+        "the forked child publishes and exits by itself");
+  vector<string> a;
+  a.push_back("ecce_poll:after_fork");
+  check(runChild(tmp, S1, a), "another process published after the child ended");
+  check(waitFor(pa, "after_fork"), "the parent's link still receives");
+  pa.unsubscribe();
+  MqttBroker::stopForSession();
+  rmTree(tmp);
+  cout << (g_fail ? "FAILED" : "ALL PASS") << endl;
+  return g_fail ? 1 : 0;
+}
+
 // eccebroker --serve, as ecce-gateway-start runs it for a local session.
 static int serveMain(const string& src, const string& exe)
 {
@@ -1331,6 +1384,7 @@ int main(int argc, char** argv)
   if (argc >= 3 && string(argv[1]) == "linger") return lingerMain(argv[2]);
   if (argc >= 3 && string(argv[1]) == "socket") return socketMain(argv[2]);
   if (argc >= 3 && string(argv[1]) == "cloexec") return cloexecMain(argv[2]);
+  if (argc >= 3 && string(argv[1]) == "fork") return forkMain(argv[2]);
   if (argc >= 4 && string(argv[1]) == "serve") return serveMain(argv[2], argv[3]);
   if (argc >= 3 && string(argv[1]) == "session")
     return sessionMain(argv[2]);
