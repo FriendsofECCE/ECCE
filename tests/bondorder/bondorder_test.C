@@ -47,6 +47,11 @@ int main()
         {1,1,1}, 1);
   check("acetaldehyde", {"C","C","O","H","H","H","H"},
         {{0,1},{1,2},{0,3},{0,4},{0,5},{1,6}}, {1,2,1,1,1,1});
+  // A lone pair on O or N makes the triple bond (C-/O+, R-N+/C-).
+  check("carbon monoxide", {"C","O"}, {{0,1}}, {3});
+  check("methyl isocyanide", {"C","N","C","H","H","H"},
+        {{0,1},{1,2},{2,3},{2,4},{2,5}}, {3,1,1,1,1});
+  check("nitrogen", {"N","N"}, {{0,1}}, {3});
   printf(fails ? "FAILED\n" : "all passed\n");
   return fails != 0;
 }

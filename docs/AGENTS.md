@@ -264,6 +264,12 @@ Layer Builder (`ECCE_BUILDER_SCRIPT`): `pbclayer <field> <value>` sets a field (
 Builder File > Export Structure... writes `.gro` or `.pdb` with residues and the cell (`.xyz` without); Builder script `savegro PATH` / `savepdb PATH` (prints `BUILDER: savegro: done`). Atoms without a residue are written as HOH (water, OW/HW1/HW2) or as a residue named by the element (a lone ion). Test: ctest `fragreaders`.
 GROMACS Prepare, Mineral source, **Mineral from: the Builder** (#1140): the Builder's whole structure (mineral, water, ions; e.g. a Layer Builder stack) is typed as it is by `minff_topology.py system STRUCTURE.gro -o DIR [--variant|--mineral|--angle-k|--water|--ion-set]` (MIN, then ion molecules, SOL last; summary in `minff.json`: `waters`, `ions`, `total_charge`). Editor hook `set mstruct builder|cell` (then `set mbuild 1`); `summary` shows `mstruct=`. The job adds no water layer and runs genion only for a non-zero total charge. Test: ctest `minff_prepare` (case "system-na", "system-charged").
 
+Clean assigns bond orders from element and neighbour count. When an atom is
+still short of valence it tries one lone pair from a bonded N, O or S, and keeps
+that only if fewer atoms stay open: CO and isocyanides R-N#C get a triple bond
+(note: `uses a lone pair, C1-/O2+`); a radical such as CH3 stays flagged. Ions
+(CN-, NO+) are unchanged, the graph carries no charge (#1292).
+
 ## Compare relaxed scans in the Builder
 
 Open **Relaxed Scan** (`ECCE_OPEN_PANEL=Relaxed Scan`) and use

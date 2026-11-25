@@ -81,42 +81,80 @@ Result perceive(const vector<string>& el, const vector<pair<int,int> >& bonds)
   const int n = (int)el.size(), nb = (int)bonds.size();
   res.orders.assign(nb, 1.0);
 
-  Solver s;
-  s.n = n;
-  s.adj.assign(n, vector<pair<int,int> >());
   vector<int> deg(n, 0);
   for (int b = 0; b < nb; b++) {
     deg[bonds[b].first]++;
     deg[bonds[b].second]++;
   }
-  s.rem.assign(n, 0);
+  vector<int> start(n, 0);
   for (int a = 0; a < n; a++) {
     int v = valenceOf(el[a]);
-    s.rem[a] = v < 0 ? 0 : max(0, v - deg[a]);
-    if (el[a] == "S" && deg[a] > 2) s.rem[a] = 0;
-  }
-  for (int b = 0; b < nb; b++) {
-    int x = bonds[b].first, y = bonds[b].second;
-    if (s.rem[x] > 0 && s.rem[y] > 0) {
-      s.adj[x].push_back(make_pair(y, b));
-      s.adj[y].push_back(make_pair(x, b));
-    }
-  }
-  s.inc.assign(nb, 0);
-  s.bestInc = s.inc;
-  s.bestRem = 1 << 30;
-  s.nodes = 0;
-  vector<int> start = s.rem;
-  s.search();
-  s.rem = start;
-  for (int b = 0; b < nb; b++) {
-    s.rem[bonds[b].first] -= s.bestInc[b];
-    s.rem[bonds[b].second] -= s.bestInc[b];
-    res.orders[b] = 1.0 + s.bestInc[b];
+    start[a] = v < 0 ? 0 : max(0, v - deg[a]);
+    if (el[a] == "S" && deg[a] > 2) start[a] = 0;
   }
 
+  // Raise bonds until the free valence in `rem0` is used up as far as it
+  // goes; returns the increments and leaves the remaining valence in `rem`.
+  auto solve = [&](const vector<int>& rem0, vector<int>& rem) {
+    Solver s;
+    s.n = n;
+    s.adj.assign(n, vector<pair<int,int> >());
+    s.rem = rem0;
+    for (int b = 0; b < nb; b++) {
+      int x = bonds[b].first, y = bonds[b].second;
+      if (s.rem[x] > 0 && s.rem[y] > 0) {
+        s.adj[x].push_back(make_pair(y, b));
+        s.adj[y].push_back(make_pair(x, b));
+      }
+    }
+    s.inc.assign(nb, 0);
+    s.bestInc = s.inc;
+    s.bestRem = 1 << 30;
+    s.nodes = 0;
+    s.search();
+    rem = rem0;
+    for (int b = 0; b < nb; b++) {
+      rem[bonds[b].first] -= s.bestInc[b];
+      rem[bonds[b].second] -= s.bestInc[b];
+    }
+    return s.bestInc;
+  };
+  auto countOpen = [&](const vector<int>& rem) {
+    int c = 0;
+    for (int a = 0; a < n; a++) if (rem[a] > 0) c++;
+    return c;
+  };
+
+  vector<int> rem;
+  vector<int> bestInc = solve(start, rem);
+
+  // A lone pair on N, O or S can be given to a bonded atom that is still
+  // short of valence (C-O in CO, R-N-C in an isocyanide): donor +1, acceptor
+  // -1 (O+/C-). It is kept only if it leaves fewer atoms open, so a radical
+  // is not "resolved" by inventing charges.
+  int dative = -1, donor = -1, acceptor = -1;
+  if (countOpen(rem) > 0) {
+    int open = countOpen(rem);
+    for (int b = 0; b < nb; b++)
+      for (int k = 0; k < 2; k++) {
+        int d = k ? bonds[b].second : bonds[b].first;
+        int x = k ? bonds[b].first : bonds[b].second;
+        if (el[d] != "N" && el[d] != "O" && el[d] != "S") continue;
+        if (rem[x] <= 0 || start[x] <= 0 || start[d] <= 0) continue;
+        vector<int> r0 = start, r1;
+        r0[d]++; r0[x]--;
+        vector<int> inc = solve(r0, r1);
+        if (countOpen(r1) < open) {
+          open = countOpen(r1);
+          bestInc = inc; rem = r1;
+          dative = b; donor = d; acceptor = x;
+        }
+      }
+  }
+  for (int b = 0; b < nb; b++) res.orders[b] = 1.0 + bestInc[b];
+
   for (int a = 0; a < n; a++)
-    if (s.rem[a] > 0 || ((el[a] == "S" || el[a] == "P") && deg[a] > 2))
+    if (rem[a] > 0 || ((el[a] == "S" || el[a] == "P") && deg[a] > 2))
       res.unresolved.push_back(a);
 
   // Six-membered rings of alternating double/single bonds with every atom's
@@ -181,6 +219,9 @@ Result perceive(const vector<string>& el, const vector<pair<int,int> >& bonds)
     if (deg[x] == deg[y]) os << "both " << shape(deg[x]);
     else os << label(el, x) << " " << shape(deg[x]) << ", "
             << label(el, y) << " " << shape(deg[y]);
+    if (b == dative)
+      os << "; uses a lone pair, " << label(el, acceptor) << "-/"
+         << label(el, donor) << "+";
     os << ")";
     res.notes.push_back(os.str());
   }
