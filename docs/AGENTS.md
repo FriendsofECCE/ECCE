@@ -699,7 +699,9 @@ decided by the site's configuration in this order: a shared system broker
    listens on a Unix socket in `~/.ECCE` (file: `user=local`,
    `socket=<path>`; no login, the 0700 directory keeps other users out).
    On Windows it is built into the Organizer, on 127.0.0.1 at a free port
-   (`user=`, `password=`, `host=`, `port=`). A command reads that file. The
+   (`user=`, `password=`, `host=`, `port=`). A command reads that file
+   (the key's host part is `%COMPUTERNAME%` there, so a command run from any
+   Command Prompt finds the session ECCE started). The
    broker stays up while any ECCE program (the gateway, Builder, a job
    store) is connected and ends 10 s after the last one leaves
    (`ECCE_BROKER_LINGER` on Linux and macOS), removing the file;

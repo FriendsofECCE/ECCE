@@ -26,6 +26,8 @@ ecce_session_id_valid() {
 ecce_session_host() {
   if [ -n "${ECCE_HOST:-}" ]; then printf '%s' "$ECCE_HOST"
   elif [ -n "${HOST:-}" ]; then printf '%s' "$HOST"
+  elif [ "${OS:-}" = Windows_NT ] && [ -n "${COMPUTERNAME:-}" ]; then
+    printf '%s' "$COMPUTERNAME"     # as Ecce::sessionHost on Windows
   else hostname
   fi
 }
