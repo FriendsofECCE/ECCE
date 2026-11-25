@@ -1864,7 +1864,7 @@ def runTabs1088(display):
         os.makedirs(project)
         shutil.copy(pb.PROJECT_META, os.path.join(project, ".ecce-meta"))
         url = "file://" + pb.makeCalc(project, "water-1088", "created", None)
-        # A run calculation: the Builder on it is read-only (#1106).
+        # A run calculation: its Builder opens as its Viewer (#1254).
         runUrl = "file://" + pb.makeCalc(project, "water-run", "complete", None)
         cmds = os.path.join(work, "commands")
         open(cmds, "w").close()
@@ -1905,7 +1905,7 @@ def runTabs1088(display):
             append("tabs", 2)                  # tabs[3]
             append("inprocess", 2)             # inprocess[2]
             append("start Builder " + runUrl, 25)
-            append("tabs", 2)                  # tabs[4]: + read-only Builder
+            append("tabs", 2)                  # tabs[4]: + the run one's Viewer
             append("close", 3)                 # File > Quit
             append("answer", 3)
             append("answer no", 3)
@@ -1963,10 +1963,12 @@ def runTabs1088(display):
               and re.search(r"2:Viewer ", tabs[2]),
               "the Viewer's tab reads Viewer, the Builder's Builder, on an "
               "editable calculation", str(tabs))
-        check(len(tabs) >= 5 and len(re.findall(r"\d+:Builder\*? ", tabs[4])) == 2
-              and len(re.findall(r"\d+:Viewer\*? ", tabs[4])) == 1,
-              "a Builder on a run (read-only) calculation reads Builder, "
-              "not Viewer", str(tabs))
+        # #1254 made a run calculation's Builder open its Viewer, which
+        # replaced #1106's read-only Builder tab.
+        check(len(tabs) >= 5 and len(re.findall(r"\d+:Builder\*? ", tabs[4])) == 1
+              and len(re.findall(r"\d+:Viewer\*? ", tabs[4])) == 2,
+              "a Builder on a run (read-only) calculation opens as its "
+              "Viewer", str(tabs))
         check(not result.crashed and result.returncode == 0
               and "Aborted" not in log and "SIGSEGV" not in log,
               "the Organizer ends cleanly", "returncode %s\n%s"
@@ -2269,6 +2271,11 @@ def runQuitDuringClose(display):
         calc = os.path.join(project, "water-c")
         shutil.copytree(os.path.join(HERE, "..", "ecceqm", "fixtures",
                                      "h2o-geometry"), calc, symlinks=True)
+        # The fixture is a finished run, whose Builder opens as its Viewer
+        # (#1254); this test holds a Builder tab's close, so make it editable.
+        meta = os.path.join(calc, ".ecce-meta")
+        text = open(meta).read()
+        open(meta, "w").write(re.sub(r"(ecce:state\t\t)[^\n]*", r"\g<1>Created", text))
         url = "file://" + calc
         cmds = os.path.join(work, "commands")
         open(cmds, "w").close()
