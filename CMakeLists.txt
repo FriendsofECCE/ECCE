@@ -2366,6 +2366,10 @@ add_test(NAME releasecheck COMMAND releasecheck_test)
 add_executable(pathurl_test tests/localdata/pathurl_test.C)
 target_link_libraries(pathurl_test PRIVATE ecceutil)
 add_test(NAME localdata_pathurl COMMAND pathurl_test)
+# A Windows drive in a file URL keeps its colon; both spellings are one node (#1289).
+add_executable(ecceurl_drive_test tests/localdata/ecceurl_drive_test.C)
+target_link_libraries(ecceurl_drive_test PRIVATE ecceutil)
+add_test(NAME ecceurl_drive COMMAND ecceurl_drive_test)
 add_test(NAME localdata_one_check
          COMMAND ${PYTHON3_EXECUTABLE}
                  ${CMAKE_CURRENT_SOURCE_DIR}/tests/localdata/one_data_folder_check_test.py
