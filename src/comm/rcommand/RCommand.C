@@ -52,6 +52,9 @@
 #include "comm/RemoteTransport.H"
 #ifdef ECCE_HAVE_LIBSSH
 #include "comm/SshTransport.H"
+#include "comm/SshMaster.H"
+#include <chrono>
+#include <thread>
 #endif
 
 #define MAXARGS 32
@@ -296,7 +299,8 @@ static bool looksLikeCode(const string& prompt)
 // Logs in over libssh: the password given, then AuthCache, then passdialog;
 // passdialog's "passcode" for what looks like a second factor.
 bool RCommand::sshConnectLibssh(const string& machine, const string& userName,
-                                const string& password, const string& jumpHost)
+                                const string& password, const string& jumpHost,
+                                const string& masterEndpoint)
 {
   const string theUser = userName == "" ? string(Ecce::realUser()) : userName;
   p_loginCancelled = p_loginPrompted = p_loginRefused = p_loginUnreachable = false;
@@ -346,6 +350,7 @@ bool RCommand::sshConnectLibssh(const string& machine, const string& userName,
   SshTransport* t = new SshTransport(machine, p_port, userName);
   t->setConnectTimeout(connectTimeout());
   t->setPasswordAttempts(3);
+  if (masterEndpoint != "") t->setMasterEndpoint(masterEndpoint);
   t->setPromptCallback(promptFor(c, machine));
   if (jumpHost != "") {
     t->setJumpHost(jumpHost, 0, userName);
@@ -395,6 +400,7 @@ bool RCommand::sshConnectLibssh(const string& machine, const string& userName,
 
   if (getenv("ECCE_RCOM_LOGMODE"))
     cout << "ssh transport: commands run over libssh on " << machine
+         << (t->viaMaster() ? " (ECCE's shared login)" : "")
          << (jumpHost == "" ? "" : t->nested() ?
              " through " + jumpHost + " (nested ssh)" :
              " through " + jumpHost + " (forwarded connection)") << endl;
@@ -578,7 +584,33 @@ bool RCommand::sshConnect(const string& machine, const string& userName,
   }
 #ifdef ECCE_HAVE_LIBSSH
   ecceSshTiming("sshConnect: libssh");
-  const bool ok = sshConnectLibssh(machine, userName, password, jumpHost);
+  // One login per route through ECCE's master when one is up or this
+  // connection asks for it (single-connection and front-end machines).
+  const string mmode = SshMaster::mode();
+  const string theUser = userName == "" ? string(Ecce::realUser()) : userName;
+  const string ep = (mmode == "off" || mmode == "serve") ? string("") :
+                    SshMaster::endpoint(machine, p_port, theUser, jumpHost);
+  const char* req = getenv("ECCE_SSH_MASTER_REQUIRE");
+  bool ok;
+  if (!ep.empty() && (SshMaster::live(ep) ||
+                      (p_shareLogin &&
+                       startSshMaster(ep, machine, userName, password, jumpHost)))) {
+    ok = sshConnectLibssh(machine, userName, password, jumpHost, ep);
+  } else if (!ep.empty() && req && ep == req) {
+    // A job store of a shared login never logs in by itself: the code a
+    // second factor wants belongs in the GUI, which Reconnect goes through.
+    p_errMessage = "ECCE's shared login to " + machine + " has ended (the "
+      "connection dropped, or it was unused for " +
+      std::to_string(SshMaster::idleSeconds()) + " s). Use Reconnect to "
+      "log in again.";
+    p_loginUnreachable = true;
+    ok = false;
+  } else if (p_shareLogin && !ep.empty() &&
+             (p_loginCancelled || p_loginRefused)) {
+    ok = false;   // the master's login was answered: never a second dialog
+  } else {
+    ok = sshConnectLibssh(machine, userName, password, jumpHost);
+  }
   ecceSshTiming(std::string("sshConnect: libssh ") + (ok ? "connected" : "failed"));
   if (ok) p_errMessage.clear();   // the OpenSSH attempt's message is stale
   return ok;
@@ -618,6 +650,106 @@ bool RCommand::sshHop(const string& hopMachine, const string& locShell,
   }
   return true;
 }
+bool RCommand::sharedLogin() const
+{
+#ifdef ECCE_HAVE_LIBSSH
+  const SshTransport* t = p_ssh ? dynamic_cast<const SshTransport*>(p_transport) : 0;
+  return t && t->viaMaster();
+#else
+  return false;
+#endif
+}
+
+string RCommand::sharedLoginEndpoint() const
+{
+#ifdef ECCE_HAVE_LIBSSH
+  if (sharedLogin())
+    return static_cast<const SshTransport*>(p_transport)->masterEndpoint();
+#endif
+  return "";
+}
+
+#ifdef ECCE_HAVE_LIBSSH
+SshTransport* RCommand::libsshTransport()
+{
+  return p_ssh ? dynamic_cast<SshTransport*>(p_transport) : 0;
+}
+
+// Starts eccesshmaster for this route and waits for its login, which asks
+// through passdialog as this process would.  The password travels through
+// AuthCache's pipe, as it does to eccejobmaster, never through the master's
+// endpoint.
+bool RCommand::startSshMaster(const string& ep, const string& machine,
+                              const string& userName, const string& password,
+                              const string& jumpHost)
+{
+  typedef std::chrono::steady_clock Clock;
+  const string theUser = userName == "" ? string(Ecce::realUser()) : userName;
+  p_loginCancelled = p_loginPrompted = p_loginRefused = p_loginUnreachable = false;
+  p_sharedLoginError.clear();
+  if (password != "")
+    RCommand::setPassCache(p_shell, passHost(machine), theUser, password);
+  const string status = SshMaster::statusPath(ep);
+  remove(status.c_str());
+  const string pipe = AuthCache::pipeName();
+  string prog = Ecce::ecceBinCommand("eccesshmaster");
+#ifdef _WIN32
+  // sh runs it: forward slashes in the program's own path.
+  for (size_t i = 0; i < prog.size(); i++) if (prog[i] == '\\') prog[i] = '/';
+#endif
+  const string script = "exec " + prog + " -host " + shQuote(machine) +
+    " -port " + std::to_string(p_port) + " -user " + shQuote(userName) +
+    " -jump " + shQuote(jumpHost) + " -endpoint " + shQuote(ep) +
+    " -status " + shQuote(status) + " -pipe " + shQuote(pipe) + "\n";
+  DirectTransport local;
+  string err;
+  if (local.spawnDetached(script, err, status + ".log") < 0) {
+    p_sharedLoginError = "could not start eccesshmaster: " + err;
+    return false;
+  }
+  AuthCache::pipeOutData(pipe, AuthCache::getCache().pipeData());
+
+  const Clock::time_point start = Clock::now();
+  bool started = false;
+  for (;;) {
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    const string st = SshMaster::readStatus(status);
+    const long secs = (long)std::chrono::duration_cast<std::chrono::seconds>(
+                        Clock::now() - start).count();
+    if (st.compare(0, 7, "started") == 0) started = true;
+    else if (st.compare(0, 2, "ok") == 0) {
+      for (int i = 0; i < 50; i++) {
+        if (SshMaster::live(ep)) { remove(status.c_str()); return true; }
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      }
+      p_sharedLoginError = "eccesshmaster logged in but does not answer at " + ep;
+      return false;
+    } else if (!st.empty() && st[st.size()-1] == '\n') {
+      const size_t nl = st.find('\n');
+      const string kind = st.substr(0, nl);
+      string msg = st.substr(nl + 1);
+      while (!msg.empty() && (msg[msg.size()-1] == '\n' || msg[msg.size()-1] == '\r'))
+        msg.erase(msg.size() - 1);
+      remove(status.c_str());
+      p_errMessage = p_sharedLoginError = msg.empty() ? kind : msg;
+      p_loginCancelled = kind == "cancelled";
+      p_loginPrompted = p_loginCancelled || kind == "refused";
+      p_loginRefused = kind == "refused";
+      p_loginUnreachable = kind == "unreachable";
+      return false;
+    }
+    if (!started && secs > 20) {
+      p_sharedLoginError = "eccesshmaster did not start (log: " + status + ".log)";
+      return false;
+    }
+    if (secs > 900) {
+      p_sharedLoginError = "eccesshmaster's login did not finish within 15 minutes";
+      return false;
+    }
+  }
+}
+#endif
+
 string RCommand::sshBackend() const
 {
   if (!p_ssh || !p_transport) return "";
@@ -837,9 +969,10 @@ RCommand::RCommand(const string& machine, const string& remShell,
                    const string& password, const string& frontendMachine,
                    const string& frontendBypass, const string& shellPath,
                    const string& libPath, const string& sourceFile,
-                   int port)
+                   int port, bool shareLogin)
 {
   p_connected = false;
+  p_shareLogin = shareLogin;
   p_port = port == 22 ? 0 : port;
   p_timeout = RC_EXEC_TIMEOUT;
   p_transport = 0;

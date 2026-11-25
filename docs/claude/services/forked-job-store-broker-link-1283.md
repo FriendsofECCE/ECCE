@@ -27,7 +27,8 @@ Never `mosquitto_disconnect`/`destroy` the inherited client: same client id
 (a DISCONNECT ends the parent's session), `destroy` joins the parent's
 thread, and a TLS close writes into the parent's stream.
 
-Windows has no `fork()` (`PosixCompat.H` stub): the same launch fails there
-after the submit (#1284).
+The fork is now only the fallback when eccesshmaster cannot be started
+(libssh-connection-master-1284.md); Windows refuses that case before the
+submit.
 
 Test: `mqtt-builtin-fork` (`mqtt_test fork`).

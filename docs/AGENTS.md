@@ -1105,6 +1105,15 @@ then appends `Type<TAB>host<TAB>user<TAB>note=<text>` per dialog;
 `tests/apps/fakessh/ssh` with `FAKE_SSH_PASSWORD` plays a password-only
 host (`FAKE_SSH_MASTERS`, `FAKE_SSH_AUTH_LOG`: every prompt and answer).
 
+A machine with **Use a single ssh connection** (`singleConnect: true`) or a
+front end, on the built-in ssh client: ECCE logs in once and `eccesshmaster`
+holds that login for every ECCE program of the user (Launcher, job store,
+copies); it ends `ECCE_SSH_MASTER_IDLE` (300) s after its last use. A job
+whose master has gone shows Waiting with "ECCE's shared login ... has
+ended"; `ecce-reconnect` (or Reconnect) logs in again. `ECCE_SSH_MASTER=off`
+turns it off. Test: `ECCE_MONLOGIN_SINGLE_ONLY=1
+tests/transport/sshd/monitor_login_test.sh`.
+
 Machines ECCE cannot log in to (two-factor): `noRemoteAccess: true` in
 `CONFIG.<machine>` or the `dummy` machine: ECCE writes the input and job script
 locally and stops; the user copies them over, submits, and imports the output
