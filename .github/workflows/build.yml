@@ -654,7 +654,7 @@ jobs:
         continue-on-error: true
         run: |
           cd build
-          ctest -R 'transport_process|transport_detached_env|transport_stream_read|fragreaders|fragreaders_de|parsers' --output-on-failure --timeout 600 \
+          ctest -R 'transport_process|transport_detached_env|transport_stream_read|session_host|command_env|ecceurl_drive|fragreaders|fragreaders_de|parsers' --output-on-failure --timeout 600 \
             | tee ../ctest.log
           exit "${PIPESTATUS[0]}"
 
@@ -864,6 +864,7 @@ jobs:
           path: |
             build/launchjob.exe
             build/eccebroker.exe
+            build/session_host_test.exe
           if-no-files-found: warn
 
       - uses: actions/upload-artifact@v4

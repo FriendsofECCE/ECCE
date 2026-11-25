@@ -2377,6 +2377,10 @@ add_test(NAME releasecheck COMMAND releasecheck_test)
 add_executable(pathurl_test tests/localdata/pathurl_test.C)
 target_link_libraries(pathurl_test PRIVATE ecceutil)
 add_test(NAME localdata_pathurl COMMAND pathurl_test)
+# A Windows drive in a file URL keeps its colon; both spellings are one node (#1289).
+add_executable(ecceurl_drive_test tests/localdata/ecceurl_drive_test.C)
+target_link_libraries(ecceurl_drive_test PRIVATE ecceutil)
+add_test(NAME ecceurl_drive COMMAND ecceurl_drive_test)
 add_test(NAME localdata_one_check
          COMMAND ${PYTHON3_EXECUTABLE}
                  ${CMAKE_CURRENT_SOURCE_DIR}/tests/localdata/one_data_folder_check_test.py
@@ -4597,6 +4601,21 @@ if(PYTHON3_EXECUTABLE)
   target_link_libraries(testDetachedEnv PRIVATE eccercmd ecceutil)
   add_test(NAME transport_detached_env COMMAND testDetachedEnv)
   set_tests_properties(transport_detached_env PROPERTIES TIMEOUT 60)
+
+  # A command run without ecce.cmd's HOST joins the same session topics
+  # as the Organizer (Windows, #1287).
+  add_executable(session_host_test tests/session/session_host_test.C)
+  target_link_libraries(session_host_test PRIVATE ecceutil)
+  add_test(NAME session_host COMMAND session_host_test)
+  set_tests_properties(session_host PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 30)
+
+  # A command run from a plain Command Prompt finds ECCE_HOME, the session
+  # and its data folder, and gets its replies without a wake-up socket (#1287).
+  add_executable(command_env_test tests/session/command_env_test.C)
+  target_include_directories(command_env_test PRIVATE ${XercesC_INCLUDE_DIRS})
+  target_link_libraries(command_env_test PRIVATE ecceutil ${XercesC_LIBRARIES})
+  add_test(NAME command_env COMMAND command_env_test)
+  set_tests_properties(command_env PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 60)
 
   # The Tail window's read on a blocking pipe must not wait (Windows hang).
   add_executable(testStreamRead tests/transport/streamRead.C)

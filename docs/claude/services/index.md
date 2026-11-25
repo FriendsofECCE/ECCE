@@ -64,6 +64,8 @@ what the deployment mode needs (GETTING_STARTED, "Deployment modes"):
 - [Windows local jobs: paths in sh scripts, the job id, Strawberry perl, the broker](windows-local-jobs-pitfalls.md)
 - [Windows stream pipes are always blocking: peek before read on the GUI thread](windows-stream-pipes-block.md)
 - [Windows: the session broker, and the Organizer starts the tools](windows-session-and-tool-start.md)
+- [Windows: the session key's host is %COMPUTERNAME% (#1287)](windows-session-host-is-computername-1287.md)
+- [Windows: ecce-* commands from a Command Prompt: no socket, no ecce.cmd environment (#1287)](windows-commands-outside-ecce-cmd-1287.md)
 - [Local sessions run ECCE's own broker: in the Organizer on Windows, as eccebroker on Linux/macOS (#990, #1007)](windows-builtin-broker-990.md)
 - [Windows: some antivirus holds every program it has not seen for 5-16 s at its first start (#522, #444)](windows-antivirus-holds-each-new-program.md)
 - [A remote view rides ECCE's own login, not an ssh of its own (Tail)](remote-views-use-ecces-own-login.md)
@@ -113,6 +115,7 @@ what the deployment mode needs (GETTING_STARTED, "Deployment modes"):
 - [ecce-move / ecce-rename](ecce-move-goes-through-the-organizer.md): the Organizer's own move, no offline mode (#824).
 - [Copy and move between trees](cross-tree-copy-890.md): TreeCopy through the EDSIs, verify then remove, ecce-copy (#890).
 - [A root without a resource (server not connected) taken for the hidden root: findNode recursed to a stack overflow (#767)](unconnected-root-taken-for-hidden-root.md)
+- [A Windows drive colon in a file URL parsed as host:port: every command-line request refused (#1289)](drive-colon-taken-for-port-1289.md)
 - [AuthCache: an ssh password only for its own host[:port] and user, also under the job store's LAST_URL (#791)](authcache-ssh-own-host-only.md)
 - [AuthCache::pipeIn removes only its own FIFO or AuthPipe.* temp file, never a path the caller passed (#1060)](authcache-pipe-removes-only-its-own.md)
 - [A copy-back from a host that cannot be asked "succeeded" with nothing copied and stored a 0-byte output; sizes now checked, Complete needs the normal-end line (#732)](copy-back-unreachable-host-732.md)

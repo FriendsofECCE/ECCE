@@ -431,7 +431,10 @@ void EcceURL::parse(const char *xurl)
         endhost = (char*)&loc[strlen(loc)-1];
       }
 
+      // A ':' after the authority's '/' is in the path, not a port: in
+      // "file:///C:/dir" it is the drive's colon.
       char *portloc = strchr(loc,':');
+      if (portloc != 0 && *endhost == '/' && portloc > endhost) portloc = 0;
       if (drivePath) {
         // no host: the whole remainder is the path
       } else if (portloc != 0) {
@@ -457,6 +460,14 @@ void EcceURL::parse(const char *xurl)
       if (loc != end) {
         p_file = loc;
       }
+#ifdef _WIN32
+      // "file:///C:/dir" (what the commands send) and "file://C:/dir" (the
+      // tree's form) are one place; keep one spelling so they compare equal.
+      if (p_protocol == "file" && p_host.empty() && p_file.size() >= 3 &&
+          p_file[0] == '/' && isalpha((unsigned char)p_file[1]) &&
+          p_file[2] == ':' && (p_file.size() == 3 || p_file[3] == '/'))
+        p_file.erase(0, 1);
+#endif
     } else {
       p_file = loc;
     }
