@@ -13,6 +13,7 @@ copying arm must really have copied all five, so a stale copy that quietly
 falls back to the parse fails here, as does one that no longer matches.
 Prints the time of both arms.  Exit 77 (skip) without an install or Xvfb.
 """
+import difflib
 import os
 import re
 import shutil
@@ -131,8 +132,15 @@ def compare(parsed, copied):
             continue    # shipped short on purpose (#719); a parse is whole    # a log of this run, with its own times
         elif rel.endswith(".h5"):
             # HDF5 does not lay out the same content byte for byte twice
-            if h5content(pa) != h5content(pb):
-                problems.append("%s: content differs" % rel)
+            ha, hb = h5content(pa), h5content(pb)
+            if ha != hb:
+                # Name the first differing lines, so a failure says which
+                # dataset moved without rerunning by hand.
+                diff = [l.rstrip("\n") for l in difflib.unified_diff(
+                    ha.splitlines(1), hb.splitlines(1), "parse", "copy", n=0)
+                    if not l.startswith(("---", "+++"))]
+                problems.append("%s: content differs\n        %s" % (
+                    rel, "\n        ".join(diff[:8])))
         else:
             with open(pa, "rb") as x, open(pb, "rb") as y:
                 da, db = x.read(), y.read()
