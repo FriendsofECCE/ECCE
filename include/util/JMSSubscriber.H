@@ -92,7 +92,9 @@ public:
      void unsubscribe();
 
     // When getSocketID() is readable, use this to run the callbacks of
-    // the messages that have arrived:
+    // the messages that have arrived. A loop that calls it on a timer
+    // needs no socket: on Windows getSocketID() is always -1 (no pipe)
+    // and messages wait in the endpoint's queue until this runs.
     void processMessage();
 
     // If you want to temporarily suspend messaging:

@@ -4587,6 +4587,14 @@ if(PYTHON3_EXECUTABLE)
   add_test(NAME session_host COMMAND session_host_test)
   set_tests_properties(session_host PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 30)
 
+  # A command run from a plain Command Prompt finds ECCE_HOME, the session
+  # and its data folder, and gets its replies without a wake-up socket (#1287).
+  add_executable(command_env_test tests/session/command_env_test.C)
+  target_include_directories(command_env_test PRIVATE ${XercesC_INCLUDE_DIRS})
+  target_link_libraries(command_env_test PRIVATE ecceutil ${XercesC_LIBRARIES})
+  add_test(NAME command_env COMMAND command_env_test)
+  set_tests_properties(command_env PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 60)
+
   # The Tail window's read on a blocking pipe must not wait (Windows hang).
   add_executable(testStreamRead tests/transport/streamRead.C)
   find_package(Threads REQUIRED)

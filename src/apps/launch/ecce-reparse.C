@@ -160,7 +160,7 @@ int main(int argc, char **argv)
 
   JMSSubscriber sub("EcceReparse");
   if (!sub.messagingEnabled() || !sub.subscribe("ecce_reparse_reply", replyCB) ||
-      !sub.startSubscriber() || sub.getSocketID() < 0)
+      !sub.startSubscriber())
     return notRunning();
 
   using clock = std::chrono::steady_clock;

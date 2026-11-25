@@ -174,7 +174,7 @@ int main(int argc, char **argv)
 
   JMSSubscriber sub("EcceLaunch");
   if (!sub.messagingEnabled() || !sub.subscribe("ecce_launch_reply", replyCB) ||
-      !sub.startSubscriber() || sub.getSocketID() < 0)
+      !sub.startSubscriber())
     return notRunning();
 
   using clock = std::chrono::steady_clock;

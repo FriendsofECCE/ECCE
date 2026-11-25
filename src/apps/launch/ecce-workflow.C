@@ -166,7 +166,7 @@ int main(int argc, char **argv)
   MqttLink::setCredentialProvider(AuthCache::brokerCredential);
   JMSSubscriber sub("EcceWorkflow");
   if (!sub.messagingEnabled() || !sub.subscribe("ecce_workflow_reply", replyCB) ||
-      !sub.startSubscriber() || sub.getSocketID() < 0)
+      !sub.startSubscriber())
     return notRunning();
 
   using clock = std::chrono::steady_clock;
