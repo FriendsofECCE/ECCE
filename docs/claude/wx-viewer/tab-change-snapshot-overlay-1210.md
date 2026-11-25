@@ -34,9 +34,27 @@ picture and tabs change as before.  `snapshot off|on` / `ECCE_TAB_SNAPSHOT=0`
 switch it; `one_process_test.py --1210-frames` measures what reaches the
 screen with it off and on.
 
-Not yet sufficient (first measurement, Xvfb): with it on, the half-drawn
-time fell (open Viewer 140 -> 36 samples, open Editor 27 -> 45 but at 3 %
-off the old page, which may be the Organizer's own "starting" status), but
-closing onto the Editor still showed a mostly flat page for ~280 ms after
-the picture went. Ending on "no wxEVT_PAINT" misses native GTK widgets, which
-draw without a wx paint event, so the picture can go before they are drawn.
+Measuring it: compare colour only.  On a depth-24 visual (Xvfb, most X
+desktops) XGetImage gives 32-bit pixels whose top byte is not shown and
+differs between the X server's copy of a GTK drawing (0xff) and the same
+colours drawn from the picture (0x00).  `screenframes.Sampler` clears that
+byte; before it did, the picture itself read as 3 % (Organizer) or 13 %
+(Editor) "off" the page it showed, and the old page appeared "flat" after
+a close, though the colours on the screen were identical.  With colour only,
+every state while and after the picture is up is within 2 % of the old page
+or the finished one.  The reference "before" is the state on the screen when
+the command was written, not the first sample: a status line can change in
+the half second before it.
+
+One state is left, and only where the change ends on a Viewer (open
+Viewer, open Viewer over Editor): a single sample (about 12 ms, 53 % off the
+old page, 32 % off the new one) just after the picture is removed, in 1-2
+of 6 cases a run.  Nothing under the native picture window is kept by the
+X server, the GL canvas included, so both are drawn again after removal and
+the canvas lands a frame after the rest.  `Refresh()` + `Update()` of the
+host in `endSnapshot` (the canvas paints synchronously in `OnPaint`) did not
+change it.  Not yet tried: a separate popup toplevel instead of a child
+window, so that a compositing desktop keeps the page drawn beneath it.
+
+Measured on Xvfb (no compositor) only; a compositing desktop draws the window
+from its own copy and has not been measured.

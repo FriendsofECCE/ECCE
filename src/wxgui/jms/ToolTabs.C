@@ -1027,9 +1027,10 @@ void endSnapshot(int *counter)
   if (!ov) return;
   if (counter) (*counter)++;
   s_snap.lastMs = s_snap.since.Time();
-  s_snap.history += wxString::Format("%s%ld,",
+  s_snap.history += wxString::Format("%s%ld@%lld,",
       counter == &s_snap.quietEnds ? "q" : counter == &s_snap.timeouts ? "t"
-      : counter == &s_snap.modalEnds ? "m" : "x", s_snap.lastMs);
+      : counter == &s_snap.modalEnds ? "m" : "x", s_snap.lastMs,
+      (long long)(wxGetUTCTimeMillis() - s_snap.lastMs).GetValue());
   s_snap.overlay = 0;
   ov->Destroy();
   if (s_hostFrame) s_hostFrame->Refresh();

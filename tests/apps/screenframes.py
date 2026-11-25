@@ -45,7 +45,7 @@ def _lib():
 class Sampler:
     """Samples (x, y, w, h) of `display` (":N") until stop(); keeps one
     sub-sampled copy (every STEP-th pixel) per distinct consecutive state,
-    with the number of samples it lasted."""
+    with the number of samples it lasted and the time it was first seen."""
 
     STEP = 4
 
@@ -80,15 +80,21 @@ class Sampler:
                     raw = ctypes.string_at(im.data, bpl * h)
                     X.XFree(ctypes.c_void_p(im.data))
                     X.XFree(img)
+                    pad = 3 if im.byte_order == 0 else 0
                     rows = []
                     for r in range(0, h, self.STEP):
                         row = memoryview(raw[r * bpl:r * bpl + w * 4]).cast("I")
                         rows.append(row[::self.STEP].tobytes())
-                    frame = b"".join(rows)
+                    # A depth-24 visual keeps 32-bit pixels whose top byte is
+                    # never shown and differs between GTK's and cairo's
+                    # drawing of the same colour: compare the colour only.
+                    frame = bytearray(b"".join(rows))
+                    frame[pad::4] = bytes(len(frame) // 4)
+                    frame = bytes(frame)
                     if self.states and self.states[-1][0] == frame:
                         self.states[-1][1] += 1
                     else:
-                        self.states.append([frame, 1])
+                        self.states.append([frame, 1, time.time()])
                 time.sleep(self.period)
         finally:
             X.XCloseDisplay(dpy)
@@ -110,7 +116,7 @@ def halfDrawn(states, tolerance=0.03):
     first, last = states[0][0], states[-1][0]
     bad = samples = 0
     worst = 0.0
-    for frame, count in states[1:-1]:
+    for frame, count, *_ in states[1:-1]:
         d = min(difference(frame, first), difference(frame, last))
         if d > tolerance:
             bad += 1
@@ -127,7 +133,7 @@ def describe(states, tolerance=0.03):
         return out
     first, last = states[0][0], states[-1][0]
     at = states[0][1]
-    for frame, count in states[1:-1]:
+    for frame, count, *_ in states[1:-1]:
         a, b = difference(frame, first), difference(frame, last)
         if min(a, b) > tolerance:
             px = memoryview(frame).cast("I")
@@ -139,3 +145,25 @@ def describe(states, tolerance=0.03):
                                                 100 * flat))
         at += count
     return out
+
+
+def since(states, t):
+    """The states from the one on the screen at time `t` on: what came
+    before `t` (a status line changing before the command) is not part of
+    the change."""
+    i = 0
+    for j, st in enumerate(states):
+        if st[2] <= t:
+            i = j
+    return states[i:]
+
+
+def timeline(states, t0):
+    """Every state as "+ms:samples:dFirst/dLast" (percent), ms from t0."""
+    if not states:
+        return ""
+    first, last = states[0][0], states[-1][0]
+    return " ".join("%+d:%d:%.0f/%.0f" % (1000 * (t - t0), n,
+                                         100 * difference(f, first),
+                                         100 * difference(f, last))
+                    for f, n, t in states)

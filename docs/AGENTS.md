@@ -519,11 +519,14 @@ around each tab change a picture of the page area covers the notebook until
 the new page has drawn. `snapshot on|off` switches it for the session
 (`ECCE_TAB_SNAPSHOT=0` at start turns it off); `snapshot` answers
 `enabled=0|1 up=0|1 shown=N quiet=N timeout=N modal=N skipped=N
-lastskip=<why> lastms=N` (how many pictures were shown, and how each ended).
+lastskip=<why> lastms=N hist=<q|t|m><ms>@<start>,...` (how many pictures
+were shown, and how each ended: quiet, timeout or modal, after how many ms,
+started at which wall-clock time in ms since the epoch).
 `tabrect [file]` answers the selected page's screen rectangle `x y w h` and
 writes it to the file. `tests/apps/one_process_test.py --1210-frames` samples
 that rectangle from outside every 10 ms (`tests/apps/screenframes.py`) while
-tabs open and close, and counts half-drawn states with the picture off and on.
+tabs open and close, and counts half-drawn states with the picture off and on;
+a `timeline` line per case lists every state seen, in ms from the command.
 
 Desk (#1237, `ECCE_TEST_ORGANIZER`): `desk` answers `desk WxH shown=0|1
 splitter=WxH sel=<tool-tab notebook selection or none> pages=N chain=<classes up

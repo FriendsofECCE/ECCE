@@ -2495,11 +2495,15 @@ def runTabFrames(display):
                 for what, command, wait in cases:
                     sampler = screenframes.Sampler(name, rect).start()
                     time.sleep(0.5)
+                    t0 = time.time()
                     append(command, wait)
-                    states = sampler.stop()
+                    states = screenframes.since(sampler.stop(), t0)
                     bad, samples, worst = screenframes.halfDrawn(states)
                     results.append((mode, what, len(states), bad, samples,
                                     screenframes.describe(states)))
+                    print("timeline %s %s t0=%d: %s" % (
+                        mode, what, 1000 * t0,
+                        screenframes.timeline(states, t0)[:2000]))
                 append("snapshot", 1)
 
         setLayout(display, "normal")
