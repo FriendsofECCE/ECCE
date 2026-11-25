@@ -2752,12 +2752,51 @@ def runPanelTeardown(display):
         shutil.rmtree(work, ignore_errors=True)
 
 
+def runNewCalcEditor(display):
+    """A new calculation, selected in the Organizer (which looks for a
+    structure to make its thumbnail), opens in an editable Editor for its
+    code: the tab names the code, not the generic Electronic Structure
+    Editor of a read-only open."""
+    data = tempfile.mkdtemp(prefix="ecce-oneproc-data-")
+    work = tempfile.mkdtemp(prefix="ecce-oneproc-")
+    try:
+        cmds = os.path.join(work, "commands")
+        open(cmds, "w").close()
+        calc = "file://" + os.path.join(data, "users", "local", "nc", "CO")
+
+        def append(line, wait):
+            with open(cmds, "a") as handle:
+                handle.write(line + "\n")
+            time.sleep(wait)
+
+        def inspect(_display):
+            append("newproject nc", 3)
+            append("newcalc nc CO ECCE-QM", 5)
+            append("start CalculationEditor " + calc, 25)
+            append("tabs", 2)
+
+        result = apps.run(display, "organizer", windowTimeout=60, settle=20,
+                          env={"ECCE_ONE_PROCESS": "1",
+                               "ECCE_TEST_ORGANIZER": cmds,
+                               "ECCE_LOCAL_DATA": data},
+                          inspect=inspect)
+        log = result.log or ""
+        tabs = re.findall(r"ECCE_TEST_ORGANIZER: tabs: (.*)$", log, re.M)
+        check(bool(tabs) and "ECCE-QM Editor" in tabs[-1] and
+              "Electronic Structure Editor" not in tabs[-1],
+              "a new calculation selected in the Organizer opens in its "
+              "code's editor, not read-only", str(tabs))
+    finally:
+        shutil.rmtree(data, ignore_errors=True)
+        shutil.rmtree(work, ignore_errors=True)
+
+
 TABS_PARTS = [
     [runLayouts, runTabs, runQuitHost, runUntrustedDir, runGeometry],
     [runTabsEditor, runSetupTab],
     [runTabsTools, runTabsLauncher, runSetupLaunch],
     [runQuitDuringClose, runQuitJob, runReopenViewer, runTabPaint],
-    [runTabsPopups, runUtilityWindows, runBuilderRoleDot],
+    [runTabsPopups, runUtilityWindows, runBuilderRoleDot, runNewCalcEditor],
     [runTabs1088, runTabIdentity, runPanelTeardown],
 ]
 
@@ -2780,6 +2819,11 @@ def main():
         if os.environ.get("ECCE_SINGLE_ONLY") == "1":
             runSingleInstance(display)
             runUntrustedDir(display)
+            if failures:
+                results.fail("one-process", "; ".join(failures))
+            return
+        if os.environ.get("ECCE_NEWCALC_ONLY") == "1":
+            runNewCalcEditor(display)
             if failures:
                 results.fail("one-process", "; ".join(failures))
             return
