@@ -25,3 +25,14 @@ issues: [1220, 932, 1082, 1272]
   (`SftpEDSI::listingsInFlight()`). `folderStamp` only try-locks.
 - A cancelled worker still finishes (up to 60 s) and holds the login mutex;
   its text is ignored.
+- Only the tree's own selection event (`OnTreectrlSelChanged`, via
+  `p_asyncOk`) starts a worker. `refresh()` and the auto-refresh tick raise
+  `p_noAsync` and list synchronously: their follow-up code runs against the
+  panel they just rebuilt, and a poll must not relabel the node.
+- While a listing is pending the desk is hidden, a "Listing NAME..." message
+  is up and `updateSelectionMenus` takes its nothing-selected branch.
+- A changed server generation causes one restart (`p_restartNext`); a second
+  miss is applied on the synchronous path.
+- Quit: `gMutex` and `gLogins` are heap objects that are never destroyed, so a
+  worker still in `runRemote` at exit touches live memory, and `~CalcMgr`
+  waits at most 2 s on `SftpEDSI::waitListings` without pumping events.

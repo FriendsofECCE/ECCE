@@ -641,6 +641,9 @@ protected:
   wxGauge *p_listingGauge = 0;
   wxStaticText *p_listingText = 0;
   bool p_applyingListing = false;
+  bool p_asyncOk = false;        // set by the tree's own selection event only
+  int p_noAsync = 0;             // refresh and auto-refresh list synchronously
+  bool p_restartNext = false;    // the next listing is the one retry
   int p_listingsApplied = 0;
   bool rememberedServer(const string& ref) const;
   void disconnectServer(const string& ref);

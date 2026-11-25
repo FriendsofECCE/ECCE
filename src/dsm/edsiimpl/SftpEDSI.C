@@ -14,6 +14,8 @@
 #include <fstream>
 #include <map>
 #include <mutex>
+#include <thread>
+#include <chrono>
 #include <set>
 #include <sstream>
 
@@ -44,8 +46,10 @@ namespace {
 
 // RCommand is not thread safe and a login is worth keeping between the
 // operations of one process (without ECCE's master each would log in again).
-std::mutex gMutex;
-std::map<string, RCommand*> gLogins;
+// Never destroyed: a listing worker may still be inside runRemote when the
+// process exits, and static destructors would free these under it.
+std::mutex& gMutex = *new std::mutex;
+std::map<string, RCommand*>& gLogins = *new std::map<string, RCommand*>;
 unsigned gCounter = 0;
 std::atomic<unsigned> gGen(0);       // bumped by every operation that may change the server
 std::atomic<unsigned> gScripts(0);
@@ -778,6 +782,11 @@ void SftpEDSI::seedListing(const EcceURL& url, const string& raw, unsigned gen)
 
 unsigned SftpEDSI::generation() { return gGen; }
 int SftpEDSI::listingsInFlight() { return gFilling; }
+bool SftpEDSI::waitListings(int ms)
+{
+  for (int t = 0; gFilling > 0 && t < ms; t += 20) std::this_thread::sleep_for(std::chrono::milliseconds(20));
+  return gFilling == 0;
+}
 
 void SftpEDSI::setInteractive(bool on) { tInteractive += on ? 1 : (tInteractive > 0 ? -1 : 0); }
 

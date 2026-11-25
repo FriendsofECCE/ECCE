@@ -3921,6 +3921,8 @@ CalcMgr::~CalcMgr( )
   p_quitRetry = 0;
   for (wxTimer *t : p_hookTimers) delete t;
   p_hookTimers.clear();
+  p_listing.reset();
+  SftpEDSI::waitListings(2000);   // bounded; no event pump
   delete p_toolStartup;
   p_toolStartup = 0;
   CodeChoice::setListener(nullptr);
@@ -4419,7 +4421,7 @@ struct CalcMgrListing {
   bool done = false, ok = false;
   string url, raw, err, markedText;
   unsigned gen = 0;
-  bool expandWanted = false, shown = false;
+  bool expandWanted = false, shown = false, restarted = false;
   std::chrono::steady_clock::time_point t0 = std::chrono::steady_clock::now();
 };
 
@@ -4435,6 +4437,8 @@ void CalcMgr::setListingMark(const string& url, bool loading)
 
 bool CalcMgr::startListing()
 {
+  if (!p_asyncOk || p_noAsync) return false;
+  p_asyncOk = false;
   cancelListing();
   if (getenv("ECCE_SFTP_NOBATCH")) return false;
   WxResourceTreeItemData *n = p_treeCtrl->getSelection();
@@ -4443,7 +4447,14 @@ bool CalcMgr::startListing()
   if (url.compare(0, 7, "sftp://") != 0) return false;
   auto job = std::make_shared<CalcMgrListing>();
   job->url = url;
+  job->restarted = p_restartNext;
+  p_restartNext = false;
   p_listing = job;
+  // The desk shows nothing of the previous selection and the item menus go
+  // grey until the result is in.
+  if (p_contextPanel && p_contextPanel->getWidget()) p_contextPanel->getWidget()->Hide();
+  setMessage("Listing " + n->getName() + "...", WxFeedback::INFO);
+  updateSelectionMenus();
   std::thread([job]() {
     string raw, err;
     unsigned gen = 0;
@@ -4469,7 +4480,9 @@ void CalcMgr::cancelListing(const string& note)
   if (p_listTimer) p_listTimer->Stop();
   if (p_listingBar && p_listingBar->IsShown()) { p_listingBar->Hide(); Layout(); }
   setListingMark(url, false);
-  if (!note.empty()) setMessage(note, WxFeedback::INFO);
+  if (p_contextPanel && p_contextPanel->getWidget()) p_contextPanel->getWidget()->Show();
+  if (note.empty()) p_feedback->clearMessage(); else setMessage(note, WxFeedback::INFO);
+  updateSelectionMenus();
 }
 
 void CalcMgr::listingTick()
@@ -4499,14 +4512,23 @@ void CalcMgr::listingTick()
   p_listTimer->Stop();
   if (p_listingBar->IsShown()) { p_listingBar->Hide(); Layout(); }
   setListingMark(job->url, false);
+  if (p_contextPanel && p_contextPanel->getWidget()) p_contextPanel->getWidget()->Show();
   WxResourceTreeItemData *sel = p_treeCtrl->getSelection();
-  if (!sel || sel->getUrl().toString() != job->url) return;   // the user moved on
+  if (!sel || sel->getUrl().toString() != job->url) { updateSelectionMenus(); return; }   // the user moved on
+  p_feedback->clearMessage();
   if (!job->ok) {
+    updateSelectionMenus();
     setMessage(job->err.empty() ? string("The folder could not be listed.") : job->err, WxFeedback::WARNING);
     return;
   }
-  if (job->gen != SftpEDSI::generation()) {   // something changed the server meanwhile
+  if (job->gen != SftpEDSI::generation() && !job->restarted) {
+    // Something changed the server meanwhile: list once more.  A second
+    // miss is applied below as the synchronous path would (the seed is
+    // refused, the reads go to the host).
+    p_restartNext = true;
+    p_asyncOk = true;
     onSelectionChange(true);
+    p_asyncOk = false;
     return;
   }
   p_applyingListing = true;
@@ -10086,7 +10108,9 @@ void CalcMgr::OnTreectrlSelChanged( wxTreeEvent& event )
     }
   }
 
+  p_asyncOk = true;
   onSelectionChange(true);
+  p_asyncOk = false;
 
 #ifdef __WXMSW__
   // Rows of the old and new selection were seen left unpainted on
@@ -16309,9 +16333,10 @@ void CalcMgr::updateSelectionMenus()
   getFileMenu(*fileMenu, itemData);
 
   
-  if (!getSelection()) {
-    // Several calculations: Run Mgmt offers only the batch launch.
-    bool allCalcs = p_currentSelection.size() > 1;
+  if (p_listing || !getSelection()) {
+    // Several calculations: Run Mgmt offers only the batch launch.  While a
+    // folder is being listed nothing is selected yet that menus could act on.
+    bool allCalcs = !p_listing && p_currentSelection.size() > 1;
     for (size_t i = 0; allCalcs && i < p_currentSelection.size(); i++) {
       WxResourceTreeItemData *n = findNode(p_currentSelection[i], false, true);
       allCalcs = n && dynamic_cast<TaskJob*>(n->getResource());
@@ -16704,8 +16729,10 @@ void CalcMgr::autoRefreshTick()
     topRow = t->firstVisibleRow();
   }
   p_autoReloads++;
+  p_noAsync++;
   p_treeCtrl->refresh(folder);
   onSelectionChange(true);
+  p_noAsync--;
   if (ProjectContextPanel *t = dynamic_cast<ProjectContextPanel*>(p_contextPanel)) {
     if (!rowsSelected.empty()) t->selectResources(rowsSelected);
     t->scrollToRow(topRow);
@@ -16719,8 +16746,10 @@ void CalcMgr::autoRefreshTick()
 void CalcMgr::refresh()
 {
   WxResourceTreeItemData * itemData = p_treeCtrl->getSelection();
+  p_noAsync++;
   p_treeCtrl->refresh(itemData);
   onSelectionChange(true);
+  p_noAsync--;
 }
 
 

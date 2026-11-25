@@ -104,6 +104,8 @@ class SftpEDSI : public EDSI
     static unsigned generation();
     // Fill scripts running now; the GUI thread must not wait on a login meanwhile.
     static int listingsInFlight();
+    // Waits up to ms for those to end (quit); true when none is running.
+    static bool waitListings(int ms);
     // Remote scripts run so far in this process (tests count round trips).
     static unsigned scriptCount();
     // Prompts are off except on a thread inside probe().
