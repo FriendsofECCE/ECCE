@@ -138,13 +138,35 @@ bool MainFrame::adoptMain(wxFrame *org)
 }
 
 
+std::string MainFrame::selectedTabName()
+{
+  wxTopLevelWindow *t = ToolTabs::activeTool();
+  return t ? std::string(t->GetTitle().utf8_str()) : std::string("none");
+}
+
+
+// #1291: ECCE_DEBUG_CLOSE=1 logs each close of the window and what became
+// of it, for a close button that quit without asking.  Remove with the bug.
 void MainFrame::onClose(wxCloseEvent& ev)
 {
+  static const bool trace = getenv("ECCE_DEBUG_CLOSE") != 0;
   p_vetoable = ev.CanVeto();
+  bool skip = true;
   if (!p_shutdown && ev.CanVeto() && p_close && !p_close()) {
     ev.Veto();
-    return;
+    skip = false;
   }
+  if (trace) {
+    const char *outcome = !skip ? "vetoed"
+        : p_shutdown ? "already-shutting-down"
+        : !ev.CanVeto() ? "quit-without-asking(unvetoable)"
+        : !p_close ? "quit-without-asking(no-handler)"
+        : "handler-allowed";
+    fprintf(stderr, "ECCE close: route=host can_veto=%d shutdown=%d "
+            "handler=%d tab=\"%s\" outcome=%s\n", ev.CanVeto(), p_shutdown,
+            p_close ? 1 : 0, selectedTabName().c_str(), outcome);
+  }
+  if (!skip) return;
   shutdown();
 }
 

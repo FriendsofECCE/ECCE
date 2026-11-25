@@ -179,6 +179,7 @@ public:
 
   /// wxEVT_COMMAND_MENU_SELECTED event handler for wxID_EXIT
   bool confirmAndQuit();
+  bool confirmAndQuitImpl();
   bool finishQuit(int answer);
   static bool publishGatewayQuit();
 

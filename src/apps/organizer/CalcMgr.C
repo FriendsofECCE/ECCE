@@ -5052,7 +5052,26 @@ bool CalcMgr::publishGatewayQuit()
 }
 
 
+// #1291: one line per quit decision, whichever route reached it (File >
+// Quit, Ctrl-Q, `menu exit`, OnCloseWindow, the host's close handler).
+// Remove once the unasked quit is explained.
 bool CalcMgr::confirmAndQuit()
+{
+  static const bool trace = getenv("ECCE_DEBUG_CLOSE") != 0;
+  if (!trace) return confirmAndQuitImpl();
+  const bool confirmed = p_quitConfirmed, asking = p_quitAsking;
+  const bool ok = confirmAndQuitImpl();
+  const char *outcome = !ok ? "refused"
+                      : confirmed ? "quit-without-asking"
+                      : "asked-and-accepted";
+  fprintf(stderr, "ECCE close: route=confirmAndQuit quit_confirmed=%d "
+          "asking=%d tab=\"%s\" outcome=%s\n", confirmed, asking,
+          MainFrame::selectedTabName().c_str(), outcome);
+  return ok;
+}
+
+
+bool CalcMgr::confirmAndQuitImpl()
 {
   // A second close while the dialog is open runs the dialog's own event
   // loop again; the frame's deletion then ends in that nested loop and
