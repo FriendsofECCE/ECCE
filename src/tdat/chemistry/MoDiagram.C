@@ -1997,7 +1997,8 @@ void MoDiagram::classifyByEnergy(const vector<MoLevel>& left,
                                  vector<MoLevel>& centre,
                                  const vector<MoLevel>& right,
                                  const vector<MoConnection>& connections,
-                                 vector<string>* pairWarnings)
+                                 vector<string>* pairWarnings,
+                                 bool overlapClassified)
 {
   //  WITHOUT IRREPS THERE IS NOTHING TO COUNT, but there is still
   //  something to read: an orbital below every fragment level it is
@@ -2138,7 +2139,7 @@ void MoDiagram::classifyByEnergy(const vector<MoLevel>& left,
   }
 
   //  One rule for every construction: a level without a partner is nb.
-  MoPairs::settle(centre, pairWarnings);
+  MoPairs::settle(centre, pairWarnings, overlapClassified);
 }
 
 

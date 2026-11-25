@@ -102,9 +102,12 @@ class MoPairs
      * is not there (same pairing number, other character, same
      * degeneracy, the bonding one lower) becomes non-bonding; labels are
      * rewritten to match (`*`, `nb`).  The messages (one per irrep) say
-     * which levels were left without a partner.
+     * which levels were left without a partner.  `overlapClassified`
+     * (GROUPS, EQUIVALENT_SETS, SKELETON overlap route: no partner sets,
+     * the overlap-population sign is the label) skips the partner test.
      */
-    static void settle(vector<MoLevel>& levels, vector<string>* messages = 0);
+    static void settle(vector<MoLevel>& levels, vector<string>* messages = 0,
+                       bool overlapClassified = false);
 };
 
 #endif

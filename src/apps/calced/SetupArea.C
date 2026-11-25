@@ -211,9 +211,6 @@ void SetupArea::submittedChanged(bool on)
   if (p_autoOutput) return;
   p_autoOutput = true;
   if (p_kind == INPUT) showOutput();
-  // From the Launch panel only once its launch loop has gone quiet: the
-  // loop yields, and the panel must not be destroyed under it.
-  else if (p_kind == LAUNCH) p_switchTimer->StartOnce(1500);
 }
 
 
@@ -363,7 +360,11 @@ bool SetupArea::showLaunch()
         if (!fb) return;
         //  No flush: it is wxSafeYield, which greys the whole window for
         //  each launch log line (#1266); the launch loop's yield draws it.
-        if (p_switchTimer->IsRunning()) p_switchTimer->StartOnce(1500);
+        // After the submit the panel is left, once its launch loop (which
+        // yields) has gone quiet: it must not be destroyed under it.
+        if (text.find("Successfully submitted") != string::npos ||
+            p_switchTimer->IsRunning())
+          p_switchTimer->StartOnce(1500);
         if (text.empty()) fb->clearMessage();
         else fb->setMessage(text, (WxFeedback::Severity)sev, false, false);
       }));
