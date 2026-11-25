@@ -88,6 +88,9 @@ def treeInstall(state, build):
     shutil.rmtree(home, ignore_errors=True)
     for exe in ("eccejobmaster", "eccejobstore", "ecmd", "launchjob"):
         link(os.path.join(build, exe), os.path.join(home, "bin", exe))
+    if os.path.exists(os.path.join(build, "eccesshmaster")):
+        link(os.path.join(build, "eccesshmaster"),
+             os.path.join(home, "bin", "eccesshmaster"))
     for sub in ("gateway", "dataserver"):
         scripts = os.path.join(REPO, "packaging", sub)
         for name in os.listdir(scripts):
@@ -651,7 +654,9 @@ class Suite(object):
                        "(%d)" % (kills, len(killed)))
             self.check("restart count reset" in self.masterLog(name),
                        "eccejobmaster reset the restart count")
-        if self.args.sshd_log and not outage:
+        if self.args.sshd_log and not outage and self.args.single_connect:
+            self.checkSharedLogin(name, loginsBefore)
+        elif self.args.sshd_log and not outage:
             self.checkLogins(name, loginsBefore, launchOut)
         if state == "completed" and (drop or kills):
             #  Nothing may be left once the job is done: neither the
@@ -713,6 +718,41 @@ class Suite(object):
                 return sum(1 for line in handle if pat.search(line))
         except OSError:
             return 0
+
+    def checkSharedLogin(self, name, before):
+        """#1284: a single-connection machine on the built-in ssh client
+        keeps one login.  Launch's goes through eccesshmaster, and the job
+        store, a program of its own under eccejobmaster (no fork, which
+        Windows lacks), rides it: no login of its own."""
+        self.waitJobProcesses(name)
+        total = self.sshdLogins() - before
+        runs = self.masterLog(name).count("eccejobstore invoked with")
+        say("  sshd logins: %d for the launch and %d run(s) of eccejobstore"
+            % (total, runs))
+        self.check(runs >= 1, "the job store ran under eccejobmaster, not "
+                   "as a fork of Launch (%d runs)" % runs)
+        self.check(total == 1, "one login for the launch and its job store "
+                   "(%d)" % total)
+
+    def waitJobProcesses(self, name):
+        """Until the job's eccejobmaster and eccejobstore are gone."""
+        needle = os.fsencode(name + "__")
+        for _ in range(60):
+            busy = False
+            for entry in os.listdir("/proc"):
+                if not entry.isdigit():
+                    continue
+                try:
+                    with open("/proc/%s/cmdline" % entry, "rb") as handle:
+                        cmd = handle.read()
+                except OSError:
+                    continue
+                if needle in cmd and b"eccejob" in cmd:
+                    busy = True
+                    break
+            if not busy:
+                break
+            time.sleep(1)
 
     def checkLogins(self, name, before, launchOut):
         """#204: eccejobstore logs in once per run of it, for the monitor
@@ -982,7 +1022,7 @@ class Suite(object):
                         say("  ---- %s\n%s" % (name, handle.read()[-1500:]))
 
 
-def registerRemote(state, machine, user):
+def registerRemote(state, machine, user, single=False):
     """Register `machine` for the isolated user as Machine Registration would.
 
     The Shell queue manager and a CONFIG file naming MOPAC's path on the
@@ -997,6 +1037,8 @@ def registerRemote(state, machine, user):
     with open(os.path.join(prefs, "CONFIG." + machine), "w") as handle:
         mopac = os.environ.get("ECCE_TEST_REMOTE_MOPAC", "/home/%s/mopac-slow" % user)
         handle.write("MOPAC: %s\nperlPath: /usr/bin\n" % mopac)
+        if single:
+            handle.write("singleConnect: true\n")
 
 
 def prerequisites(build, local):
@@ -1050,6 +1092,10 @@ def main():
                         "(ControlMaster) that is the only way in: Launch must "
                         "choose the OpenSSH client and still run, monitor and "
                         "copy back the job")
+    parser.add_argument("--single-connect", action="store_true",
+                        help="register the machine for a single connection "
+                        "(#1284): with --sshd-log, the launch and its job "
+                        "store must cost one login together")
     parser.add_argument("--job-comms", metavar="VALUE",
                         help="run the jobs with ECCE_JOB_COMMS=VALUE (socket "
                         "and socketlocal are read as stdio)")
@@ -1117,7 +1163,7 @@ def main():
             handle.write("MOPAC: %s\nNWChem: %s\n" % (shutil.which("mopac"),
                                                      shutil.which("nwchem") or ""))
     else:
-        registerRemote(state, args.machine, args.remote_user)
+        registerRemote(state, args.machine, args.remote_user, args.single_connect)
 
     suite = Suite(args, build, state, home)
     say("binaries under test (ECCE_HOME=%s):" % home)
