@@ -12,7 +12,8 @@ order with the receptor where it was, and POSESCORE (kcal/mol), best first.
 
     tests/launch/vina_test.py [--build build-cmake] [--keep]
 
-The deck checks always run.  Exit status 77 (CTest SKIP) after them without
+The deck checks and the launch check (vina.launchpp called directly on a
+staged directory) always run.  Exit status 77 (CTest SKIP) after them without
 vina, ecce-pdbqt (or ECCE_PDBQT) or the built binaries.
 """
 
@@ -178,6 +179,52 @@ def deckChecks():
     check(rc != 0, "exhaustiveness 0 is refused")
 
 
+def launchCheck(atoms, extra=""):
+    """vina.launchpp on a staged directory (Launch's cwd): (status, stdout)."""
+    text, rc = deck(atoms, extra)
+    tmp = tempfile.mkdtemp(prefix="vinalpp-")
+    try:
+        open(os.path.join(tmp, "vina.vinain"), "w").write(text)
+        open(os.path.join(tmp, "vina.vinafrag"), "w").write(deck.structure)
+        open(os.path.join(tmp, "postParams"), "w").write("inputFile: vina.vinain\n")
+        res = subprocess.run(
+            ["perl", os.path.join(REPO, "scripts", "parsers", "vina.launchpp"),
+             "-p", "postParams"], cwd=tmp, stdout=subprocess.PIPE,
+            universal_newlines=True)
+        return res.returncode, res.stdout
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
+def boxCheck():
+    say("--- launch check: the box must hold receptor atoms")
+    rc, out = launchCheck(ATOMS)
+    check(rc == 0 and out == "", "ligand in the pocket: no warning (%r)" % out[:60])
+    away = CROWN + [(s, x + 60.0, y, z) for s, x, y, z in ETHANOL]
+    rc, out = launchCheck(away)
+    check(rc == 0 and out.startswith("ECCE-LAUNCH-WARNING\n"),
+          "ligand moved 60 A away: warning, exit 0")
+    check("holds 0 receptor atoms" in out and "Docking Box Around Selection" in out,
+          "the text gives the count and the remedy")
+    rc, out = launchCheck(away, extra=(
+        "ES.Runtype.Docking.LigandAtoms:\t43-51\nES.Runtype.Vina.BoxAuto:\t0\n"
+        "ES.Runtype.Vina.BoxCenterX:\t60\nES.Runtype.Vina.BoxCenterY:\t0\n"
+        "ES.Runtype.Vina.BoxCenterZ:\t4\nES.Runtype.Vina.BoxSizeX:\t20\n"
+        "ES.Runtype.Vina.BoxSizeY:\t20\nES.Runtype.Vina.BoxSizeZ:\t20\n"))
+    check(rc == 0 and out.startswith("ECCE-LAUNCH-WARNING"),
+          "a hand-set box away from the receptor warns as well")
+    # A check that cannot run must not stop a launch.
+    tmp = tempfile.mkdtemp(prefix="vinalpp-")
+    try:
+        res = subprocess.run(
+            ["perl", os.path.join(REPO, "scripts", "parsers", "vina.launchpp"),
+             "-p", "nothere"], cwd=tmp, stdout=subprocess.PIPE,
+            universal_newlines=True)
+        check(res.returncode == 0 and res.stdout == "", "nothing staged: silent exit 0")
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--build", default=os.path.join(REPO, "build-cmake"))
@@ -186,6 +233,7 @@ def main():
     build = os.path.abspath(args.build)
 
     deckChecks()
+    boxCheck()
     if failures:
         say("FAILED (%d): %s" % (len(failures), "; ".join(failures)))
         return 1

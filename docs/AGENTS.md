@@ -950,6 +950,15 @@ ai.vina writes `scoring = vinardo` only for vinardo; on a Vina without
 `--scoring` (before 1.2) the job script drops that line and writes an
 `ECCE warning:` line to the output, so the run scores with vina.
 
+**Vina box warning (#1296).** With `ES.Runtype.Vina.BoxAuto` on, the search
+box is built around the ligand's own coordinates, so a ligand drawn in the
+Builder or added with File > Add Structure from File gets a box away from the
+receptor. At launch (Launcher and `launchjob` alike) `vina.launchpp` counts the
+receptor atoms inside the box; below 10 it gives a launch warning ("The search
+box holds N receptor atoms, so it is not on a binding site", with the remedy
+Tools > Docking Box Around Selection; `LAUNCHJOB_WARNING=cancel` to stop).
+Never blocks; a hand-set box is checked the same way.
+
 **Docking.** Vina calculations (`vina`); `ecce-pdbqt` prepares PDBQT files;
 CREST/xTB docking is a run type of xTB.
 The Builder Poses panel shows cached ligand-only thumbnails for docking.
