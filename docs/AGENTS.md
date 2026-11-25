@@ -483,6 +483,13 @@ window is up (#1272): `server roots` lists them as `NAME (SSH)
 cancelled login is not asked again for the host's next folder.  Connect from
 the Servers menu or the root's menu waits behind a cancellable "Connecting
 to HOST..." dialog while the window keeps answering.
+Selecting an `sftp://` node lists it on a worker thread too (#1220): the
+node reads `NAME (loading...)`, an expand is refused until the result is
+applied, and after about 1 s a panel with a pulsing gauge and Cancel appears
+above the feedback area. Selecting elsewhere or Cancel drops the result; an
+existing login is used and no password is asked. Hooks: `listing` answers
+`idle` or `loading URL`, then `bar=0|1 applied=N`; `listingcancel` presses
+Cancel.
 
 Start feedback (#1071, `ECCE_TEST_ORGANIZER`): `start TOOL [URL]` shows a busy
 cursor, "Opening the <tool> for <calculation>..." in the status line, a "Starting

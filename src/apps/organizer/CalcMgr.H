@@ -9,6 +9,9 @@
 
 #include <wx/weakref.h>
 #include <wx/timer.h>
+#include <wx/gauge.h>
+#include <wx/panel.h>
+#include <wx/stattext.h>
 #include <wx/fswatcher.h>
 #include <functional>
 #include <map>
@@ -625,6 +628,20 @@ protected:
   void connectSshInBackground(const vector<string>& addresses);
   std::set<string> p_sshConnecting;   // start-up connects still on the worker
   void relayoutAfterStart();
+
+  // An SSH folder is listed on a worker thread (#1220); the window stays
+  // usable meanwhile and a timer applies the result here.
+  bool startListing();
+  void listingTick();
+  void cancelListing(const string& note = string());
+  void setListingMark(const string& url, bool loading);
+  std::shared_ptr<struct CalcMgrListing> p_listing;
+  wxTimer *p_listTimer = 0;
+  wxPanel *p_listingBar = 0;
+  wxGauge *p_listingGauge = 0;
+  wxStaticText *p_listingText = 0;
+  bool p_applyingListing = false;
+  int p_listingsApplied = 0;
   bool rememberedServer(const string& ref) const;
   void disconnectServer(const string& ref);
   void serverRootMenu(wxMenu& menu, const string& ref);

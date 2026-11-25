@@ -128,3 +128,15 @@ In **Add Server** and **Edit Server**, **Connect at start** chooses whether
 to connect automatically when the Organizer starts. New entries start with
 this option off; existing entries default to on. With it off, choose the
 server in the Servers menu or use **Connect** on its tree root.
+
+### Opening a folder on a slow SSH link
+
+Clicking a folder in an SSH tree lists it in the background, so the Organizer
+keeps answering. The folder's name reads "(loading...)" until the listing
+arrives, and the folder does not expand before then; an expand you ask for
+meanwhile happens when the listing is in. If the listing takes longer than
+about a second, a strip with a moving bar and a **Cancel** button appears above
+the status line at the bottom of the window. **Cancel** drops the listing and
+leaves the folder as it was. Clicking another folder does the same. The
+Organizer uses only a login that is already open; if there is none, choose
+**Connect** on the tree root.

@@ -93,6 +93,17 @@ class SftpEDSI : public EDSI
     // are served from memory.  Dropped on any change and when the outermost
     // Batch ends.  Nests.
     class Batch { public: Batch(); ~Batch(); private: Batch(const Batch&); Batch& operator=(const Batch&); bool p_off = false; };
+    // The Organizer lists a folder off the GUI thread: fillListing runs the
+    // folder's fill script and returns its raw output (changes nothing,
+    // never prompts, safe on any thread); the GUI thread then opens a
+    // Batch and seedListing puts that text into its cache, so the ordinary
+    // reads that follow are answered from memory.  gen is the server
+    // generation when the script started; seedListing ignores a stale one.
+    static bool fillListing(const EcceURL& url, string& raw, string& error, unsigned& gen);
+    static void seedListing(const EcceURL& url, const string& raw, unsigned gen);
+    static unsigned generation();
+    // Fill scripts running now; the GUI thread must not wait on a login meanwhile.
+    static int listingsInFlight();
     // Remote scripts run so far in this process (tests count round trips).
     static unsigned scriptCount();
     // Prompts are off except on a thread inside probe().
