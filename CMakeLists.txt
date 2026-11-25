@@ -4580,6 +4580,13 @@ if(PYTHON3_EXECUTABLE)
   add_test(NAME transport_process COMMAND testWinProcess)
   set_tests_properties(transport_process PROPERTIES TIMEOUT 180)
 
+  # A command run without ecce.cmd's HOST joins the same session topics
+  # as the Organizer (Windows, #1287).
+  add_executable(session_host_test tests/session/session_host_test.C)
+  target_link_libraries(session_host_test PRIVATE ecceutil)
+  add_test(NAME session_host COMMAND session_host_test)
+  set_tests_properties(session_host PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 30)
+
   # The Tail window's read on a blocking pipe must not wait (Windows hang).
   add_executable(testStreamRead tests/transport/streamRead.C)
   find_package(Threads REQUIRED)
