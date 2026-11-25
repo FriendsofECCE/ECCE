@@ -9,6 +9,7 @@ Read this before changing any dialog, panel, sizer, grid, ewx control or the Ope
 
 ## Entries
 
+- [A tab change is covered by a picture of the old page until the new one has drawn; Freeze on the host shows it black on GNOME (#1210)](tab-change-snapshot-overlay-1210.md)
 - [macOS: wx's automatic Window menu empties any menu titled "Window"; deleting a wx item from it raises an NSMenu exception (#1119)](macos-auto-window-menu-empties-our-window-menu.md)
 - [Unlit butane thumbnails have exactly three colours on white (#1103)](ensemble-thumbnail-colours.md)
 - [A UTF-8 buffer can borrow its wxString storage (#1084)](utf8-buffer-lifetime.md)

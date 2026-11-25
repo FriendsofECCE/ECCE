@@ -55,6 +55,10 @@ if "--panels-only" in sys.argv:
 if "--1210-only" in sys.argv:
     sys.argv.remove("--1210-only")
     os.environ["ECCE_1210_ONLY"] = "1"
+# --1210-frames: only runTabFrames (as ECCE_1210_FRAMES=1).
+if "--1210-frames" in sys.argv:
+    sys.argv.remove("--1210-frames")
+    os.environ["ECCE_1210_FRAMES"] = "1"
 # --1088-only: only runTabs1088 (as ECCE_1088_ONLY=1).
 # --1256-only: only runTabIdentity (as ECCE_1256_ONLY=1).
 if "--1256-only" in sys.argv:
@@ -2453,6 +2457,115 @@ def runTabPaint(display):
         shutil.rmtree(work, ignore_errors=True)
 
 
+def runTabFrames(display):
+    """#1210: what reaches the screen while tabs open and close, sampled from
+    outside every ~10 ms (screenframes.Sampler).  A state of the page area
+    that is neither the picture before the change nor the finished picture
+    after it is half-drawn.  Each case runs with the tab-change picture off
+    (as before the fix) and on; with it on there must be none."""
+    import screenframes
+    data = tempfile.mkdtemp(prefix="ecce-oneproc-data-")
+    work = tempfile.mkdtemp(prefix="ecce-oneproc-")
+    try:
+        project = os.path.join(data, "users", "local", "oneproc")
+        os.makedirs(project)
+        shutil.copy(pb.PROJECT_META, os.path.join(project, ".ecce-meta"))
+        calc = os.path.join(project, "f_etcl_sn2_irc")
+        shutil.copytree(os.path.join(
+            HERE, "..", "..", "data", "client", "examples", "organic",
+            "substitution-vs-elimination", "ecceqm-f_etcl_sn2_irc", "stored",
+            "f_etcl_sn2_irc"), calc, symlinks=True)
+        url = "file://" + calc
+        cmds = os.path.join(work, "commands")
+        rectFile = os.path.join(work, "rect")
+        open(cmds, "w").close()
+        results = []
+
+        def append(line, wait):
+            with open(cmds, "a") as handle:
+                handle.write(line + "\n")
+            time.sleep(wait)
+
+        def inspect(disp):
+            name = disp.env()["DISPLAY"]
+            # The Organizer may still be starting: ask until it answers.
+            rect = None
+            for _ in range(12):
+                append("tabrect " + rectFile, 5)
+                try:
+                    rect = [int(v) for v in open(rectFile).read().split()]
+                    break
+                except (OSError, ValueError):
+                    pass
+            if not rect:
+                print("tabrect unanswered; windows: %s" % (disp.windows(),))
+                return
+            cases = (("open Viewer", "start CalculationViewer " + url, 20),
+                     ("close Viewer onto Organizer", "tabclose 1", 6),
+                     ("open Editor", "start CalculationEditor " + url, 15),
+                     ("open Viewer over Editor",
+                      "start CalculationViewer " + url, 20),
+                     ("close Viewer onto Editor", "tabclose 2", 6),
+                     ("close Editor onto Organizer", "tabclose 1", 6))
+            for mode in ("off", "on"):
+                append("snapshot " + mode, 1)
+                for what, command, wait in cases:
+                    sampler = screenframes.Sampler(name, rect).start()
+                    time.sleep(0.5)
+                    t0 = time.time()
+                    append(command, wait)
+                    states = screenframes.since(sampler.stop(), t0)
+                    bad, samples, worst = screenframes.halfDrawn(states)
+                    results.append((mode, what, len(states), bad, samples,
+                                    screenframes.describe(states)))
+                    print("timeline %s %s t0=%d: %s" % (
+                        mode, what, 1000 * t0,
+                        screenframes.timeline(states, t0)[:2000]))
+                append("snapshot", 1)
+
+        setLayout(display, "normal")
+        # The first Organizer on a fresh test home answered no hook at all in
+        # 2 of 3 offload runs (empty log); a second start does.
+        for attempt in range(2):
+            open(cmds, "w").close()
+            result = apps.run(display, "organizer", windowTimeout=60,
+                              settle=20,
+                              env={"ECCE_ONE_PROCESS": "1",
+                                   "ECCE_TEST_ORGANIZER": cmds,
+                                   "ECCE_LOCAL_DATA": data},
+                              inspect=inspect)
+            if results:
+                break
+        log = result.log or ""
+        print("organizer: window=%s note=%s log=%d bytes rect=%s" % (
+            result.sawWindow, result.note, len(log),
+            open(rectFile).read().strip() if os.path.exists(rectFile)
+            else "none"))
+        check(not result.crashed, "the Organizer ran without a crash",
+              result.signalName or log[-1500:])
+        check(len(results) == 12, "every case was sampled",
+              "%d of 12; hooks: %s" % (len(results), "\n".join(
+                  ln for ln in log.splitlines()
+                  if "ECCE_TEST_ORGANIZER" in ln)[-3000:] or log[-3000:]))
+        # Last, so the summary is in the tail an offload run shows.
+        infos = [a for a in pb.answers(log, "snapshot")
+                 if a.startswith("enabled=")]
+        print("snapshot: " + (infos[-1] if infos else "none"))
+        bad = []
+        for i in range(len(results) // 2):
+            off, on = results[i], results[i + len(results) // 2]
+            print("frames %-28s off: %d half-drawn (%d samples)  on: %d (%d) %s"
+                  % (off[1] + ":", off[3], off[4], on[3], on[4],
+                     " ".join(on[5])[:150]))
+            if on[3]:
+                bad.append(on[1])
+        check(not bad, "no half-drawn state with the picture on",
+              ", ".join(bad))
+    finally:
+        shutil.rmtree(data, ignore_errors=True)
+        shutil.rmtree(work, ignore_errors=True)
+
+
 def runReopenViewer(display):
     """#1209: a Viewer opened, closed and opened again on the same
     finished calculation draws its structure the second time too."""
@@ -2829,6 +2942,11 @@ def main():
             return
         if os.environ.get("ECCE_UTILS_ONLY") == "1":
             runUtilityWindows(display)
+            if failures:
+                results.fail("one-process", "; ".join(failures))
+            return
+        if os.environ.get("ECCE_1210_FRAMES") == "1":
+            runTabFrames(display)
             if failures:
                 results.fail("one-process", "; ".join(failures))
             return
