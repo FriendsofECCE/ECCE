@@ -2362,6 +2362,15 @@ target_link_libraries(releasecheck_test PRIVATE ecceutil)
 add_test(NAME releasecheck COMMAND releasecheck_test)
 
 # tests/systemfolder -- the Organizer's Local data node is a system folder (#288).
+# Which paths are inside the data folder, for the command-line tools (#1285).
+add_executable(pathurl_test tests/localdata/pathurl_test.C)
+target_link_libraries(pathurl_test PRIVATE ecceutil)
+add_test(NAME localdata_pathurl COMMAND pathurl_test)
+add_test(NAME localdata_one_check
+         COMMAND ${PYTHON3_EXECUTABLE}
+                 ${CMAKE_CURRENT_SOURCE_DIR}/tests/localdata/one_data_folder_check_test.py
+                 ${CMAKE_CURRENT_SOURCE_DIR})
+
 add_executable(systemfolder_test tests/systemfolder/systemfolder_test.C)
 target_link_libraries(systemfolder_test PRIVATE ecceutil)
 add_test(NAME systemfolder COMMAND systemfolder_test)

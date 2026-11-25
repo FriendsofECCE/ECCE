@@ -16,6 +16,7 @@
 #include <vector>
 
 #include "util/Ecce.H"
+#include "util/Filesystem.H"
 #include "util/LocalData.H"
 #include "util/PreferenceLabels.H"
 #include "util/Preferences.H"
@@ -396,4 +397,37 @@ LocalData::MoveResult LocalData::move(const string& fromIn, const string& toIn,
           " could not be removed completely; delete it yourself.";
   }
   return MOVED;
+}
+
+
+//  Compared as paths, not as strings with a '/': on Windows the canonical
+//  form is "C:\\..." and a prefix test against "<root>/" never matches.
+bool LocalData::pathUrl(const string& arg, const string& root,
+                        string& url, string& why)
+{
+  std::error_code ec;
+  const auto path = ecce::fs::canonical(arg, ec);
+  if (ec) { why = "no such folder"; return false; }
+  const auto base = ecce::fs::canonical(root, ec);
+  if (ec) { why = "cannot read the data folder " + root; return false; }
+  const auto relative = path.lexically_relative(base);
+  if (relative.empty() || relative == "." || *relative.begin() == "..") {
+    why = "not inside the data folder " + base.generic_string();
+    return false;
+  }
+  const string full = path.generic_string();
+  url = "file://" + (full[0] == '/' ? string() : string("/")) + full;
+  return true;
+}
+
+
+bool LocalData::toUrl(const string& arg, string& url, string& why)
+{
+  if (arg.find("://") != string::npos) { url = arg; return true; }
+  const string root = dir();
+  if (root.empty()) {
+    why = "this session uses a data server: give the calculation's URL";
+    return false;
+  }
+  return pathUrl(arg, root, url, why);
 }

@@ -27,6 +27,15 @@ class LocalData
     // ~/.ECCE-local: outside ~/.ECCE, which people delete to reset ECCE.
     static string defaultDir();
 
+    // A calculation or folder given as a path inside the data folder `root`
+    // as its file:// URL; false with why ("no such folder", "not inside the
+    // data folder ...") otherwise. The data folder itself is not inside.
+    static bool pathUrl(const string& path, const string& root,
+                        string& url, string& why);
+    // As the command-line tools take an argument: a URL as it is, a path
+    // through pathUrl against dir().
+    static bool toUrl(const string& arg, string& url, string& why);
+
     // The preference, as Edit > Preferences shows and sets it.
     static bool prefEnabled();
     static string prefFolder();          // never empty: defaultDir() if unset

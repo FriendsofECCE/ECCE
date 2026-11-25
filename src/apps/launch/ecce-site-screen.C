@@ -30,16 +30,10 @@ namespace {
 
 bool toUrl(const string& arg, string& url, string& why)
 {
-  if (arg.find("://") != string::npos) { url = arg; return true; }
-  string root = LocalData::dir();
-  if (root.empty()) { why = "this session uses a data server: give a URL"; return false; }
-  char buf[PATH_MAX], rbuf[PATH_MAX];
-  if (!realpath(arg.c_str(), buf)) { why = "no such calculation or folder"; return false; }
-  string path = buf;
-  string base = realpath(root.c_str(), rbuf) ? string(rbuf) : root;
-  if (path.compare(0, base.size() + 1, base + "/") != 0) { why = "not inside the data folder " + base; return false; }
-  url = "file://" + path;
-  return true;
+  if (LocalData::toUrl(arg, url, why)) return true;
+  if (why == "no such folder") why = "no such calculation or folder";
+  else if (LocalData::dir().empty()) why = "this session uses a data server: give a URL";
+  return false;
 }
 
 string json(const string& s)
