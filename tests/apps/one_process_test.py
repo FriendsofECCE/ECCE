@@ -2588,7 +2588,10 @@ def runUtilityWindows(display):
               "the Organizer ran to the end without a crash",
               result.signalName or log[-1500:])
         inproc = pb.answers(log, "inprocess")
-        if check(len(inproc) == 4, "four window counts answered", str(inproc)):
+        closing = [l for l in log.splitlines()
+                   if "closeAll" in l or "closetools" in l or "ECCE_TEST_ORGANIZER" in l]
+        if check(len(inproc) == 4, "four window counts answered",
+                 str(inproc) + "\n" + "\n".join(closing[-30:] + log.splitlines()[-30:])):
             check("PeriodicTable=1 MachineBrowser=1 MachineRegister=1" in inproc[0]
                   and "MachineBrowser(hidden)" not in inproc[0],
                   "all three open in the Organizer, the browser shown",

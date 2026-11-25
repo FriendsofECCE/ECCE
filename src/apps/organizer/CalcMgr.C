@@ -3757,7 +3757,7 @@ void CalcMgr::runTestCommand(const string& line)
                command == "quitlabel" || command == "builderinfo" ||
                command == "livecount" || command == "paintlog" ||
                command == "tabtips" || command == "nexttab" ||
-               command == "prevtab" || command == "tabkey" ||
+               command == "prevtab" || command == "tabkey" || command == "tabsteps" ||
                command == "windowitems") {
       // Tools as tabs (#983): list, select, Open in Window, Move to Tabs,
       // the Windows and tabs setting, the tab's right-click menu.

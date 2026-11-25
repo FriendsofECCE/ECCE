@@ -50,6 +50,7 @@ def runCase(display, results, case, url, args, verbose, timeout):
                       settle=timeout,
                       env={"ECCE_BUILDER_SCRIPT": path,
                            "ECCE_TEST_LOCAL_FILE": xyz,
+                           "ECCE_TEST_XYZ_UNITS": "angstrom",
                            "ECCE_REALUSER": fixture.USER})
     log = result.log or ""
     tail = "\n".join("      | " + l for l in log.splitlines()[-20:])
