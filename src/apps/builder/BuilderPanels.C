@@ -5,6 +5,8 @@
 //  the menus, the layout save/restore and the viz-panel focus logic in
 //  Builder.C need no second implementation.
 
+#include <memory>
+#include <wx/wupdlock.h>
 #include "util/UnitDisplay.H"
 #include <wx/settings.h>
 #include <algorithm>
@@ -1019,6 +1021,12 @@ void Builder::selectDetail(const string& name)
     return;
   }
   BuilderRedrawHold hold(this);
+  //  Switching modes hides one set of controls and lays out the other; an
+  //  Update() on the way (the pane caption, AUI) would otherwise paint the
+  //  old MO table over the new layout for a frame.
+  std::unique_ptr<wxWindowUpdateLocker> moFrozen;
+  if (mo && (surface || name == "MOs") && mo->IsShownOnScreen())
+    moFrozen.reset(new wxWindowUpdateLocker(mo));
   //  MOs and Surfaces are one panel in two modes, and showing it selects
   //  its list row by its current mode: switch the mode first, or the list
   //  jumps between the two rows (#965).

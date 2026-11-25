@@ -97,6 +97,8 @@ using std::vector;
 #include "wxgui/DiffractionDialog.H"
 #include "util/Filesystem.H"
 #include <wx/dcgraph.h>
+#include <wx/eventfilter.h>
+#include <wx/weakref.h>
 #include <wx/bmpbndl.h>
 #include "wxgui/ewxBitmap.H"
 #include "wxgui/ewxBitmapButton.H"
@@ -7357,6 +7359,50 @@ void Builder::updatePropertyMenus()
           }, atoi(w[2].c_str()));
           if (!found) return s.fail("propswitch: not in the list: " + prop);
           return ok;
+        }
+        //  "panelpaints <name> <ms> <property>": a click on <property> in the
+        //  Properties list; every paint of a window in the MOs/Surfaces
+        //  panel meanwhile and for <ms> after -> <name>.txt, one line per
+        //  paint with its size then and now and whether it is still shown.
+        if (w[0] == "panelpaints" && w.size() >= 4) {
+          wxWindow *panel = p_mgr.GetPane("MOs").window;
+          if (!p_index || !panel) return s.fail("panelpaints: no MOs panel");
+          string prop = w[3];
+          for (size_t k = 4; k < w.size(); k++) prop += " " + w[k];
+          struct Paints : public wxEventFilter {
+            wxWindow *panel;
+            std::vector<std::pair<wxWeakRef<wxWindow>, wxSize>> seen;
+            int FilterEvent(wxEvent& ev) override {
+              if (ev.GetEventType() != wxEVT_PAINT) return Event_Skip;
+              wxWindow *win = wxDynamicCast(ev.GetEventObject(), wxWindow);
+              for (wxWindow *p = win; p; p = p->GetParent())
+                if (p == panel) { seen.push_back({win, win->GetSize()}); break; }
+              return Event_Skip;
+            }
+          } paints;
+          paints.panel = panel;
+          wxEvtHandler::AddFilter(&paints);
+          bool found = p_index->click(prop);
+          wxStopWatch settle;
+          while (settle.Time() < atoi(w[2].c_str())) {
+            wxTheApp->Yield(true);
+            wxMilliSleep(10);
+          }
+          wxEvtHandler::RemoveFilter(&paints);
+          if (!found) return s.fail("panelpaints: not in the list: " + prop);
+          std::ofstream out(outdir + "/" + w[1] + ".txt");
+          for (auto& e : paints.seen) {
+            if (!e.first) { out << "paint gone\n"; continue; }
+            out << "paint "
+                << wxString(e.first->GetClassInfo()->GetClassName()).utf8_str()
+                << " "
+                << e.second.x << "x" << e.second.y << " now "
+                << e.first->GetSize().x << "x" << e.first->GetSize().y
+                << " shown " << (e.first->IsShownOnScreen() ? 1 : 0) << "\n";
+          }
+          out << "panel " << panel->GetSize().x << "x" << panel->GetSize().y
+              << " paints " << paints.seen.size() << "\n";
+          return true;
         }
         //  "plotshot <name> <w> <h> <panel name>": show that panel floating
         //  at w x h and save what is on the screen there to <name>.png.

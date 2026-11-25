@@ -235,6 +235,13 @@ dock position `<pos>` as a mouse drop would; `dockfloating` is the Dock
 button. The Properties list stays first in the column whatever the drop.
 Test: `tests/apps/mo_explore_workflow_test.py` (e).
 
+`panelpaints <name> <ms> <property>` (scene script, `ECCE_VIEWER_SCENE`,
+#1263): clicks `<property>` in the Properties list and writes every paint of
+a window inside the MOs/Surfaces panel for `<ms>` to `<name>.txt` (`paint
+<class> <WxH then> now <WxH> shown 0|1`, then `panel <WxH> paints N`).
+`tests/apps/props_switch_paint_test.py` checks that no hidden window or
+superseded layout of that panel is painted.
+
 `saveimage <path.png> <factor> [white]` (scene script, `ECCE_VIEWER_SCENE`)
 is File > Save Image...: a PNG of the 3-D view at `factor` (1, 2, 4) times
 its size, drawn with blended transparency (not the on-screen screen-door
