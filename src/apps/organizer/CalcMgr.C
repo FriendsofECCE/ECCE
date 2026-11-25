@@ -5060,13 +5060,14 @@ bool CalcMgr::confirmAndQuit()
   static const bool trace = getenv("ECCE_DEBUG_CLOSE") != 0;
   if (!trace) return confirmAndQuitImpl();
   const bool confirmed = p_quitConfirmed, asking = p_quitAsking;
+  const std::string tab = MainFrame::selectedTabName();   // before teardown
   const bool ok = confirmAndQuitImpl();
   const char *outcome = !ok ? "refused"
                       : confirmed ? "quit-without-asking"
                       : "asked-and-accepted";
   fprintf(stderr, "ECCE close: route=confirmAndQuit quit_confirmed=%d "
           "asking=%d tab=\"%s\" outcome=%s\n", confirmed, asking,
-          MainFrame::selectedTabName().c_str(), outcome);
+          tab.c_str(), outcome);
   return ok;
 }
 
