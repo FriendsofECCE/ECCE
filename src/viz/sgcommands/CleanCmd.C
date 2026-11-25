@@ -181,7 +181,6 @@ bool CleanCmd::execute()
          //  selection restricts it, so not before).
          frag->m_atomHighLight = unresolved;
          if (!report.empty()) {
-            cerr << "Clean: " << report << endl;
             EventDispatcher::getDispatcher().publish(
                Event("CleanReport", report));
          }
