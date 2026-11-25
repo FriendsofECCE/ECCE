@@ -62,7 +62,30 @@ OMP_NUM_THREADS=1
 export OMP_NUM_THREADS
 ECCE_BASIS_DIR="<ECCE_HOME>/data/admin/basissets"
 export ECCE_BASIS_DIR
+
+#  - counterpoise: split the monomer decks off the input
+if grep -q '^# ecce-run ' ecceqm.qmin || [ -e ecceqm.qmin.cp-all ]; then
+  [ -e ecceqm.qmin.cp-all ] || cp ecceqm.qmin ecceqm.qmin.cp-all
+  awk -v main=ecceqm.qmin -v ext=qmin 'BEGIN{o=main} /^# ecce-run /{o="ecce-cp-" $3 "." ext; next} {print > o}' ecceqm.qmin.cp-all
+fi
 "$ecceqm" --results results.h5 ecceqm.qmin > ecceqm.qmout 2>&1
+
+cpstatus=$?
+if ls ecce-cp-*.qmin >/dev/null 2>&1; then
+  for cpin in ecce-cp-*.qmin; do
+    cpname=${cpin#ecce-cp-}; cpname=${cpname%.qmin}
+    "$ecceqm" $cpin > ecce-cp-$cpname.out 2>&1 || cpstatus=1
+  done
+  { echo 'begin counterpoise'
+    grep '^# ecce-cp-points ' ecceqm.qmin | awk '{print "points " $3}'
+    echo "complex $(grep '^energy_total' ecceqm.qmout | tail -1 | awk '{print $2}')"
+    for cpout in ecce-cp-*.out; do
+      cpname=${cpout#ecce-cp-}; cpname=${cpname%.out}
+      echo "$cpname $(grep '^energy_total' $cpout | tail -1 | awk '{print $2}')"
+    done
+    echo 'end counterpoise'; } >> ecceqm.qmout
+fi
+(exit $cpstatus)
 
 
 #  - determine state...
