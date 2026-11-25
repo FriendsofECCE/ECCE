@@ -699,7 +699,9 @@ decided by the site's configuration in this order: a shared system broker
    listens on a Unix socket in `~/.ECCE` (file: `user=local`,
    `socket=<path>`; no login, the 0700 directory keeps other users out).
    On Windows it is built into the Organizer, on 127.0.0.1 at a free port
-   (`user=`, `password=`, `host=`, `port=`). A command reads that file. The
+   (`user=`, `password=`, `host=`, `port=`). A command reads that file
+   (the key's host part is `%COMPUTERNAME%` there, so a command run from any
+   Command Prompt finds the session ECCE started). The
    broker stays up while any ECCE program (the gateway, Builder, a job
    store) is connected and ends 10 s after the last one leaves
    (`ECCE_BROKER_LINGER` on Linux and macOS), removing the file;
@@ -1388,6 +1390,15 @@ The `ecce-launch`, `ecce-terminate`, `ecce-reconnect`, `ecce-fetch`,
 to be running with the same data mode. Without it they print `ECCE is not
 running: start ECCE first` and do nothing. A calculation is given as a folder
 (local data) or a URL (data server). One line is printed per calculation.
+
+On Windows these programs are `bin\ecce-*.exe` in the ECCE folder
+(`%LOCALAPPDATA%\Programs\ECCE` for a per-user install) and run from any
+Command Prompt without ecce.cmd's variables: unset, `ECCE_HOME` is the folder
+above the program's `bin`, `ECCE_REALUSERHOME` is `%USERPROFILE%`, and the
+data mode is ecce.cmd's (a server session if `siteconfig\RemoteServer\DataServers`
+or `%USERPROFILE%\.ECCE\RemoteServer\DataServers` exists, otherwise the
+Preferences local data folder, default `%USERPROFILE%\ecce-local`).
+`ECCE_LOCAL_DATA` set in the prompt overrides that.
 
 Exit codes of these four: 0 everything done; 1 something was not done; 2 no
 running ECCE session; 3 the Organizer is busy with a Launch Selected batch

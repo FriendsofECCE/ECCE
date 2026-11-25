@@ -96,16 +96,8 @@ bool toUrl(const string& arg, string& url, string& why)
 
 int main(int argc, char **argv)
 {
-  // Run from a terminal there is no wrapper, so ECCE_REALUSERHOME is unset.
-  if (!getenv("ECCE_REALUSERHOME")) {
-#ifdef _WIN32
-    const char *h = getenv("USERPROFILE");
-    if (h) _putenv_s("ECCE_REALUSERHOME", h);
-#else
-    const char *h = getenv("HOME");
-    if (h) setenv("ECCE_REALUSERHOME", h, 0);
-#endif
-  }
+  // Run from a terminal there is no wrapper (#1287).
+  Ecce::commandEnvironment();
 
   bool listOnly = false;
   vector<string> args;
@@ -145,7 +137,7 @@ int main(int argc, char **argv)
 
   JMSSubscriber sub("EcceFetch");
   if (!sub.messagingEnabled() || !sub.subscribe("ecce_fetch_reply", replyCB) ||
-      !sub.startSubscriber() || sub.getSocketID() < 0)
+      !sub.startSubscriber())
     return notRunning();
 
   using clock = std::chrono::steady_clock;

@@ -99,6 +99,11 @@ class Ecce
       static string       userRegistrationDir();
       // "<host>_<port>" of the -remote data server; "" in local mode.
       static string       siteCacheKey();
+      // For a command run outside ecce's wrappers (a Windows Command
+      // Prompt): fills in, where unset, what the wrappers set, so the
+      // command finds the session, its data folder and ECCE_HOME. A no-op
+      // for anything already set.
+      static void         commandEnvironment();
       static const char*  ecceHomeVar;        // ECCE_HOME
       static const char*  ecceHome();         // Accessor with Default
       static const char*  ecceDataPathVar;    // ECCE_DATA - Data Directory
