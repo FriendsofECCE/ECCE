@@ -1429,7 +1429,8 @@ wxString CalcEd::setupCommand(const wxString& arg)
     delete msg;
     return "sent";
   } else if (arg == "launch" || arg == "launch info" || arg == "launch go") {
-    if (p_iCalc && p_iCalc->getState() >= ResourceDescriptor::STATE_SUBMITTED)
+    if (arg != "launch info" && p_iCalc &&
+        p_iCalc->getState() >= ResourceDescriptor::STATE_SUBMITTED)
       return "already launched";
     if (arg == "launch") doSave();
     if (!p_setupArea->showLaunch()) return "no Launcher panel";
