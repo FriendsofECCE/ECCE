@@ -273,10 +273,16 @@ string Ecce::sessionId()
 }
 
 // ECCE_HOST, else HOST, else the host name: ecce_session_host's order.
+// On Windows the name is %COMPUTERNAME% (what ecce.cmd puts in HOST): the
+// DNS host name differs from it in case, and while the file system then
+// still finds the session's files, MQTT topics are case-sensitive.
 string Ecce::sessionHost()
 {
   const char* host = getenv("ECCE_HOST");
   if (!host || !*host) host = getenv("HOST");
+#ifdef _WIN32
+  if (!host || !*host) host = getenv("COMPUTERNAME");
+#endif
   if (host && *host) return host;
   char buf[256];
   if (gethostname(buf, sizeof(buf) - 1) != 0) return "localhost";
