@@ -4,6 +4,9 @@
  * Tools as tabs of the Organizer's window (#983 stage 2).  See ToolTabs.H
  * and docs/claude/services/tools-as-tabs.md.
  */
+#include <wx/utils.h>
+#include <wx/stopwatch.h>
+#include <wx/timer.h>
 #include <algorithm>
 #include <cstdio>
 #include <cstdlib>
@@ -162,10 +165,27 @@ void refreshTabTips()
   }
 }
 
+int s_tabSelects = 0;   // selections made by stepping (tests)
+
+void selectIndex(int idx)
+{
+  if (!s_book || idx < 0 || idx >= (int)s_book->GetPageCount()) return;
+  s_tabSelects++;
+  Tab *t = findPage(s_book->GetPage(idx));
+  if (t && t->tool) ToolTabs::select(t->tool);
+  else s_book->SetSelection(idx);
+}
+
 // One step through the tabs, wrapping around.  A key may arrive both as the
 // menu accelerator and through the key hook: a second step in the same
-// event-loop pass is dropped.
+// event-loop pass is dropped.  Selecting a tab draws it before the next key
+// is read, so keys held or typed in a row (#1267) only move a pending
+// target, and the tab is selected once they pause: only the tab where the
+// stepping stops is drawn.
 bool s_cycling = false;
+int s_pendingTab = -1;
+wxLongLong s_lastStep = 0;
+wxTimer *s_stepTimer = 0;
 bool cycleTab(int step)
 {
   if (!s_book || !s_hostFrame || s_book->GetPageCount() < 2) return false;
@@ -173,11 +193,28 @@ bool cycleTab(int step)
   s_cycling = true;
   s_hostFrame->CallAfter([]() { s_cycling = false; });
   int n = (int)s_book->GetPageCount();
-  int sel = s_book->GetSelection();
+  int sel = s_pendingTab >= 0 ? s_pendingTab : s_book->GetSelection();
   int idx = ((sel < 0 ? 0 : sel) + step + n) % n;
-  Tab *t = findPage(s_book->GetPage(idx));
-  if (t && t->tool) ToolTabs::select(t->tool);
-  else s_book->SetSelection(idx);
+  const bool inRow = s_lastStep != 0 && wxGetLocalTimeMillis() - s_lastStep < 400;
+  if (!inRow) {
+    s_pendingTab = -1;
+    selectIndex(idx);
+  } else {
+    s_pendingTab = idx;
+    if (!s_stepTimer) {
+      s_stepTimer = new wxTimer();
+      s_stepTimer->Bind(wxEVT_TIMER, [](wxTimerEvent&) {
+        int i = s_pendingTab;
+        s_pendingTab = -1;
+        selectIndex(i);
+        s_lastStep = wxGetLocalTimeMillis();
+      });
+    }
+    s_stepTimer->StartOnce(150);
+  }
+  // From the end of this step: a key that waited while the tab drew is
+  // still "in a row".
+  s_lastStep = wxGetLocalTimeMillis();
   return true;
 }
 
@@ -1733,6 +1770,20 @@ bool ToolTabs::testCommand(const wxString& cmd, const wxString& arg,
     ev.SetEventObject(s_hostFrame);
     s_hostFrame->GetEventHandler()->ProcessEvent(ev);
     outcome = wxString::Format("%d", s_book->GetSelection());
+  } else if (cmd == "tabsteps") {
+    // <n> Next Tab steps in a row, as keys typed quickly (#1267); waits for
+    // the pending selection and answers "selected=<i> selects=<made>".
+    if (!s_hostFrame || !s_book) { outcome = "no host"; return true; }
+    const int before = s_tabSelects;
+    const int n = std::max(1, atoi(arg.utf8_str()));
+    for (int i = 0; i < n; i++) {
+      s_cycling = false;
+      cycleTab(1);
+    }
+    wxStopWatch sw;
+    while (s_pendingTab >= 0 && sw.Time() < 2000) { wxMilliSleep(20); wxYield(); }
+    outcome = wxString::Format("selected=%d selects=%d", s_book->GetSelection(),
+                               s_tabSelects - before);
   } else if (cmd == "tabkey") {
     // The key hook as GTK delivers Ctrl+Tab (next), Ctrl+Shift+Tab (prev),
     // Ctrl+PgDn (pgdn) or Ctrl+PgUp (pgup); answers the selected index.

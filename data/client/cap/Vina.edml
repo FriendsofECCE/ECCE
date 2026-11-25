@@ -29,6 +29,9 @@
     <runtype>Docking (Vina)</runtype>
   </Theory>
 
+  <TheorySummary>
+    <item key="ES.Theory.Vina.Scoring" label="Scoring Function"></item>
+  </TheorySummary>
   <RuntypeSummary>
     <item key="ES.Runtype.Docking.LigandAtoms" label="Ligand Atoms"></item>
   </RuntypeSummary>

@@ -31,8 +31,10 @@ below the pattern.
 A structure is periodic when it carries a unit cell: a structure written with
 a lattice (an .xyz whose comment line has `Lattice="..."`, as the Builder
 writes it for a crystal). For any other structure, Powder, Single crystal and
-Detector frame require a unit cell and Fibre is selected; for a periodic one Powder
-is selected when the window opens. **Experimental...** belongs to Powder and
+Detector frame are greyed in the **View** list (add a cell in the Periodic
+Builder to use them) and the pane opens on Debye; for a periodic one it opens
+on Powder. Once you choose a view, the pane opens on that view for the same
+calculation until ECCE is closed. **Experimental...** belongs to Powder and
 overlays a measured pattern.
 
 A fibre pattern is what a stretched fibre of aligned molecules gives: the

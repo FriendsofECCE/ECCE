@@ -205,8 +205,9 @@ def main():
             "montmorillonite: types and charges equal the MATLAB min27.itp")
         check(s["total_charge"] == -48.0 and not s["untyped_atoms"],
               "montmorillonite: charge -48 (48 Mg), no untyped atoms")
-        check("Montmorillonite_k500" in open(os.path.join(out, "topol.top")).read(),
-              "montmorillonite: topol.top selects Montmorillonite_k500")
+        top = open(os.path.join(out, "topol.top")).read()
+        check("#define Montmorillonite " in top and "#define MINFF_k500 " in top,
+              "montmorillonite: topol.top defines Montmorillonite and MINFF_k500")
         minimise(out, "montmorillonite", charged=True)
 
     # 3. Al -> Mg substitution in pyrophyllite
@@ -219,6 +220,18 @@ def main():
         check(s["type_counts"].get("Mgo") == 4 and abs(s["total_charge"] + 4) < 1e-4,
               "substitution: 4 Mgo, total charge -4")
         minimise(out, "substitution", charged=True)
+        check(s["substitutions"][0]["made"] == 4 and not any(
+            "substitutions" in w for w in s["warnings"]),
+            "substitution: all 4 made, no shortfall warning (#1228)")
+
+    # 3b. more substitutions than fit at 5.5 A apart: the summary says so (#1228)
+    out = os.path.join(work, "pyro-short")
+    s = build(cell, out, "--substitute", "Al", "Mgo", "4", "--seed", "1")
+    if s:
+        made = s["substitutions"][0]["made"]
+        check(made < 4 and any(("%d of the 4 substitutions Al -> Mgo" % made) in w
+                                for w in s["warnings"]),
+              "a shortfall is reported with the count made (%d)" % made)
 
     # 4. the other angle constants and the mineral list are selectable
     out = os.path.join(work, "k1500")
@@ -226,7 +239,7 @@ def main():
               "--angle-k", "1500")
     if s:
         itp = open(os.path.join(out, "min.itp")).read()
-        check("1500.00" in itp and "GMINFF_k1500" in open(os.path.join(out, "topol.top")).read(),
+        check("1500.00" in itp and "#define MINFF_k1500 " in open(os.path.join(out, "topol.top")).read(),
               "k=1500 reaches the angles and topol.top")
     check("Kaolinite" in mt.list_minerals(500, ffdir), "mineral list has Kaolinite")
 

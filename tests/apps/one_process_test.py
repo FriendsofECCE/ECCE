@@ -986,6 +986,7 @@ def runTabIdentity(display):
                 append(c, 2)
             for k in ("next", "prev", "pgup", "pgdn"):
                 append("tabkey " + k, 2)
+            append("tabsteps 3", 3)
             append("windowmenu 2", 3)
             append("tabs", 2)
             append("close", 3)
@@ -1036,6 +1037,10 @@ def runTabIdentity(display):
               ["3", "0", "1", "0", "3", "0"],
               "Next/Previous Tab and Ctrl+Tab, Ctrl+Shift+Tab, Ctrl+PgUp, "
               "Ctrl+PgDn step through the tabs and wrap around", str(steps))
+        rows = pb.answers(log, "tabsteps 3")
+        check(rows == ["selected=3 selects=2"],
+              "three steps in a row draw only the first tab and the last "
+              "(#1267)", str(rows))
         it = items[0].split("|") if items else []
         check(len(it) >= 7 and it[0].startswith("Next Tab[") and
               it[1].startswith("Previous Tab[") and it[2] == "-" and
@@ -2581,7 +2586,11 @@ def runUtilityWindows(display):
               "the Organizer ran to the end without a crash",
               result.signalName or log[-1500:])
         inproc = pb.answers(log, "inprocess")
-        if check(len(inproc) == 4, "four window counts answered", str(inproc)):
+        closing = [l for l in log.splitlines()
+                   if "closeAll" in l or "closetools" in l or "ECCE_TEST_ORGANIZER" in l
+                   or re.match(r"#\d+ ", l) or "SIGSEGV" in l]
+        if check(len(inproc) == 4, "four window counts answered",
+                 str(inproc) + "\n" + "\n".join(closing[-80:])):
             check("PeriodicTable=1 MachineBrowser=1 MachineRegister=1" in inproc[0]
                   and "PeriodicTable(hidden)" not in inproc[0],
                   "both open in the Organizer, shown, with their menus",

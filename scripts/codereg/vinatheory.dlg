@@ -1,0 +1,11 @@
+# AutoDock Vina Theory Details for the native engine; keep the key, choices
+# and default in step with vinatheory.py.
+
+dialog title="ECCE Vina Editor: Theory Details"
+
+# Vina 1.2 has two empirical scoring functions; ai.vina writes "scoring ="
+# only for vinardo, so a deck with the default also runs on Vina 1.1.
+box label="Scoring"
+combo name=ES.Theory.Vina.Scoring label="Scoring function:" choices="vina|vinardo" default=vina export=1
+note label="The score estimates a binding affinity in kcal/mol."
+note label="Compare it only with other scores of the same function."

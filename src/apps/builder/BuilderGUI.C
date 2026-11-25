@@ -40,6 +40,8 @@ const wxWindowID BuilderGUI::ID_SELECT_BACKBONE = wxNewId();
 const wxWindowID BuilderGUI::ID_FRAME_Builder = wxNewId();
 const wxWindowID BuilderGUI::ID_UNSELECT = wxNewId();
 const wxWindowID BuilderGUI::ID_IMPORT = wxNewId();
+const wxWindowID BuilderGUI::ID_IMPORT_REMOTE = wxNewId();
+const wxWindowID BuilderGUI::ID_OPEN_REMOTE = wxNewId();
 const wxWindowID BuilderGUI::ID_SELECT_REVERSE = wxNewId();
 const wxWindowID BuilderGUI::ID_SELECT_WITHIN = wxNewId();
 const wxWindowID BuilderGUI::ID_SELECT_MOLECULE = wxNewId();
@@ -77,6 +79,8 @@ BEGIN_EVENT_TABLE( BuilderGUI, ewxTool )
     EVT_KEY_DOWN( BuilderGUI::OnKeyDown )
 
     EVT_MENU( ID_IMPORT, BuilderGUI::OnImportChemsysClick )
+    EVT_MENU( ID_IMPORT_REMOTE, BuilderGUI::OnImportRemoteClick )
+    EVT_MENU( ID_OPEN_REMOTE, BuilderGUI::OnOpenRemoteClick )
 
     EVT_MENU( ID_IMPORTCALC, BuilderGUI::OnImportCalcClick )
 
@@ -191,9 +195,11 @@ void BuilderGUI::CreateControls()
     ewxMenuBar* menuBar = new ewxMenuBar;
     wxMenu* itemMenu3 = new wxMenu;
     itemMenu3->Append(ID_IMPORT, _("Add Structure from File..."), _T(""), wxITEM_NORMAL);
+    itemMenu3->Append(ID_IMPORT_REMOTE, _("Add Structure from Remote Machine..."), _T(""), wxITEM_NORMAL);
     itemMenu3->Append(ID_IMPORTCALC, _("Import Calculation from Output File..."), _T(""), wxITEM_NORMAL);
     itemMenu3->Append(wxID_NEW, _("New\tCtrl+n"), _T(""), wxITEM_NORMAL);
     itemMenu3->Append(wxID_OPEN, _("Open...\tCtrl+o"), _T(""), wxITEM_NORMAL);
+    itemMenu3->Append(ID_OPEN_REMOTE, _("Open from Remote Machine..."), _T(""), wxITEM_NORMAL);
     itemMenu3->Append(wxID_CLOSE, _("Close\tCtrl+w"), _T(""), wxITEM_NORMAL);
     itemMenu3->AppendSeparator();
     itemMenu3->Append(wxID_SAVE, _("Save\tCtrl+s"), _T(""), wxITEM_NORMAL);
@@ -687,4 +693,15 @@ wxIcon BuilderGUI::GetIconResource( const wxString& name )
     wxUnusedVar(name);
     return wxNullIcon;
 ////@end BuilderGUI icon retrieval
+}
+
+
+void BuilderGUI::OnImportRemoteClick( wxCommandEvent& event )
+{
+    event.Skip();
+}
+
+void BuilderGUI::OnOpenRemoteClick( wxCommandEvent& event )
+{
+    event.Skip();
 }

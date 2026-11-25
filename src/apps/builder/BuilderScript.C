@@ -837,7 +837,7 @@ void Builder::runBuilderScript(const std::string& file)
         fprintf(stderr, "BUILDER: undolabel [%s] enabled=%d\n",
                 item ? (const char*)item->GetItemLabelText().utf8_str() : "none",
                 item && item->IsEnabled() ? 1 : 0);
-      } else if (w[0] == "drawn" && w.size() == 1) {
+      } else if (w[0] == "drawnstyles") {
         //  Atoms whose display style has a node in the scene graph; an atom
         //  with a style the graph no longer has exists but is not drawn.
         int drawn = 0;
@@ -2310,8 +2310,9 @@ void Builder::runBuilderScript(const std::string& file)
         fprintf(stderr, "BUILDER: scanstatus [%s]\n",
                 sp ? sp->status().utf8_str().data() : "no panel");
       } else if ((w[0] == "ircplayopt" || w[0] == "scanplayopt") && w.size() >= 2) {
-        //  ircplayopt|scanplayopt speed <ms per step> | loop <on|off> |
-        //  order <ticks>: the playback Delay field and Loop toggle; order
+        //  ircplayopt|scanplayopt speed <ms per step> |
+        //  repeat <off|start|backforth> | loop <on|off> | order <ticks>: the
+        //  playback Delay field and Repeat choice (loop on = backforth); order
         //  logs the points <ticks> ticks of play would show (no timers).
         IRCPanel *ip = 0;
         ScanPanel *sp = 0;
@@ -2328,14 +2329,19 @@ void Builder::runBuilderScript(const std::string& file)
           if (w[1] == "speed") { if (ip) ip->setPlaybackSpeed(arg); else sp->setPlaybackSpeed(arg); }
           if (w[1] == "mo" && ip) { ip->setShowMo(arg == "on"); ip->flushFollow(); }
           if (w[1] == "flush" && ip) ip->flushFollow();
-          if (w[1] == "loop") { if (ip) ip->setPlaybackLoop(arg == "on"); else sp->setPlaybackLoop(arg == "on"); }
+          playbackloop::Repeat rep;
+          if ((w[1] == "loop" || w[1] == "repeat") && playbackloop::parseRepeat(arg, rep)) {
+            if (ip) ip->setPlaybackRepeat(rep); else sp->setPlaybackRepeat(rep);
+          }
           std::string order;
           if (w[1] == "order")
             for (int i : ip ? ip->playOrder(atoi(arg.c_str())) : sp->playOrder(atoi(arg.c_str())))
               order += " " + std::to_string(i + 1);
-          fprintf(stderr, "BUILDER: %s %s speed=%s loop=%d order:%s\n", w[0].c_str(),
+          const playbackloop::Repeat now = ip ? ip->playbackRepeat() : sp->playbackRepeat();
+          fprintf(stderr, "BUILDER: %s %s speed=%s loop=%d repeat=%s order:%s\n", w[0].c_str(),
                   w[1].c_str(), (ip ? ip->playbackSpeed() : sp->playbackSpeed()).c_str(),
-                  (ip ? ip->playbackLoop() : sp->playbackLoop()) ? 1 : 0, order.c_str());
+                  now == playbackloop::BACK_AND_FORTH ? 1 : 0,
+                  playbackloop::repeatWord(now), order.c_str());
           if (ip)
             fprintf(stderr, "BUILDER: ircplayopt mobox enabled=%d on=%d\n",
                     ip->showMoAvailable() ? 1 : 0, ip->showMo() ? 1 : 0);

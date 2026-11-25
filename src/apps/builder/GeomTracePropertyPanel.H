@@ -65,6 +65,9 @@ class GeomTracePropertyPanel : public VizPropertyPanel,
     /// Show frame `frame` (0-based) as a click on the playback bar would:
     /// the structure, the playback position and the plot marker.
     void showFrame(int frame);
+    //  The Repeat choice under the playback buttons (PlaybackLoop.H values).
+    void setRepeat(int repeat);
+    int repeat() const;
     //  Plot the series `key` (as the Plot choice does); false if unknown.
     bool showSeries(const string& key);
     //  The coordination-pattern table of a CREST ensemble, one string per row
@@ -144,7 +147,7 @@ class GeomTracePropertyPanel : public VizPropertyPanel,
     wxChoice        *p_propChoice;   // every logged series, above the plot
 
     int p_delay;
-    wxCheckBox *p_loop;
+    wxChoice *p_repeat;
     bool p_recompute;
     bool p_fold;
 

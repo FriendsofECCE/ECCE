@@ -706,6 +706,13 @@ void calcUpdateState(ResourceDescriptor::RUNSTATE state)
     string stateStr = ResourceUtils::stateToString(state);
     logMessage("Calculation State Change", stateStr);
   } else {
+    // A job that ends while stalled gets no snapshot with the stall cleared,
+    // which is where "Output resumed" is logged: close the Stalled line here.
+    if (gStalled) {
+      gStalled = false;
+      stallStrip(gProgress);
+      logMessage("eccejobmonitor", "Output resumed until the job ended");
+    }
     TDateTime edate;
     calculation->completionDate(edate.toString());
 

@@ -241,6 +241,13 @@ sub VinaDeck {
   push(@out, sprintf("center_x = %.1f", $box[0]), sprintf("center_y = %.1f", $box[1]),
        sprintf("center_z = %.1f", $box[2]), sprintf("size_x = %.1f", $box[3]),
        sprintf("size_y = %.1f", $box[4]), sprintf("size_z = %.1f", $box[5]));
+  # Vina's default; written only for vinardo, which needs Vina 1.2 (the job
+  # script drops the line, with a warning, on an older Vina).
+  my $scoring = $AbiDict{"ES.Theory.Vina.Scoring"} // "vina";
+  $scoring =~ s/^\s+|\s+$//g;
+  die "ai.vina error: unknown scoring function '$scoring' (vina or vinardo)\n"
+      if ($scoring ne "" && $scoring ne "vina" && $scoring ne "vinardo");
+  push(@out, "scoring = vinardo") if ($scoring eq "vinardo");
   push(@out, "exhaustiveness = " . &IntOption("ES.Runtype.Vina.Exhaustiveness", 8, 1));
   push(@out, "num_modes = " . &IntOption("ES.Runtype.Vina.NumPoses", 9, 1));
   my $range = &NumOption("ES.Runtype.Vina.EnergyRange", 3.0);

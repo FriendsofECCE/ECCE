@@ -43,9 +43,9 @@ def check(ok, what):
     if not ok:
         fail.append(what)
 
-def run_ai(d, with_pdb):
+def run_ai(d, with_pdb, extra=""):
     open(os.path.join(d, "t.frag"), "w").write(frag(with_pdb))
-    open(os.path.join(d, "t.param"), "w").write(PARAM)
+    open(os.path.join(d, "t.param"), "w").write(PARAM + extra)
     env = dict(os.environ, ECCE_HOME=SRC)
     # ai.vina writes the deck over its -t file, as DeckWriter expects of its
     # vina.vinain.orig copy; given the source template it overwrote that, and
@@ -76,6 +76,17 @@ with tempfile.TemporaryDirectory(prefix="vina_autoligand_") as d:
     out = verify(d, deck, n)
     check("BAD" not in out and "|structure|All %d atoms" % n in out,
           "verifyinput: Vina deck is clean and both lists cover all %d atoms" % n)
+
+    # Scoring function (#1278): vina is Vina's default and is not written, so
+    # the deck runs on Vina 1.1 too; vinardo is.
+    check(not re.search(r"^scoring", deck, re.M), "default scoring writes no scoring line")
+    p, deck2 = run_ai(d, True, "ES.Theory.Vina.Scoring: vinardo\n")
+    check(p.returncode == 0 and re.search(r"^scoring = vinardo$", deck2, re.M),
+          "vinardo is written as 'scoring = vinardo'")
+    check("BAD" not in verify(d, deck2, n), "verifyinput accepts the scoring line")
+    p, _ = run_ai(d, True, "ES.Theory.Vina.Scoring: ad4\n")
+    check(p.returncode != 0 and "unknown scoring function" in p.stderr,
+          "an unknown scoring function is refused")
 
     # No residue information: waters and the ion are still not the ligand.
     p, deck = run_ai(d, False)

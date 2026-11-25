@@ -262,6 +262,10 @@ def setup(pm, image):
                    "ecce-dataserver-start && ecce-gateway-start", "ecce")
     check(rc == 0, "server: ecce-remote-setup --server, data server and broker "
          "started as the server account", o)
+    o, _ = pm.out("srv", "sleep 2; cat ~/.ECCE/mosquitto.log", "ecce")
+    check("world readable" not in o and "owner is not" not in o,
+          "the server account's broker reads its ACL without a permission "
+          "warning (#1257)", o[-2000:])
     for u, pw in PW.items():
         o, rc = pm.out("srv", "ecce-dataserver-adduser -b %s %s %s Test" %
                        (u, pw, u.title()), "ecce")
@@ -420,6 +424,10 @@ def systemd(pm, image):
     o, _ = sh("ss -ltnpH sport = :8088; ps -o user:20,args -C mosquitto")
     check(":8088" in o and "ecce-broker" in o,
           "it listens on 8088 as its own dynamic account ecce-broker", o)
+    o, _ = sh("journalctl -u ecce-broker --no-pager")
+    check("world readable" not in o and "owner is not" not in o,
+          "the system broker reads its ACL without a permission warning (#1257)",
+          o[-2000:])
     r = pub(pm, "alice", "sysb", 8088, "alice", PW["alice"], "ecce/alice/x", "hi")
     check(r.returncode == 0, "a client in another container connects to it "
           "and publishes with her account", r.stdout + r.stderr)

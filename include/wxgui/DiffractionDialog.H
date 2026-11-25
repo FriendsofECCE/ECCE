@@ -41,6 +41,11 @@ public:
   bool powder() const { return p_powder && !p_debye; }
   // The orientational average of all atoms (cell contents when periodic).
   void setDebye();
+  /** Opens on the view last chosen for <key> (a calculation) in this
+      session, and remembers later choices under it. */
+  void rememberViewFor(const std::string& key);
+  /** The pattern mode shown (0 Fibre .. 4 Debye; see onPattern). */
+  int viewMode() const;
   bool debye() const { return p_debye; }
   // Single crystal (#972): a reciprocal-lattice layer.  zone is "l" (hk0 for
   // layer 0), "k" (h0l) or "h" (0kl); false and why if the structure is not
@@ -105,12 +110,12 @@ private:
   wxDialog *p_options;
   std::vector<std::pair<wxSizer*, int>> p_optionRows;
   std::vector<std::pair<wxTextCtrl*, wxString>> p_defaults;
-  wxChoice *p_view;
+  class ViewCombo *p_view;
+  std::string p_viewKey;
   class wxToggleButton *p_pattern;
   wxButton *p_update, *p_experimental;
   wxTextCtrl *p_step;
   class wxPopupWindow *p_tip = nullptr;
-  wxString p_tipText;
   bool p_pinned = false;
   void showTip(wxWindow *canvas, const wxPoint& pos, const wxString& text, bool pin = false);
   void clearTip();
@@ -215,6 +220,7 @@ public:
   wxString setSource(int index, int doublet = -1) { return p_view->setSource(index, doublet); }
   bool powder() const { return p_view->powder(); }
   void setDebye() { p_view->setDebye(); }
+  void rememberViewFor(const std::string& key) { p_view->rememberViewFor(key); }
   bool debye() const { return p_view->debye(); }
   bool setLayer(const std::string& zone, int layer, double dmin, bool showAbsent, std::string& why) { return p_view->setLayer(zone, layer, dmin, showAbsent, why); }
   bool singleCrystal() const { return p_view->singleCrystal(); }

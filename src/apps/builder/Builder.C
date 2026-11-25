@@ -104,6 +104,7 @@ using std::vector;
 #include "wxgui/ewxConfig.H"
 #include "wxgui/ewxCursor.H"
 #include "wxgui/ewxGenericFileDialog.H"
+#include "wxgui/LocalFileDialog.H"
 #include "wxgui/ewxLogTextCtrl.H"
 #include "wxgui/ToolLog.H"
 #include "wxgui/ewxMessageDialog.H"
@@ -2758,10 +2759,23 @@ void Builder::OnNewClick( wxCommandEvent& event )
  */
 void Builder::OnOpenClick( wxCommandEvent& event )
 {
+  wxString path;
+  if (ecceLocalFile(this, "Open", OpenCalculationDialog::wildcard(),
+                    wxFD_OPEN | wxFD_FILE_MUST_EXIST, "BuilderOpen", path))
+    openPath(path.ToStdString());
+}
+
+
+void Builder::OnOpenRemoteClick( wxCommandEvent& event )
+{
   OpenCalculationDialog dialog(this);
   if (dialog.ShowModal() == wxID_CANCEL) return;
+  openPath(dialog.GetPath().ToStdString());
+}
 
-  string path = dialog.GetPath().ToStdString();
+
+void Builder::openPath(const string& path)
+{
   EcceURL url(path);
   if (CalculationFactory::canOpen(url)) {
     setContext(url);
@@ -2776,6 +2790,21 @@ void Builder::OnOpenClick( wxCommandEvent& event )
 
 
 void Builder::OnImportChemsysClick(wxCommandEvent& event)
+{
+  wxString path;
+  int filter = 0;
+  if (!ecceLocalFile(this, "Add Structure from File",
+                     OpenCalculationDialog::wildcard(),
+                     wxFD_OPEN | wxFD_FILE_MUST_EXIST, "BuilderAddStructure",
+                     path, &filter))
+    return;
+  importChemicalSystem(path.ToStdString(),
+                       OpenCalculationDialog::wildcardLabel(filter),
+                       path.AfterLast('/').AfterLast('\\').AfterLast('.'));
+}
+
+
+void Builder::OnImportRemoteClick(wxCommandEvent& event)
 {
   ImportCalculationDialog dialog(this);
   if (dialog.ShowModal() == wxID_CANCEL) return;
@@ -5520,6 +5549,7 @@ void Builder::OnDiffraction(wxCommandEvent& event)
   const string err = writeStructureXyz(xyz, selected);
   if (!err.empty()) { showMessage(err, true); return; }
   DiffractionDialog *dlg = new DiffractionDialog(this, xyz, selected);
+  if (p_calculation) dlg->rememberViewFor(p_calculation->getURL().toString());
   dlg->Show();
 }
 
@@ -5558,7 +5588,9 @@ DiffractionDialog *Builder::openResultsDiffraction(const string& given)
           p_calculation->getProperty("GEOMTRACE") : 0);
   const string err = writeStructureXyz(xyz, none, trace ? trace->tables() - 1 : -1);
   if (!err.empty()) { showMessage(err, true); return 0; }
-  return new DiffractionDialog(this, xyz, none);
+  DiffractionDialog *dlg = new DiffractionDialog(this, xyz, none);
+  if (p_calculation) dlg->rememberViewFor(p_calculation->getURL().toString());
+  return dlg;
 }
 
 
@@ -7135,7 +7167,8 @@ void Builder::updatePropertyMenus()
     timer->StartOnce(1000);
   }
 
-  //  ECCE_TEST_OPEN=<path>: File > Open..., go to <path>'s folder on the
+  //  ECCE_TEST_OPEN=<path>: File > Open from Remote Machine... (ECCE's own
+  //  dialog; File > Open... is the platform's), go to <path>'s folder on the
   //  Local Filesystem, report how its entry is listed, activate it as a
   //  double click does, report the context and exit. Inert unless set;
   //  for tests/apps/saveas_test.py.
@@ -7176,7 +7209,7 @@ void Builder::updatePropertyMenus()
       new wxLogChain(new wxLogStderr());
       driver->Start(1000);
       wxCommandEvent none;
-      OnOpenClick(none);
+      OnOpenRemoteClick(none);
       driver->Stop();
       fprintf(stderr, "ECCE_TEST_OPEN: done, context %s, %d atoms\n",
               p_calculation->getURL().toString().c_str(),

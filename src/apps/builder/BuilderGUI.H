@@ -97,6 +97,10 @@ public:
 
     /// wxEVT_COMMAND_MENU_SELECTED event handler for ID_IMPORT
     virtual    void OnImportChemsysClick( wxCommandEvent& event );
+    /// File > Add Structure from Remote Machine / Open from Remote Machine:
+    /// ECCE's own dialog, which browses registered machines (#342).
+    virtual    void OnImportRemoteClick( wxCommandEvent& event );
+    virtual    void OnOpenRemoteClick( wxCommandEvent& event );
 
     /// wxEVT_COMMAND_MENU_SELECTED event handler for ID_IMPORTCALC
     virtual    void OnImportCalcClick( wxCommandEvent& event );
@@ -219,6 +223,8 @@ public:
     static const wxWindowID ID_FRAME_Builder;
     static const wxWindowID ID_UNSELECT;
     static const wxWindowID ID_IMPORT;
+    static const wxWindowID ID_IMPORT_REMOTE;
+    static const wxWindowID ID_OPEN_REMOTE;
     static const wxWindowID ID_SELECT_REVERSE;
     static const wxWindowID ID_SELECT_WITHIN;
     static const wxWindowID ID_SELECT_MOLECULE;

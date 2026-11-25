@@ -16,11 +16,12 @@ left out; `structures/water` is kept. Needs numpy, tqdm and gemmi.
 ## minff/min.ff
 
 min.ff from https://github.com/mholmboe/minff at commit
-`d12b895b9495458a7d0f6f08b1648f5f317068a3` (the same value as `MINFF_COMMIT`
+`fc65aaa8f61be324b2a1c39b6975ff73c34ebe16` (the same value as `MINFF_COMMIT`
 in `scripts/minff_topology.py`). Included with the permission of the MINFF
-authors (October 2026); see `minff/README-ECCE.md`. The newest commit when
-this was bundled (`22ebd627`) renamed the parameter files and defines, which
-`minff_topology.py` and `tests/minff` do not follow yet, so it was not taken.
+authors (October 2026); see `minff/README-ECCE.md`. From this commit on, the
+mineral and the angle force constant are separate defines
+(`-DMontmorillonite -DMINFF_k500`, `-DMINFF_k500` for the general set) and
+the tailored parameters are one file, `ffnonbonded_tminff.itp`.
 
 Installed to `lib/python/atomipy` and `data/minff/min.ff` of the client package.
 

@@ -26,6 +26,8 @@
 #include <wx/tokenzr.h>
 #include <wx/wrapsizer.h>
 #include <wx/popupwin.h>
+#include <wx/odcombo.h>
+#include <map>
 #include "wxgui/WindowShot.H"
 #include <wx/slider.h>
 #include <wx/spinctrl.h>
@@ -824,6 +826,40 @@ wxBitmap DiffractionView::render(int w, int h, int k) const
 }
 
 
+// The View list in display order, as pattern modes (onPattern): Debye first,
+// since it is the fast view for a molecule.
+static const int VIEW_MODES[] = {4, 0, 1, 2, 3};
+static int viewIndex(int mode) { return mode == 4 ? 0 : mode + 1; }
+static bool crystalMode(int mode) { return mode >= 1 && mode <= 3; }
+
+// wxChoice cannot grey single items, and the crystal views must stay visible
+// (greyed) for a structure without a cell, so the list draws them itself.
+class ViewCombo : public wxOwnerDrawnComboBox
+{
+public:
+  ViewCombo(wxWindow *parent)
+    : wxOwnerDrawnComboBox(parent, wxID_ANY, wxEmptyString, wxDefaultPosition,
+                           wxDefaultSize, 0, nullptr, wxCB_READONLY) {}
+  bool periodic = true;
+  bool usable(int item) const
+  {
+    return item < 0 || item >= 5 || periodic || !crystalMode(VIEW_MODES[item]);
+  }
+protected:
+  void OnDrawItem(wxDC& dc, const wxRect& rect, int item, int flags) const override
+  {
+    if (item == wxNOT_FOUND) return;
+    const bool selected = (flags & wxODCB_PAINTING_SELECTED) &&
+                          !(flags & wxODCB_PAINTING_CONTROL);
+    dc.SetTextForeground(!usable(item) ? wxSystemSettings::GetColour(wxSYS_COLOUR_GRAYTEXT)
+                         : selected ? wxSystemSettings::GetColour(wxSYS_COLOUR_HIGHLIGHTTEXT)
+                         : GetForegroundColour());
+    dc.DrawText(GetString(item), rect.x + 4, rect.y + (rect.height - dc.GetCharHeight()) / 2);
+  }
+};
+
+static std::map<std::string, int> s_lastView;
+
 DiffractionView::DiffractionView(wxWindow *parent, const string& structure,
                                  const vector<int>& selection)
   : wxPanel(parent, wxID_ANY), p_debounce(this), p_poll(this),
@@ -851,10 +887,14 @@ DiffractionView::DiffractionView(wxWindow *parent, const string& structure,
   auto *top = new wxBoxSizer(wxVERTICAL);
   auto *bar = new wxBoxSizer(wxHORIZONTAL);
   bar->Add(new wxStaticText(this, wxID_ANY, "View"), 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 4);
-  p_view = new wxChoice(this, wxID_ANY);
-  for (const char *v : {"Fibre", "Powder", "Single crystal", "Detector frame", "Debye"})
+  p_view = new ViewCombo(this);
+  p_view->periodic = p_periodic;
+  for (const char *v : {"Debye", "Fibre", "Powder", "Single crystal", "Detector frame"})
     p_view->Append(v);
-  p_view->SetToolTip("Choose the calculated diffraction view; crystal views require a unit cell");
+  p_view->SetToolTip(p_periodic ? "Choose the calculated diffraction view"
+                     : "Choose the calculated diffraction view. Powder, Single "
+                       "crystal and Detector frame need a periodic structure: "
+                       "add a cell in the Periodic Builder");
   p_view->SetMinSize(wxSize(90, -1));
   bar->Add(p_view, 1, wxRIGHT, 6);
   bar->Add(new wxStaticText(this, wxID_ANY, "Source"), 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 4);
@@ -1030,12 +1070,14 @@ DiffractionView::DiffractionView(wxWindow *parent, const string& structure,
     if (e.GetId() == p_debounce.GetId()) startCalculation(); else pollRun();
   });
   Bind(wxEVT_END_PROCESS, &DiffractionView::processEnded, this);
-  p_view->Bind(wxEVT_CHOICE, [this](wxCommandEvent&) {
-    const int mode = p_view->GetSelection();
-    if (!p_periodic && mode >= 1 && mode <= 3) {
-      p_view->SetSelection(p_debye ? 4 : 0);
+  p_view->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent&) {
+    const int item = p_view->GetSelection();
+    const int mode = item >= 0 && item < 5 ? VIEW_MODES[item] : 4;
+    if (!p_periodic && crystalMode(mode)) {
+      p_view->SetSelection(viewIndex(p_debye ? 4 : 0));
       status("This view needs a periodic structure with a unit cell."); return;
     }
+    if (!p_viewKey.empty()) s_lastView[p_viewKey] = mode;
     onPattern(mode); requestCalculation(true);
   });
   p_source->Bind(wxEVT_CHOICE, [this](wxCommandEvent&) { onSource(); requestCalculation(); });
@@ -1069,7 +1111,7 @@ DiffractionView::DiffractionView(wxWindow *parent, const string& structure,
   for (wxCheckBox *c : {p_absent, p_lhkl, p_laxes, p_flabel, p_frings})
     c->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent&) { p_panel->Refresh(); });
   p_opacity->Bind(wxEVT_SLIDER, &DiffractionView::onOpacity, this);
-  onPattern(p_periodic ? 1 : 0);
+  onPattern(p_periodic ? 1 : 4);
   p_loading = false;
   requestCalculation();
 }
@@ -1126,19 +1168,19 @@ double DiffractionView::number(wxTextCtrl *c) const
 
 void DiffractionView::onPattern(int mode)
 {
-  if (!p_periodic && mode != 4) mode = 0;
+  if (!p_periodic && crystalMode(mode)) mode = 4;
   p_debye = mode == 4;
   p_powder = mode == 1 || p_debye;
   p_single = mode == 2;
   p_frame = mode == 3;
-  p_view->SetSelection(mode);
+  p_view->SetSelection(viewIndex(mode));
   p_source->SetString(0, U(mode == 0 ? "Cu (1.5418 Å)" : "Cu (1.5406 Å)"));
   if (p_source->GetSelection() < 3) onSource();
   for (auto& row : p_optionRows) row.first->ShowItems((row.second & (1 << mode)) != 0);
   p_panel->Show(!p_powder);
   p_plot->Show(p_powder);
   p_experimental->Enable(p_powder || mode == 0);
-  p_options->SetTitle("Diffraction options: " + p_view->GetStringSelection());
+  p_options->SetTitle("Diffraction options: " + p_view->GetString(p_view->GetSelection()));
   p_left->Layout();
   p_leftWin->FitInside();
   if (p_options->IsShown()) showOptions();
@@ -1162,6 +1204,23 @@ void DiffractionView::onPattern(int mode)
 void DiffractionView::setDebye()
 {
   onPattern(4);
+}
+
+void DiffractionView::rememberViewFor(const string& key)
+{
+  p_viewKey = key;
+  auto it = s_lastView.find(key);
+  if (it == s_lastView.end() || (!p_periodic && crystalMode(it->second)) ||
+      it->second == viewMode())
+    return;
+  onPattern(it->second);
+  requestCalculation(true);
+}
+
+int DiffractionView::viewMode() const
+{
+  const int item = p_view->GetSelection();
+  return item >= 0 && item < 5 ? VIEW_MODES[item] : 4;
 }
 
 bool DiffractionView::testImageView(const string& prefix, string& why)
@@ -1900,7 +1959,7 @@ void DiffractionDialog::breakout(bool open)
 void DiffractionView::clearTip()
 {
   delete p_tip; p_tip = nullptr;
-  p_tipText.clear(); p_pinned = false;
+  p_pinned = false;
 }
 
 void DiffractionView::showTip(wxWindow *, const wxPoint&, const wxString& label, bool pin)
@@ -1931,9 +1990,17 @@ wxString DiffractionView::script(const vector<string>& args)
 {
   if (args.size() < 2 || args[1] == "state")
     return wxString::Format("view=%d generation=%u completed=%u running=%d dirty=%d manual=%d docked=%d source=%d wavelength=%g repeat=%g",
-      p_view->GetSelection(), p_generation, p_completed, p_process != nullptr, p_dirty, p_manual,
+      viewMode(), p_generation, p_completed, p_process != nullptr, p_dirty, p_manual,
       !dynamic_cast<DiffractionDialog*>(GetParent()), p_source->GetSelection(), number(p_pwave), number(p_repeat));
   string why;
+  if (args[1] == "views") {
+    //  The View list in order, each with 1 if it can be chosen.
+    wxString out;
+    for (unsigned i = 0; i < p_view->GetCount(); ++i)
+      out += wxString::Format("%s%s:%d", i ? " " : "", p_view->GetString(i).Lower().BeforeFirst(' '),
+                              p_view->usable((int)i) ? 1 : 0);
+    return out;
+  }
   if (args[1] == "wait") return waitForResult(why) ? "ready" : wxString::FromUTF8(why.empty() ? "Update required" : why.c_str());
   if (args[1] == "selection") {
     const long row = p_list->GetNextItem(-1, wxLIST_NEXT_ALL, wxLIST_STATE_SELECTED);
@@ -1976,7 +2043,17 @@ wxString DiffractionView::script(const vector<string>& args)
       for (size_t i = 3; i < args.size(); ++i) field->SetValue(wxString::FromUTF8(args[i].c_str()));
       return "changed";
     }
-    wxChoice *choice = key == "view" ? p_view : key == "source" ? p_source :
+    if (key == "view") {
+      //  A pattern mode (0 Fibre, 1 Powder, 2 Single crystal, 3 Detector
+      //  frame, 4 Debye), not the list position, so scripts outlive the order.
+      const int mode = std::atoi(args[3].c_str());
+      if (mode < 0 || mode > 4) return "invalid choice";
+      p_view->SetSelection(viewIndex(mode));
+      wxCommandEvent event(wxEVT_COMBOBOX, p_view->GetId());
+      event.SetEventObject(p_view); p_view->GetEventHandler()->ProcessEvent(event);
+      return "changed";
+    }
+    wxChoice *choice = key == "source" ? p_source :
                        key == "scaling" ? p_scale : key == "scheme" ? p_scheme :
                        key == "transform" ? p_transform : key == "axis" ? p_axis : key == "zone" ? p_zone : nullptr;
     if (choice) {
@@ -2016,7 +2093,8 @@ wxString DiffractionView::script(const vector<string>& args)
       canvas->GetEventHandler()->ProcessEvent(down);
     }
     canvas->GetEventHandler()->ProcessEvent(event);
-    return p_tipText;
+    // The readout line under the image is where the details are shown.
+    return p_pointer->GetLabel();
   }
   return "unknown xrd command";
 }

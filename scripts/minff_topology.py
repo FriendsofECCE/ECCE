@@ -45,7 +45,7 @@ import tempfile
 import urllib.request
 
 MINFF_REPO = "mholmboe/minff"
-MINFF_COMMIT = "d12b895b9495458a7d0f6f08b1648f5f317068a3"
+MINFF_COMMIT = "fc65aaa8f61be324b2a1c39b6975ff73c34ebe16"
 ANGLE_KS = (0, 250, 500, 1500)
 # water model -> (water .itp, -D name of its oxygen/hydrogen types, ion-set suffix)
 WATER_MODELS = {
@@ -174,39 +174,47 @@ def fetch_pinned():
     return d
 
 
-def tminff_file(ffdir, k):
-    return os.path.join(ffdir, "min.ff", "ffnonbonded_tminff_k%d.itp" % k)
+def tminff_file(ffdir):
+    return os.path.join(ffdir, "min.ff", "ffnonbonded_tminff.itp")
+
+
+def _ifdef_blocks(fn):
+    """(stack of #ifdef names, line) for each line of an .itp file."""
+    stack = []
+    with open(fn, encoding="utf-8", errors="replace") as f:
+        for line in f:
+            s = line.strip()
+            if s.startswith("#ifdef"):
+                stack.append(s.split()[1])
+                yield tuple(stack), None
+            elif s.startswith("#endif"):
+                if stack:
+                    stack.pop()
+            else:
+                yield tuple(stack), s
 
 
 def list_minerals(k=500, ffdir=None):
-    """Mineral blocks of the tailored set for angle constant k."""
+    """Mineral blocks of the tailored set that have angle constant k: the
+    file nests #ifdef MINFF_k<k> inside #ifdef <Mineral>."""
     ffdir = ffdir or minff_dir()
-    pat = re.compile(r"^#ifdef\s+(.+?)_k%d\s*$" % k)
     out = []
-    with open(tminff_file(ffdir, k), encoding="utf-8", errors="replace") as f:
-        for line in f:
-            m = pat.match(line.rstrip())
-            if m:
-                out.append(m.group(1))
+    for stack, _ in _ifdef_blocks(tminff_file(ffdir)):
+        if len(stack) == 2 and stack[1] == "MINFF_k%d" % k and stack[0] not in out:
+            out.append(stack[0])
     return out
 
 
 def ff_block_types(ffdir, variant, k, mineral):
     """Atom type names defined by the selected parameter block."""
     if variant == "tminff":
-        fn, block = tminff_file(ffdir, k), "%s_k%d" % (mineral, k)
+        fn, want = tminff_file(ffdir), (mineral, "MINFF_k%d" % k)
     else:
-        fn, block = os.path.join(ffdir, "min.ff", "ffnonbonded.itp"), "GMINFF_k%d" % k
-    types, inside = set(), False
-    with open(fn, encoding="utf-8", errors="replace") as f:
-        for line in f:
-            s = line.strip()
-            if s.startswith("#ifdef"):
-                inside = s.split()[1] == block
-            elif s.startswith("#endif"):
-                inside = False
-            elif inside and s and not s.startswith(";") and not s.startswith("["):
-                types.add(s.split()[0])
+        fn, want = os.path.join(ffdir, "min.ff", "ffnonbonded.itp"), ("MINFF_k%d" % k,)
+    types = set()
+    for stack, s in _ifdef_blocks(fn):
+        if stack == want and s and not s.startswith(";") and not s.startswith("["):
+            types.add(s.split()[0])
     return types
 
 
@@ -257,15 +265,16 @@ SHARED_MONOVALENT_IOD = ("spce", "tip3p", "tip4pew")
 
 def topol_text(variant, k, mineral, water, ion_set="HFE"):
     wfile, wdef, ionsuf = WATER_MODELS[water]
-    block = ("%s_k%d" % (mineral, k)) if variant == "tminff" else ("GMINFF_k%d" % k)
+    # min.ff selects the mineral and the angle constant with separate defines.
+    blocks = ([mineral] if variant == "tminff" else []) + ["MINFF_k%d" % k]
     L = ["; MINFF system written by ECCE minff_topology.py",
          "; variant: %s%s, angle force constant %d kJ/mol/rad2, water %s" % (
              variant.upper(), (" (" + mineral + ")") if mineral else "", k, water),
          "; the angle constant is also written into the angles of min.itp",
          "",
-         "#define KANGLE %.2f" % k,
-         "#define %s          ; selects the parameter block in min.ff" % block,
-         "#define %s          ; water model types" % wdef,
+         "#define KANGLE %.2f" % k]
+    L += ["#define %s          ; selects the parameter block in min.ff" % b for b in blocks]
+    L += ["#define %s          ; water model types" % wdef,
          "#define %s_%s_LM   ; ion parameters matching the water model" % (ionsuf, ion_set)]
     if ion_set == "IOD" and water in SHARED_MONOVALENT_IOD:
         L.append("#define all_IOD_LM   ; monovalent IOD ions of this water model")
@@ -280,7 +289,7 @@ def topol_text(variant, k, mineral, water, ion_set="HFE"):
         L += ["#define _FF_MINFF", "[ defaults ]",
               "; nbfunc        comb-rule       gen-pairs       fudgeLJ fudgeQQ",
               "1               2               no              1.0     1.0", "",
-              '#include "min.ff/ffnonbonded_tminff_k%d.itp"' % k,
+              '#include "min.ff/ffnonbonded_tminff.itp"',
               '#include "min_bonded.itp"']
     L += ['#include "min.ff/ions.itp"', '#include "min.ff/%s"' % wfile,
           '#include "min.itp"', "",
@@ -653,12 +662,15 @@ def build(cell, outdir, replicate=(1, 1, 1), substitutions=(), min_distance=5.5,
             raise MinffError("no atoms read from %s" % cell)
         if tuple(replicate) != (1, 1, 1):
             atoms, box, _cell = ap.replicate_system(atoms, box, list(replicate))
+        made = {}
         if substitutions:
             import numpy as np
             if seed is not None:
                 np.random.seed(seed)
             for frm, to, count in substitutions:
+                before = sum(1 for a in atoms if str(a.get("type", "")) == to)
                 atoms, box, _ = ap.substitute(atoms, box, count, frm, to, min_distance)
+                made[(frm, to)] = sum(1 for a in atoms if str(a.get("type", "")) == to) - before
         names0 = [str(a.get("type", "")) for a in atoms]   # what minff() started from
         charge_diff = {}
         if clay:
@@ -709,7 +721,8 @@ def build(cell, outdir, replicate=(1, 1, 1), substitutions=(), min_distance=5.5,
         "water": water,
         "cell": os.path.basename(cell),
         "replicate": list(replicate),
-        "substitutions": [{"from": a, "to": b, "count": c} for a, b, c in substitutions],
+        "substitutions": [{"from": a, "to": b, "count": c, "made": made.get((a, b), c)}
+                          for a, b, c in substitutions],
         "seed": seed,
         "n_atoms": len(itp),
         "type_counts": dict(sorted(counts.items())),
@@ -723,6 +736,15 @@ def build(cell, outdir, replicate=(1, 1, 1), substitutions=(), min_distance=5.5,
     z, c = read_gro_z(os.path.join(outdir, "conf.gro"))
     edges = itp_edges(os.path.join(outdir, "min.itp"))
     summary["warnings"] = []
+    # atomipy places substitutions at random, each at least min_distance from
+    # the others, and stops quietly when no site is left.
+    for s in summary["substitutions"]:
+        if s["made"] < s["count"]:
+            summary["warnings"].append(
+                "%d of the %d substitutions %s -> %s were made: no other %s site lies at "
+                "least %g nm from the ones made. Ask for fewer, or repeat the cell more "
+                "times (Repeat); the total charge follows the substitutions made"
+                % (s["made"], s["count"], s["from"], s["to"], s["from"], min_distance / 10))
     if clay and abs(summary["total_charge"] - round(summary["total_charge"])) > 1e-4:
         summary["warnings"].append(
             "the charges of Table 1 of the ClayFF paper give this structure a net charge "

@@ -278,7 +278,8 @@ def qmCase(s, display, env, wrappers, project, png):
     lines = ["wait 6000", "ircclick 0", "ircclick 3", "ircview table", "ircclick 6", "ircview graph", "ircclick 9",
              "ircrow 4", "ircstep first", "ircstep next", "ircstep prev", "ircstep last", "ircstep play",
              "ircaxes 3", "ircplayopt speed 150", "ircplayopt loop off", "ircplayopt order 9",
-             "ircplayopt loop on", "ircplayopt order 9", "shot play", "quit"]
+             "ircplayopt loop on", "ircplayopt order 9", "ircplayopt repeat start",
+             "ircplayopt order 9", "shot play", "quit"]
     text, _ = bo.runScript(
         s, display, env, wrappers, ["-context", "file://" + calc + "/"],
         lines, png, "ircqm",
@@ -315,13 +316,16 @@ def qmCase(s, display, env, wrappers, project, png):
     check(ax and ax[0].count("kJ/mol") >= 3 and "Relative energy" in ax[0].split(" | ")[4]
           and ax[0].split(" | ")[4].rstrip().endswith("kJ/mol"),
           "IRC y axis, table header and hover text end in kJ/mol (%s)" % (ax,))
-    fast = re.findall(r"BUILDER: ircplayopt speed speed=(\w+) loop=0", text)
-    check(fast == ["150"], "playback Delay field takes 150 ms (%s)" % (fast,))
-    for loop, want in ((0, [str(i) for i in range(1, 8)]),
-                       (1, "1 2 3 4 5 6 7 6 5 4".split())):
-        got = re.findall(r"BUILDER: ircplayopt order speed=150 loop=%d order:([\d ]*)" % loop, text)
+    # Repeat (#1229): IRC paths start on back and forth; off stops at the
+    # last point; from the start wraps to the first.
+    fast = re.findall(r"BUILDER: ircplayopt speed speed=(\w+) loop=1 repeat=backforth", text)
+    check(fast == ["150"], "playback Delay field takes 150 ms, Repeat back and forth (%s)" % (fast,))
+    for rep, want in (("off", [str(i) for i in range(1, 8)]),
+                      ("backforth", "1 2 3 4 5 6 7 6 5 4".split()),
+                      ("start", "1 2 3 4 5 6 7 1 2 3".split())):
+        got = re.findall(r"BUILDER: ircplayopt order speed=150 loop=\d repeat=%s order:([\d ]*)" % rep, text)
         check(got and got[0].split() == want,
-              "play order with Loop %s: %s (%s)" % ("on" if loop else "off", " ".join(want), got))
+              "play order with Repeat %s: %s (%s)" % (rep, " ".join(want), got))
     check(clicks.get("9", ("", "", ""))[1] == "none",
           "a point past the path has no structure")
     check("BUILDER: ircstatus Showing point 7 " in text,

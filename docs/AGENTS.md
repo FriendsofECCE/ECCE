@@ -107,8 +107,10 @@ focused window); see `tests/apps/builder_delete_undo_test.py`. `menuenabled
 click could reach a menu-bar item (`menu` sends the item even when greyed).
 `delkey` sends a Delete key press through the frame's key hook with the 3-D
 view focused; `undolabel` logs `BUILDER: undolabel [<Edit > Undo label>]
-enabled=0|1`; `drawn` logs `BUILDER: drawn N of M`, the atoms whose display
-style the 3-D view still has (an undone atom outside it is not drawn).
+enabled=0|1`; `drawnstyles` logs `BUILDER: drawn N of M`, the atoms whose display
+style the 3-D view still has (an undone atom outside it is not drawn);
+`drawn` logs the atoms handed to the display nodes by element,
+`BUILDER: drawn <El>=n ... total=N of M`.
 
 A PDB opened directly (`ecce-builder FILE.pdb`, as the file manager's Open
 With does) is editable. If it holds records ECCE does not write, File > Save
@@ -285,6 +287,19 @@ Open **Relaxed Scan** (`ECCE_OPEN_PANEL=Relaxed Scan`) and use
 table and playback refer to the active calculation. Test:
 `tests/apps/scan_compare_test.py`, with isolated stored fixtures copied from
 an existing scan example. Put `background 1 1 1` before screenshots.
+
+### Playback Repeat (#1229)
+
+The Relaxed Scan, IRC Path and Geometry Trace panels have **Repeat: off /
+from the start / back and forth** next to the play buttons: what **Play**
+does at the last point. Back and forth is the default for scans and IRC
+paths, from the start for the Geometry Trace. Builder script:
+`scanplayopt repeat off|start|backforth` and `ircplayopt repeat ...`
+(`loop on|off` still works: on = backforth); `... order <ticks>` logs the
+points that many ticks of play show, and the reply carries `repeat=<word>`.
+`gtrepeat [off|start|backforth]` sets the Geometry Trace choice and logs
+`GTSTRESS: repeat=<word> frames=<n> order: ...` (two passes). Test:
+`tests/apps/irc_panel_test.py`.
 
 ## Checking the Basis Set Tool window
 
@@ -525,7 +540,7 @@ each tool's row (Builder / Viewer, Calculation Editor, Basis Set Tool, MD
 editors, MD Prepare) to Tab or Window, which makes the layout Custom. Under
 Normal the Calculation Editor's tab is the Set-up tab: a detail area right
 of the editor shows the Theory or Runtype Details (codes with a `.dlg`
-description: ECCE-QM, ORCA, xTB, Gaussian 16, MOPAC, Vina Runtype; others open the Python
+description: ECCE-QM, ORCA, xTB, Gaussian 16, MOPAC, Vina; others open the Python
 dialog's window) or, with no detail chosen, the input file (after an
 unsaved change, a dry run of the generator with the editor's settings,
 500 ms after the last change; the calculation is not written). MOPAC now has
@@ -572,7 +587,7 @@ hooks: `tabs` (tabs, `*` = active, tools in windows, the menu bar's menus;
 `tabs dots` also appends each tab's painted dot colour as `dots=0:#3060B0 ...`),
 `launcher machine|pick NAME|launch|get WHAT` (the Launcher script's commands on the active Launcher tab; `get machines` lists the machine choice), `builderinfo` (the active Builder or Viewer tab: `atoms=N title=...`, the atoms its scene draws; `not a Builder tab` otherwise), `tab N`, `towindow N`, `totabs <title part>`, `mainwindow` (the main window: `host=MainFrame organizer=hidden ...`, or `host=none`
 when the Organizer is its own window), `menu exit|about|preferences|minimize|<id>` and `hostclose` (a menu command, or the window
-manager's close, on the main window; queued, answer the questions with `answer`; Quit, Preferences and About always reach the Organizer, also from a tool tab; a logged error never opens a modal box: a tool tab's goes to its log panel, others to a non-modal box on the main window, and with `ECCE_TEST_ORGANIZER` every log message is also on stderr), `windowmenu [N]` (the **Window** menu every bar has while hosted, `0:Organizer* 1:Viewer`; N chooses that entry and switches the tab; the main window's title then reads "ECCE Organizer <ver> - <tab>"; on macOS this menu has its own Minimize (Cmd-M; hook `menu minimize`) but no Zoom item or window list, since wx's automatic Window menu is off in one-program mode; `ECCE_DEBUG_MENUS=1` logs every menu-bar swap on stderr), `tabtips` (each tab's tooltip, `0:|1:(HOME)/proj/calc – Viewer|`; the Organizer's is empty; tab labels are the tool's name only), `nexttab` / `prevtab` (Window > Next Tab / Previous Tab, wrapping; answers the selected index), `tabkey next|prev|pgdn|pgup` (Ctrl+Tab, Ctrl+Shift+Tab, Ctrl+PgDn, Ctrl+PgUp as the key hook gets them; answers the selected index), `windowitems` (every Window menu item in order: `Next Tab[Ctrl+PgDn]|Previous Tab[Ctrl+PgUp]|-|` on Linux (Ctrl+Tab on Windows, Cmd+Shift+] on macOS) then `Organizer|Viewer – (HOME)/proj/calc*|`, `-` a separator, `*` the active tab; starting a Builder, Viewer, Calculation Editor or Launcher for a calculation that already has that tool's tab selects that tab instead of opening another), `orgwindow prefs|find|props URL` then `orgwindowinfo` (the Organizer's modeless windows sit on the main window: `transient=host inside=1 mapped=1`), `layout show|normal|small|wide|KEY=tab|window`
+manager's close, on the main window; queued, answer the questions with `answer`; Quit, Preferences and About always reach the Organizer, also from a tool tab; a logged error never opens a modal box: a tool tab's goes to its log panel, others to a non-modal box on the main window, and with `ECCE_TEST_ORGANIZER` every log message is also on stderr), `windowmenu [N]` (the **Window** menu every bar has while hosted, `0:Organizer* 1:Viewer`; N chooses that entry and switches the tab; the main window's title then reads "ECCE Organizer <ver> - <tab>"; on macOS this menu has its own Minimize (Cmd-M; hook `menu minimize`) but no Zoom item or window list, since wx's automatic Window menu is off in one-program mode; `ECCE_DEBUG_MENUS=1` logs every menu-bar swap on stderr), `tabtips` (each tab's tooltip, `0:|1:(HOME)/proj/calc – Viewer|`; the Organizer's is empty; tab labels are the tool's name only), `nexttab` / `prevtab` (Window > Next Tab / Previous Tab, wrapping; answers the selected index), `tabkey next|prev|pgdn|pgup` (Ctrl+Tab, Ctrl+Shift+Tab, Ctrl+PgDn, Ctrl+PgUp as the key hook gets them; answers the selected index; steps less than 400 ms after the previous one only move a pending target, selected 150 ms after the last, #1267), `tabsteps N` (N Next Tab steps in a row; answers `selected=<i> selects=<tabs drawn>`), `windowitems` (every Window menu item in order: `Next Tab[Ctrl+PgDn]|Previous Tab[Ctrl+PgUp]|-|` on Linux (Ctrl+Tab on Windows, Cmd+Shift+] on macOS) then `Organizer|Viewer – (HOME)/proj/calc*|`, `-` a separator, `*` the active tab; starting a Builder, Viewer, Calculation Editor or Launcher for a calculation that already has that tool's tab selects that tab instead of opening another), `orgwindow prefs|find|props URL` then `orgwindowinfo` (the Organizer's modeless windows sit on the main window: `transient=host inside=1 mapped=1`), `layout show|normal|small|wide|KEY=tab|window`
 (prints `preset=... rows=builder:tab,...`), `tabmenu N` (the tab's
 right-click items), `alwayswindow N`, and `prefs windows show|preset NAME|row KEY tab|window [PNG]|snap PNG`
 (the Preferences page and its Customize table, as clicks). A tab's
@@ -897,6 +912,22 @@ the first. The key can still be typed. The same ranking and range formatter
 are `LigandSelect::ligandCandidates`/`atomRangeString` (`include/tdat/LigandSelect.H`).
 In the Organizer's editor tab Runtype Details opens in the Set-up area (`setup runtype`; `setup info` reports `ligandpick=N`, the candidates listed, and `setup set ES.Runtype.Docking.LigandAtoms 10-15` sets the key); the standalone editor runs the Python dialog. `ECCE_VINA_TRACE=1` makes the Python dialog print how it chose the default (`VINADLG:` lines on the editor's stderr).
 
+**Local file chooser (#342).** Builder File > Open... and Add Structure from
+File... use the platform's file dialog (`ecceLocalFile`,
+`include/wxgui/LocalFileDialog.H`, last folder per use in
+`LocalFileDialog.ini`); "... from Remote Machine..." keeps ECCE's dialog for
+registered machines and data servers. A native dialog cannot be driven, so
+`ECCE_TEST_LOCAL_FILE=<path>` makes the chooser return that path without
+showing (stderr `LOCALFILE: <key> -> <path>`); Builder script
+`menu File|Add Structure from File...` then reads it. `ECCE_TEST_OPEN` drives
+the remote item. Test: `tests/apps/local_file_test.py`.
+
+**Vina scoring (#1278).** Theory Details key `ES.Theory.Vina.Scoring`,
+`vina` (default) or `vinardo` (`setup set ES.Theory.Vina.Scoring vinardo`).
+ai.vina writes `scoring = vinardo` only for vinardo; on a Vina without
+`--scoring` (before 1.2) the job script drops that line and writes an
+`ECCE warning:` line to the output, so the run scores with vina.
+
 **Docking.** Vina calculations (`vina`); `ecce-pdbqt` prepares PDBQT files;
 CREST/xTB docking is a run type of xTB.
 The Builder Poses panel shows cached ligand-only thumbnails for docking.
@@ -921,6 +952,12 @@ Existing `diffraction`, `calcdiffraction`, `calcpowder`, `calclayer`, `calcframe
 before exporting. To use the property pane through `ECCE_BUILDER_SCRIPT`:
 
 - `list Diffraction` opens the Properties entry.
+- `xrd views` lists the View entries in order with 1 if they can be chosen
+  (`debye:1 fibre:1 powder:0 single:0 detector:0` without a cell, #1230).
+  `xrd set view N` and `xrd state` use pattern modes, not list positions:
+  0 Fibre, 1 Powder, 2 Single crystal, 3 Detector frame, 4 Debye. A
+  structure without a cell opens on Debye, a crystal on Powder, and a view
+  chosen once is reopened for that calculation in the same session.
 - `xrd wait` waits for the current run (and pending debounce); it reports
   `Update required` if a slow structure has unapplied edits. `xrd update`
   explicitly starts those edits; then use `xrd wait`.

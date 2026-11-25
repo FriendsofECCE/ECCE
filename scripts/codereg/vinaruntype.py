@@ -39,7 +39,7 @@ class VinaRunTypePanel(EccePanel):
                                     name="ES.Runtype.Docking.LigandAtoms",
                                     size=(160, -1),
                                     default="",
-                                    label="Other (atom numbers; empty: chosen automatically):",
+                                    label="Other (atom numbers):",
                                     tip="Atom numbers, for example 1-5,9",
                                     export=1)
         dockSizer.AddWidget(self.ligand)

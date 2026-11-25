@@ -172,7 +172,8 @@ bool IRCPanel::Create(IPropCalculation *calculation,
   p_playback->SetStopIndex(0L);
   if (wxWindow *rec = FindWindow(PlaybackControl::ID_RECORD)) rec->Hide();
   GetSizer()->Add(p_playback, 0, wxLEFT | wxRIGHT, 4);
-  p_extras = new PlaybackExtras(this, GetSizer(), &p_delay, true);
+  p_extras = new PlaybackExtras(this, GetSizer(), &p_delay, p_playback,
+                                playbackloop::BACK_AND_FORTH, true);
 
   p_grid = new wxGrid(this, wxID_ANY, wxDefaultPosition, wxSize(300, 110));
   p_grid->CreateGrid(0, 3, wxGrid::wxGridSelectRows);
@@ -349,13 +350,13 @@ void IRCPanel::OnRow(wxGridEvent& event)
   if (!p_syncing) selectPoint(event.GetRow());
 }
 
-// With Loop on, the control's wrap from one end to the other is turned into
-// a reversal, so play runs forward and back until stopped.
+// With Repeat back and forth, the control's wrap from one end to the other
+// is turned into a reversal, so play runs forward and back until stopped.
 void IRCPanel::OnPlayback(wxCommandEvent& event)
 {
   long at = event.GetExtraLong();
   if (event.GetEventType() == wxEVT_PLAYBACK_LOOP_EVENT && p_extras &&
-      p_extras->loop() && points() > 0) {
+      p_extras->repeat() == playbackloop::BACK_AND_FORTH && points() > 0) {
     const bool wasForward = event.GetInt() != 0;
     const long n = points();
     const playbackloop::Pos p = playbackloop::next(
@@ -379,31 +380,24 @@ std::string IRCPanel::playbackSpeed() const
   return p_extras ? p_extras->speed() : std::string();
 }
 
-void IRCPanel::setPlaybackLoop(bool on)
+void IRCPanel::setPlaybackRepeat(playbackloop::Repeat r)
 {
-  if (p_extras) p_extras->setLoop(on);
+  if (p_extras) p_extras->setRepeat(r);
 }
 
-bool IRCPanel::playbackLoop() const
+playbackloop::Repeat IRCPanel::playbackRepeat() const
 {
-  return p_extras && p_extras->loop();
+  return p_extras ? p_extras->repeat() : playbackloop::OFF;
 }
 
 std::vector<int> IRCPanel::playOrder(int ticks)
 {
   std::vector<int> out;
   const int n = points();
-  playbackloop::Pos p{0, 1};
   if (!n) return out;
-  const bool loop = playbackLoop();
-  selectPoint(0);
-  out.push_back(0);
-  for (int t = 0; t < ticks; t++) {
-    if (loop) p = playbackloop::next(p, n);
-    else if (p.cur < n - 1) p.cur++;
-    else break;
-    selectPoint((int)p.cur);
-    out.push_back((int)p.cur);
+  for (long i : playbackloop::sequence(n, ticks, playbackRepeat())) {
+    selectPoint((int)i);
+    out.push_back((int)i);
   }
   return out;
 }

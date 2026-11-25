@@ -1,5 +1,6 @@
 #include <cstdlib>
 #include <wx/checkbox.h>
+#include <wx/choice.h>
 #include <wx/textctrl.h>
 #include <wx/sizer.h>
 #include <wx/stattext.h>
@@ -7,10 +8,12 @@
 
 #include "PlaybackLoop.H"
 #include "PlaybackExtras.H"
+#include "wxgui/PlaybackControl.H"
 
 PlaybackExtras::PlaybackExtras(wxWindow *parent, wxSizer *sizer, int *delay,
-                               bool withMo)
-  : p_delay(delay)
+                               PlaybackControl *control,
+                               playbackloop::Repeat repeat, bool withMo)
+  : p_control(control), p_delay(delay)
 {
   wxWrapSizer *row = new wxWrapSizer(wxHORIZONTAL);
   //  Milliseconds per step, as the Geometry Trace's Delay field.
@@ -22,10 +25,18 @@ PlaybackExtras::PlaybackExtras(wxWindow *parent, wxSizer *sizer, int *delay,
   row->Add(new wxStaticText(parent, wxID_ANY, "ms"), 0,
            wxALIGN_CENTER_VERTICAL | wxLEFT | wxRIGHT, 4);
   row->AddSpacer(8);
-  p_loop = new wxCheckBox(parent, wxID_ANY, "Loop");
-  p_loop->SetToolTip("Play forward to the last point, then backward to the "
-                     "first, and repeat until stopped");
-  row->Add(p_loop, 0, wxALIGN_CENTER_VERTICAL);
+  row->Add(new wxStaticText(parent, wxID_ANY, "Repeat:"), 0,
+           wxALIGN_CENTER_VERTICAL | wxRIGHT, 6);
+  p_repeat = new wxChoice(parent, wxID_ANY);
+  for (playbackloop::Repeat r : {playbackloop::OFF, playbackloop::FROM_START,
+                                 playbackloop::BACK_AND_FORTH})
+    p_repeat->Append(playbackloop::repeatLabel(r));
+  p_repeat->SetToolTip("What Play does at the last point: stop there, start "
+                       "again from the first, or play backward to the first "
+                       "and on until stopped");
+  row->Add(p_repeat, 0, wxALIGN_CENTER_VERTICAL);
+  setRepeat(repeat);
+  p_repeat->Bind(wxEVT_CHOICE, [this](wxCommandEvent&) { setRepeat(this->repeat()); });
   if (withMo) {
     row->AddSpacer(8);
     p_mo = new wxCheckBox(parent, wxID_ANY, "Show MO while playing");
@@ -58,9 +69,16 @@ std::string PlaybackExtras::speed() const
   return p_delay ? std::to_string(*p_delay) : std::string();
 }
 
-void PlaybackExtras::setLoop(bool on) { p_loop->SetValue(on); }
+void PlaybackExtras::setRepeat(playbackloop::Repeat r)
+{
+  p_repeat->SetSelection((int)r);
+  if (p_control) p_control->SetRepeat(r != playbackloop::OFF);
+}
 
-bool PlaybackExtras::loop() const { return p_loop->GetValue(); }
+playbackloop::Repeat PlaybackExtras::repeat() const
+{
+  return (playbackloop::Repeat)p_repeat->GetSelection();
+}
 
 void PlaybackExtras::setShowMo(bool on) { if (p_mo) p_mo->SetValue(on); }
 

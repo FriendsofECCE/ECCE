@@ -1,0 +1,90 @@
+MINFF - third-party components and attribution
+==============================================
+
+MINFF itself is released under the MIT License; see LICENSE.
+This file records the parts that are not covered by it.
+
+The MIT License applies to the MINFF force field itself: the GMINFF and
+TMINFF parameter sets, the JSON exports under ffparams/, gmx2json.py, the
+CHARMM/NAMD parameter files par_minff.prm and par_clayff.prm, MINFF_v1.xls,
+the topologies and configurations under Systems/, and the documentation.
+
+Some files distributed here originate from GROMACS and are not covered by it.
+GROMACS is free software, licensed under the GNU Lesser General
+Public License, version 2.1 or (at your option) any later version. Those files
+remain under that licence, and the LGPL terms travel with them. See
+https://www.gromacs.org and the COPYING file in any GROMACS distribution for
+the full text.
+
+Because the GROMACS licence is "version 2.1 or any later version", these files
+may be taken under LGPL-3.0, which is compatible with GPL-3.0. MINFF can
+therefore be redistributed as part of GPL-licensed packages.
+
+-------------------------------------------------------------------------------
+1. Unmodified copies of GROMACS files (LGPL-2.1-or-later)
+-------------------------------------------------------------------------------
+
+  min.ff/atommass.dat          from GROMACS share/top
+  min.ff/electroneg.dat        from GROMACS share/top
+  min.ff/elements.dat          from GROMACS share/top
+  min.ff/nsfactor.dat          from GROMACS share/top
+  min.ff/tip4p.itp             from GROMACS share/top/amber96.ff
+  min.ff/tip4pew.itp           from GROMACS share/top/amber96.ff
+
+-------------------------------------------------------------------------------
+2. Files derived from GROMACS files (LGPL-2.1-or-later)
+-------------------------------------------------------------------------------
+
+These were taken from GROMACS and then modified for MINFF. The modifications
+are by Michael Holmboe; the underlying files remain under the LGPL.
+
+  min.ff/flexwat-ferguson.itp  from GROMACS share/top
+  min.ff/residuetypes.dat      from GROMACS share/top; the Mineral, Kaolinite,
+                               Montmorillonite and Ion entries were added or
+                               rewritten for MINFF
+  min.ff/spc.itp               from GROMACS share/top/amber96.ff
+  min.ff/spce.itp              from GROMACS share/top/gromos45a3.ff
+  min.ff/tip3p.itp             from GROMACS share/top/gromos45a3.ff
+  min.ff/tip5p.itp             from GROMACS share/top/amber96.ff
+  min.ff/tips3p.itp            from GROMACS share/top/charmm27.ff
+  min.ff/watermodels.dat       from GROMACS share/top/amber96.ff
+  min.ff/atomtypes.atp         partly derived: 22 entries (C, CH1, CH2, CH3,
+                               CL, F, FE, IW, MNH3, MW, N, NE, NL, NT, NZ, O,
+                               OW, OWT3, OWT4, P, S, SI) match
+                               share/top/gromos43a2.ff/atomtypes.atp. The
+                               remaining MINFF atom types are original.
+
+-------------------------------------------------------------------------------
+3. Modified GROMACS source code (LGPL-2.1-or-later)
+-------------------------------------------------------------------------------
+
+  x2top_hack/x2top.cpp         Modified version of the GROMACS x2top tool,
+                               adapted in 2025 for MINFF to support angle terms
+                               across periodic boundaries and MINFF-specific
+                               topology output. The original GROMACS copyright
+                               and licence header is retained in the file. This
+                               is not official GROMACS; do not report issues
+                               with it to the GROMACS developers.
+
+-------------------------------------------------------------------------------
+Attribution for scientific content
+-------------------------------------------------------------------------------
+
+Licensing aside, the following are taken from the published literature and
+should be cited when used. Numerical parameters are facts rather than
+copyrightable expression, so no licence restriction attaches to them, but the
+original work deserves credit.
+
+  - Ion parameters in min.ff/ions.itp: Joung & Cheatham (2008), Aqvist (1990),
+    Babu & Lim (2006), and Li, Song, Merz and co-workers (2015-2021). Full
+    references are listed in the header of ions.itp.
+  - Water model parameters: the respective original publications for SPC,
+    SPC/E, TIP3P, TIP4P, TIP4P-Ew, TIP4P/2005, TIP5P, OPC and OPC3.
+  - M-O-H angle parameters: Pouvreau, Greathouse, Cygan and Kalinichev,
+    J. Phys. Chem. C 2019, 123, 11628-11638.
+  - Oxygen charge smearing: Lammers et al. (2017),
+    doi:10.1016/j.jcis.2016.11.084.
+  - CLAYFF comparison parameters: Cygan, Liang and Kalinichev,
+    J. Phys. Chem. B 2004, 108, 1255-1266.
+  - Crystal structures under Systems/: the crystallographic studies listed in
+    the reference table in README.md.

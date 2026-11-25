@@ -284,8 +284,10 @@ of its own; **Tools > Dock Floating Panels** puts them back. See
   step through them; **Play** continues from the selected step. (A
   calculation with a Geometry Trace has no separate **Geometry Step Plots**
   entry: the trace's right-click menu plots the same per-step quantities.)
-  **Delay:** sets the time between steps during playback (milliseconds); tick
-  **Loop** to play forward to the last step and back, until stopped. All plots zoom
+  **Delay:** sets the time between steps during playback (milliseconds);
+  **Repeat:** says what **Play** does at the last step: **off** stops there,
+  **from the start** (the default) starts again at the first step, and **back
+  and forth** plays backward to the first step and on until stopped. All plots zoom
   with the mouse wheel (Shift+wheel zooms the vertical axis only) or by dragging a
   rectangle, but never beyond the data;
   Home or a double click on empty plot shows all of it. In the **Wave Step
