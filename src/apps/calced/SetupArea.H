@@ -114,6 +114,7 @@ private:
   wxToggleButton *p_inBtn;
   wxToggleButton *p_outBtn;
   bool p_autoOutput = false;
+  std::string p_lastGreyed;
   wxTimer *p_switchTimer = nullptr;   // leaves the Launch panel after a launch
   wxSizerItem *p_headSpacer = nullptr;
   bool p_dry = false;   // the preview shows unsaved settings
