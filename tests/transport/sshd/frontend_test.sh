@@ -59,7 +59,7 @@ podman run --rm --network host -v "$root:/src:Z" -v "$state:/state:Z,ro" \
   -e PFWD="$pfwd" -e PNOFWD="$pnofwd" localhost/ecce-sshbuild bash -c '
   set -e
   g++ -std=c++17 -Wall -Wextra -O1 -I/src/include -o /tmp/tsf \
-    /src/tests/transport/testSshFrontend.C /src/src/comm/rcommand/SshTransport.C \
+    /src/tests/transport/testSshFrontend.C /src/src/comm/rcommand/SshTransport.C /src/src/comm/rcommand/SshMaster.C \
     /src/src/comm/rcommand/Transport.C -lssh
   /tmp/tsf /state/id_ed25519 $PFWD forward
   /tmp/tsf /state/id_ed25519 $PNOFWD nested
@@ -74,7 +74,7 @@ for mode in pooled unpooled; do
     -e PFWD="$pfwd" -e MODE=$mode localhost/ecce-sshbuild bash -c '
     set -e
     g++ -std=c++17 -Wall -Wextra -O1 -pthread -I/src/include -o /tmp/tsp \
-      /src/tests/transport/testSshFrontendPool.C /src/src/comm/rcommand/SshTransport.C \
+      /src/tests/transport/testSshFrontendPool.C /src/src/comm/rcommand/SshTransport.C /src/src/comm/rcommand/SshMaster.C \
       /src/src/comm/rcommand/Transport.C -lssh
     install -m 600 /state/id_ed25519 /tmp/key
     [ $MODE = pooled ] || export ECCE_SSH_FRONTEND_POOL=0
@@ -98,7 +98,7 @@ if [ -n "${ECCE_FE_ROCKY:-}" ]; then
     dnf -q -y install gcc-c++ libssh-devel >/dev/null
     rpm -q libssh
     g++ -std=c++17 -Wall -Wextra -O1 -I/src/include -o /tmp/tsf \
-      /src/tests/transport/testSshFrontend.C /src/src/comm/rcommand/SshTransport.C \
+      /src/tests/transport/testSshFrontend.C /src/src/comm/rcommand/SshTransport.C /src/src/comm/rcommand/SshMaster.C \
       /src/src/comm/rcommand/Transport.C -lssh
     /tmp/tsf /state/id_ed25519 $PFWD forward
     /tmp/tsf /state/id_ed25519 $PNOFWD nested

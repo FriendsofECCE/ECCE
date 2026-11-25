@@ -9,7 +9,10 @@
 #   On the password-only sshd one more run pauses the sshd container (the
 #   network is cut): the job must go Waiting, not parked as refused, and
 #   finish after the resume (#777).
+#   A single-connection registration of the keyboard-interactive host must
+#   cost one login for the launch and its job store together (#1284).
 #   monitor_login_test.sh [JOBS]     (default 3, plus one dropped run)
+#   ECCE_MONLOGIN_SINGLE_ONLY=1 runs only the single-connection check.
 set -eu
 here=$(cd "$(dirname "$0")" && pwd)
 root=$(cd "$here/../../.." && pwd)
@@ -66,6 +69,8 @@ podman run --rm --userns=keep-id --network host -e HOME=/tmp/client -e USER=ecce
   -v "$logs:/log:Z,ro" -v "$ctl:/ctl:Z" -e ECCE_CTL_DIR=/ctl \
   -e ECCE_SSH_RETRY_SECONDS=10 \
   ${ECCE_DATASERVER_PORT:+-e ECCE_DATASERVER_PORT} ${ECCE_BROKER_PORT:+-e ECCE_BROKER_PORT} \
+  -e SINGLE_ONLY=${ECCE_MONLOGIN_SINGLE_ONLY:-} \
+  ${ECCE_SSH_MASTER:+-e ECCE_SSH_MASTER} \
   -e KPORT=$kport -e PPORT=$pport -e JOBS=$jobs localhost/ecce-launch bash -c '
   set -e
   install -d -m 700 ~/.ssh
@@ -84,8 +89,15 @@ podman run --rm --userns=keep-id --network host -e HOME=/tmp/client -e USER=ecce
   # A key in a default place would let libssh in without a password.
   rm -f ~/.ssh/id_rsa ~/.ssh/id_ecdsa ~/.ssh/id_ed25519
   cd /src
-  ninja -j2 -C build-ssh launchjob eccejobstore eccejobmaster ecmd >/dev/null
+  [ -f build-ssh/build.ninja ] || cmake -G Ninja -B build-ssh >/dev/null
+  extra=$(ninja -C build-ssh -t targets all | grep -q "^eccesshmaster:" && echo eccesshmaster)
+  ninja -j2 -C build-ssh launchjob eccejobstore eccejobmaster ecmd $extra >/dev/null
   rc=0
+  echo "=== kbd login, single connection"
+  python3 tests/launch/run_tests.py --build /src/build-ssh --machine kbd \
+    --helper-host kbdkey --remote-user bashuser --password ecce-test \
+    --sshd-log /log/kbd.log --jobs 1 --single-connect || rc=1
+  [ -z "$SINGLE_ONLY" ] || exit $rc
   for m in kbd pw; do
     echo "=== $m login"
     python3 tests/launch/run_tests.py --build /src/build-ssh --machine $m \
