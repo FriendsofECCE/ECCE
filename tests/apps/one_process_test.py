@@ -2589,9 +2589,10 @@ def runUtilityWindows(display):
               result.signalName or log[-1500:])
         inproc = pb.answers(log, "inprocess")
         closing = [l for l in log.splitlines()
-                   if "closeAll" in l or "closetools" in l or "ECCE_TEST_ORGANIZER" in l]
+                   if "closeAll" in l or "closetools" in l or "ECCE_TEST_ORGANIZER" in l
+                   or re.match(r"#\d+ ", l) or "SIGSEGV" in l]
         if check(len(inproc) == 4, "four window counts answered",
-                 str(inproc) + "\n" + "\n".join(closing[-30:] + log.splitlines()[-30:])):
+                 str(inproc) + "\n" + "\n".join(closing[-80:])):
             check("PeriodicTable=1 MachineBrowser=1 MachineRegister=1" in inproc[0]
                   and "MachineBrowser(hidden)" not in inproc[0],
                   "all three open in the Organizer, the browser shown",
