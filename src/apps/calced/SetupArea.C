@@ -150,6 +150,10 @@ SetupArea::SetupArea(wxWindow *parent, CalcEd *editor)
   // The preview follows unsaved changes, 500 ms after the last one.
   p_timer = new wxTimer(this);
   Bind(wxEVT_TIMER, [this](wxTimerEvent&) { dryRun(); }, p_timer->GetId());
+  p_switchTimer = new wxTimer(this);
+  Bind(wxEVT_TIMER, [this](wxTimerEvent&) {
+    if (p_kind == LAUNCH && submitted()) showOutput();
+  }, p_switchTimer->GetId());
   p_outTimer = new wxTimer(this);
   Bind(wxEVT_TIMER, [this](wxTimerEvent&) {
     if (p_kind != OUTPUT || !loadOutput(false)) p_outTimer->Stop();
@@ -163,6 +167,7 @@ SetupArea::~SetupArea()
   p_timer->Stop();
   delete p_timer;
   drop();
+  delete p_switchTimer;
   delete p_outTimer;
 }
 
@@ -205,10 +210,10 @@ void SetupArea::submittedChanged(bool on)
   if (!on) { p_autoOutput = false; return; }
   if (p_autoOutput) return;
   p_autoOutput = true;
-  // Deferred: the launch panel that reported the state is still running.
-  CallAfter([this]() {
-    if (p_kind == INPUT || p_kind == LAUNCH) showOutput();
-  });
+  if (p_kind == INPUT) showOutput();
+  // From the Launch panel only once its launch loop has gone quiet: the
+  // loop yields, and the panel must not be destroyed under it.
+  else if (p_kind == LAUNCH) p_switchTimer->StartOnce(1500);
 }
 
 
@@ -358,6 +363,7 @@ bool SetupArea::showLaunch()
         if (!fb) return;
         //  No flush: it is wxSafeYield, which greys the whole window for
         //  each launch log line (#1266); the launch loop's yield draws it.
+        if (p_switchTimer->IsRunning()) p_switchTimer->StartOnce(1500);
         if (text.empty()) fb->clearMessage();
         else fb->setMessage(text, (WxFeedback::Severity)sev, false, false);
       }));
