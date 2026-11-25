@@ -145,18 +145,18 @@ std::string MainFrame::selectedTabName()
 }
 
 
-// #1291: ECCE_DEBUG_CLOSE=1 logs each close of the window and what became
-// of it, for a close button that quit without asking.  Remove with the bug.
+// #1291: one stderr line per close of the window and what became of it,
+// always on (the bug cannot be reproduced on demand).  Remove once the
+// cause is known.
 void MainFrame::onClose(wxCloseEvent& ev)
 {
-  static const bool trace = getenv("ECCE_DEBUG_CLOSE") != 0;
   p_vetoable = ev.CanVeto();
   bool skip = true;
   if (!p_shutdown && ev.CanVeto() && p_close && !p_close()) {
     ev.Veto();
     skip = false;
   }
-  if (trace) {
+  {
     const char *outcome = !skip ? "vetoed"
         : p_shutdown ? "already-shutting-down"
         : !ev.CanVeto() ? "quit-without-asking(unvetoable)"

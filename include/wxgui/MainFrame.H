@@ -40,7 +40,7 @@ public:
   // destructor still uses the windows that were in the page.
   void shutdown();
 
-  // #1291 diagnostics: the title of the tab in front, for ECCE_DEBUG_CLOSE.
+  // #1291 diagnostics: the title of the tab in front, for the always-on close line.
   static std::string selectedTabName();
 
   // For #1069: a second start raises the running window; files opened from

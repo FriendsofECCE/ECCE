@@ -360,9 +360,10 @@ real click that selects the wrong row gives the numbers to compare.
 
 ## Close diagnostics (#1291)
 
-`ECCE_DEBUG_CLOSE=1` prints one `ECCE close:` line on stderr per quit
-decision: `route=host` (the window's close, with `can_veto=`, `shutdown=`,
-`handler=`) and `route=confirmAndQuit` (every quit route: File > Quit, Ctrl-Q,
+Every quit decision prints one `ECCE close:` line on stderr (always on
+until the cause of #1291 is known): `route=host` (the window's close, with `can_veto=`, `shutdown=`,
+`handler=`) and `route=finishQuit` (`deferred-tool-closing`, `quit-via-retry-timer`: a tool tab's close was under way) and
+`route=confirmAndQuit` (every quit route: File > Quit, Ctrl-Q,
 `menu exit`, the close handler; `quit_confirmed=`, `asking=`), each with
 `tab="<tab in front>"` and `outcome=` (`asked-and-accepted`, `refused`,
 `vetoed`, `quit-without-asking(...)`). A close that quits without the
