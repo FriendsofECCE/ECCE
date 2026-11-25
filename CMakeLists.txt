@@ -381,7 +381,7 @@ if(LIBSSH_FOUND)
   target_compile_definitions(eccercmd PUBLIC ECCE_HAVE_LIBSSH=1)
 else()
   get_target_property(_rcmd_srcs eccercmd SOURCES)
-  list(FILTER _rcmd_srcs EXCLUDE REGEX "/SshTransport\\.C$")
+  list(FILTER _rcmd_srcs EXCLUDE REGEX "/(SshTransport|SshMaster)\\.C$")
   set_property(TARGET eccercmd PROPERTY SOURCES ${_rcmd_srcs})
 endif()
 # --- src/inv -> libecceinv.a + libeccemoiv.a (libeccewxinv.a needs wx, TODO) ---
@@ -748,6 +748,14 @@ endif()
 # The server half of "ecce -admin" on a -remote client (SiteRequest).
 add_executable(ecce-site-admin src/apps/siteadmin/ecce-site-admin.C)
 target_link_libraries(ecce-site-admin PRIVATE eccetdat ecceutil)
+# ECCE's connection master for the built-in ssh client (#1284).
+if(LIBSSH_FOUND)
+  add_executable(eccesshmaster src/apps/sshmaster/eccesshmaster.C)
+  target_include_directories(eccesshmaster PRIVATE ${XercesC_INCLUDE_DIRS})
+  target_link_libraries(eccesshmaster PRIVATE
+    eccercmd eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil
+    ${XercesC_LIBRARIES})
+endif()
 add_executable(eccejobstore src/apps/jobstore/eccejobstore.C)
 target_include_directories(eccejobstore PRIVATE ${XercesC_INCLUDE_DIRS})
 target_link_libraries(eccejobstore PRIVATE
@@ -1360,6 +1368,9 @@ set(ECCE_CLI_APPS
   load_tgbs ecmd eccejobmaster eccejobstore ecce-localdata ecce-launch ecce-rerun ecce-terminate ecce-annotate ecce-move ecce-rename ecce-copy ecce-mkdir ecce-workflow ecce-series ecce-batch-smiles ecce-site-screen ecce-reconnect ecce-reparse ecce-fetch ecce-site-admin mocomp ecce-thermo ecce-force-compare ecce-density-field ecce-pdbqt
   autosym autosym_cpp getfrag getfrag_cpp genmol genmol_cpp genmollat genmollat_cpp
   cleansym cleansym_cpp symops symops_cpp mdanalysis)
+if(LIBSSH_FOUND)
+  list(APPEND ECCE_CLI_APPS eccesshmaster)
+endif()
 if(NOT WIN32)
   list(APPEND ECCE_CLI_APPS ecce-flock)
 endif()

@@ -135,3 +135,4 @@ what the deployment mode needs (GETTING_STARTED, "Deployment modes"):
 - [An app test whose output pipe is not read freezes the app after 64 KiB of log](app-test-pipe-blocks-after-64k.md)
 - [Tab identity and cycling (#1256)](tab-identity-and-cycling.md) — tooltips/Window menu paths from the poll context; Ctrl+Tab via the key hook
 - [A WxFeedback message with flush greys every window, the whole main frame in one-process mode (#1266)](feedback-flush-greys-the-window.md)
+- [eccesshmaster: one libssh login per route, shared with job stores as separate programs (#1284)](libssh-connection-master-1284.md)

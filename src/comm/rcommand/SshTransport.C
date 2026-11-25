@@ -28,11 +28,15 @@
 #include <netinet/tcp.h>
 #endif
 #include <unistd.h>
+#ifndef _WIN32
+#include <poll.h>
+#endif
 
 #include <libssh/libssh.h>
 #include <libssh/server.h>   // ssh_send_keepalive
 #include <libssh/sftp.h>
 #include "util/PipeCloexec.H"
+#include "comm/SshMaster.H"
 
 namespace {
 
@@ -183,7 +187,7 @@ SshTransport::SshTransport(const std::string& host, int port,
   : p_host(host), p_user(user), p_port(port), p_useConfig(true),
     p_connectTimeout(15), p_passwordAttempts(1), p_jumpPort(0),
     p_feMode(FE_AUTO), p_nested(false), p_forwardWorked(false), p_authFailed(false), p_link(0),
-    p_session(0), p_lent(false), p_sftp(0)
+    p_session(0), p_lent(false), p_sftp(0), p_masterCtl(0)
 {
   const char* e = getenv("ECCE_SSH_FRONTEND");
   if (e && !strcmp(e, "forward")) p_feMode = FE_FORWARD;
@@ -202,6 +206,8 @@ SshTransport::~SshTransport() { disconnect(); }
 
 void SshTransport::disconnect()
 {
+  delete p_masterCtl;
+  p_masterCtl = 0;
   if (p_sftp) { sftp_free(p_sftp); p_sftp = 0; }
   if (p_session) {
     ssh_disconnect(p_session);
@@ -214,6 +220,19 @@ void SshTransport::disconnect()
 bool SshTransport::connect(std::string& error)
 {
   disconnect();
+  if (!p_masterEp.empty()) {
+    // Through ECCE's connection master: its login, no prompt here.
+    SshMaster::Conn* c = new SshMaster::Conn;
+    std::string line;
+    if (!c->open(p_masterEp, error) || !c->writeAll("HELLO\n") ||
+        !c->readLine(line, 5000) || line.compare(0, 16, "ECCE-SSH-MASTER ") != 0) {
+      if (error.empty()) error = "ECCE's shared login to " + p_host + " did not answer";
+      delete c;
+      return false;
+    }
+    p_masterCtl = c;
+    return true;
+  }
   p_session = newSession(error, &p_link);
   if (!p_session) return false;
   if (p_nested) {
@@ -259,6 +278,12 @@ std::string SshTransport::execLine(const std::string& remoteCmd) const
 struct SshJump {
   SshJump() : appFd(-1) {}
   int appFd;
+};
+
+// A stream served by ECCE's connection master: fd is the connection itself.
+struct MasterStream : RemoteStream {
+  int fd = -1;
+  int id = 0;
 };
 
 namespace {
@@ -884,6 +909,13 @@ TransportResult SshTransport::runImpl(const std::string& script, int timeoutSec,
                                       bool useDir)
 {
   TransportResult res;
+  if (p_masterCtl) {
+    std::string err;
+    std::string envp = envPrefix(err);
+    if (!err.empty()) { res.error = err; return res; }
+    return masterRun("exec 3<&-\n" + envp + (useDir ? withDir(script) : script),
+                     timeoutSec);
+  }
   if (!p_session) { res.error = "not connected"; return res; }
   if (p_lent) { res.error = "busy: a stream is using this login"; return res; }
   std::string err;
@@ -1035,7 +1067,7 @@ bool SshTransport::sftp(std::string& error)
 bool SshTransport::put(const std::string& localPath, const std::string& remotePath,
                        std::string& error)
 {
-  if (p_nested) return nestedPut(localPath, remotePath, error);
+  if (p_nested || p_masterCtl) return nestedPut(localPath, remotePath, error);
   int in = open(localPath.c_str(), O_RDONLY);
   if (in < 0) { error = "cannot read " + localPath + ": " + strerror(errno); return false; }
   struct stat sb;
@@ -1078,7 +1110,7 @@ bool SshTransport::put(const std::string& localPath, const std::string& remotePa
 bool SshTransport::get(const std::string& remotePath, const std::string& localPath,
                        std::string& error)
 {
-  if (p_nested) return nestedGet(remotePath, localPath, error);
+  if (p_nested || p_masterCtl) return nestedGet(remotePath, localPath, error);
   if (!sftp(error)) return false;
   sftp_attributes attr = sftp_stat(p_sftp, remotePath.c_str());
   if (!attr) {
@@ -1230,7 +1262,7 @@ std::string homeRelative(const std::string& p)
 
 int SshTransport::remoteKind(const std::string& remotePath)
 {
-  if (p_nested) {
+  if (p_nested || p_masterCtl) {
     TransportResult r = runImpl("p=" + shPath(remotePath) + "\nif [ -d \"$p\" ]; "
       "then echo 1; elif [ -e \"$p\" ]; then echo 0; else echo -1; fi\n", 30, false);
     if (r.status != 0 || !r.error.empty()) return -2;
@@ -1321,7 +1353,7 @@ static bool putInto(SshTransport* t, sftp_session sf, ssh_session ss,
 bool SshTransport::putTree(const std::string& localPath,
                            const std::string& remotePath, std::string& error)
 {
-  if (p_nested) {
+  if (p_nested || p_masterCtl) {
     std::string target = remotePath;
     if (remoteKind(remotePath) == 1) target = joinPath(target, baseName(localPath));
     return nestedPutInto(localPath, target, error);
@@ -1336,7 +1368,7 @@ bool SshTransport::putTree(const std::string& localPath,
 bool SshTransport::getTree(const std::string& remotePath,
                            const std::string& localPath, std::string& error)
 {
-  if (p_nested) {
+  if (p_nested || p_masterCtl) {
     struct stat nb;
     std::string tgt = localPath;
     if (stat(localPath.c_str(), &nb) == 0 && S_ISDIR(nb.st_mode))
@@ -1579,6 +1611,7 @@ void pump(SshStream* st)
 RemoteStream* SshTransport::openStream(const std::string& script, int& fd,
                                        std::string& error)
 {
+  if (p_masterCtl) return masterStream(script, fd, error);
   std::string err;
   std::string envp = envPrefix(err);
   if (!err.empty()) { error = err; return 0; }
@@ -1633,6 +1666,7 @@ RemoteStream* SshTransport::openStream(const std::string& script, int& fd,
 RemoteStream* SshTransport::openStreamOnLogin(const std::string& script, int& fd,
                                               std::string& error)
 {
+  if (p_masterCtl) return masterStream(script, fd, error);
   if (!p_session) { error = "not connected"; return 0; }
   if (p_lent) { error = "busy: a stream is using this login"; return 0; }
   std::string err;
@@ -1676,6 +1710,14 @@ RemoteStream* SshTransport::openStreamOnLogin(const std::string& script, int& fd
 
 void SshTransport::interruptStream(RemoteStream* rs)
 {
+  if (MasterStream* m = dynamic_cast<MasterStream*>(rs)) {
+    SshMaster::Conn c;
+    std::string err, line;
+    if (c.open(p_masterEp, err) &&
+        c.writeAll("SIGNAL " + std::to_string(m->id) + " INT\n"))
+      c.readLine(line, 5000);
+    return;
+  }
   SshStream* st = static_cast<SshStream*>(rs);
   if (!st) return;
   st->intr = true;
@@ -1684,6 +1726,27 @@ void SshTransport::interruptStream(RemoteStream* rs)
 
 void SshTransport::closeStream(RemoteStream* rs, int graceMs)
 {
+  if (MasterStream* m = dynamic_cast<MasterStream*>(rs)) {
+#ifndef _WIN32
+    // EOF to the script, then what it still says until it ends or graceMs.
+    shutdown(m->fd, SHUT_WR);
+    Clock::time_point until = Clock::now() + std::chrono::milliseconds(graceMs);
+    char b[4096];
+    for (;;) {
+      int left = (int)std::chrono::duration_cast<std::chrono::milliseconds>(
+                   until - Clock::now()).count();
+      if (left <= 0) break;
+      struct pollfd p = { m->fd, POLLIN, 0 };
+      if (poll(&p, 1, left) <= 0) break;
+      if (read(m->fd, b, sizeof b) <= 0) break;
+    }
+#endif
+    // On Windows the master sees the pipe close and gives the script its
+    // own grace before closing the channel.
+    close(m->fd);
+    delete m;
+    return;
+  }
   SshStream* st = static_cast<SshStream*>(rs);
   if (!st) return;
   st->graceMs = graceMs;
@@ -1695,4 +1758,101 @@ void SshTransport::closeStream(RemoteStream* rs, int graceMs)
   close(st->ctl[0]);
   close(st->ctl[1]);
   delete st;
+}
+
+// ---- through ECCE's connection master (SshMaster.H) ----
+
+TransportResult SshTransport::masterRun(const std::string& full, int timeoutSec)
+{
+  TransportResult res;
+  SshMaster::Conn c;
+  std::string err, line;
+  const std::string cmd = "sh -c 'exec 3<&0 </dev/null; . /dev/fd/3'";
+  if (!c.open(p_masterEp, err)) {
+    res.error = "ECCE's shared login to " + p_host + " has ended (" + err + ")";
+    return res;
+  }
+  if (!c.writeAll("RUN " + std::to_string(cmd.size()) + " " +
+                  std::to_string(full.size()) + "\n" + cmd + full) ||
+      !c.readLine(line, 60000)) {
+    res.error = "ECCE's shared login to " + p_host + " did not answer";
+    return res;
+  }
+  if (line.compare(0, 3, "OK ") != 0) {
+    res.error = line.compare(0, 4, "ERR ") == 0 ? line.substr(4) : line;
+    return res;
+  }
+  std::string in;
+  char buf[32768];
+  Clock::time_point deadline = Clock::now() + std::chrono::seconds(timeoutSec);
+  for (;;) {
+    while (in.size() >= 5) {
+      size_t n = ((size_t)(unsigned char)in[1] << 24) | ((size_t)(unsigned char)in[2] << 16) |
+                 ((size_t)(unsigned char)in[3] << 8) | (size_t)(unsigned char)in[4];
+      if (in.size() < 5 + n) break;
+      const char type = in[0];
+      std::string data = in.substr(5, n);
+      in.erase(0, 5 + n);
+      if (type == 'O') res.out += data;
+      else if (type == 'E') res.err += data;
+      else if (type == 'F') { res.error = data; return res; }
+      else if (type == 'X') {
+        res.status = -1;
+        if (data.compare(0, 4, "sig:") == 0) {
+          static const struct { const char* n; int v; } sigs[] = {
+            {"HUP", 1}, {"INT", 2}, {"QUIT", 3}, {"ABRT", 6}, {"KILL", 9},
+            {"SEGV", 11}, {"PIPE", 13}, {"ALRM", 14}, {"TERM", 15}};
+          for (size_t k = 0; k < sizeof sigs / sizeof sigs[0]; k++)
+            if (data.substr(4) == sigs[k].n) res.status = 128 + sigs[k].v;
+        } else {
+          res.status = atoi(data.c_str());
+        }
+        return res;
+      }
+    }
+    int got = c.readSome(buf, sizeof buf, 200);
+    if (got < 0) {
+      res.error = "connection error: ECCE's shared login to " + p_host + " ended";
+      return res;
+    }
+    if (got > 0) {
+      in.append(buf, got);
+      if (timeoutSec > 0) deadline = Clock::now() + std::chrono::seconds(timeoutSec);
+    } else if (timeoutSec > 0 && Clock::now() >= deadline) {
+      // Closing the connection makes the master close the channel.
+      res.timedOut = true;
+      res.error = "timed out after " + std::to_string(timeoutSec) + " s";
+      return res;
+    }
+  }
+}
+
+RemoteStream* SshTransport::masterStream(const std::string& script, int& fd,
+                                         std::string& error)
+{
+  std::string err;
+  std::string envp = envPrefix(err);
+  if (!err.empty()) { error = err; return 0; }
+  const std::string cmd = kStreamExec;
+  SshMaster::Conn c;
+  std::string line;
+  if (!c.open(p_masterEp, error)) {
+    error = "ECCE's shared login to " + p_host + " has ended (" + error + ")";
+    return 0;
+  }
+  if (!c.writeAll("STREAM " + std::to_string(cmd.size()) + "\n" + cmd +
+                  oneLine(envp + withDir(script))) ||
+      !c.readLine(line, 60000)) {
+    error = "ECCE's shared login to " + p_host + " did not answer";
+    return 0;
+  }
+  if (line.compare(0, 3, "OK ") != 0) {
+    error = line.compare(0, 4, "ERR ") == 0 ? line.substr(4) : line;
+    return 0;
+  }
+  MasterStream* m = new MasterStream;
+  m->id = atoi(line.c_str() + 3);
+  m->fd = c.releaseFd();
+  fd = m->fd;
+  return m;
 }
