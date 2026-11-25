@@ -48,6 +48,9 @@
 #include "util/MqttLink.H"
 #include "util/WindowLayout.H"
 #include "dsm/EDSIServerCentral.H"
+#include "dsm/EDSIFactory.H"
+#include "dsm/ICalculation.H"
+#include "wxgui/WxState.H"
 #include "wxgui/InProcessTools.H"
 #include "wxgui/ToolTabs.H"
 #include "wx/splitter.h"
@@ -74,6 +77,11 @@ struct Tab {
   std::string key;        // its WindowLayout row
   ToolTabs::SideFn side;  // fills the page's detail area (Set-up tab)
   bool pinned = false;    // the main tab: no close cross, never released
+  // A calculation's Editor or Viewer tab: its run state, drawn in place of
+  // the role dot.
+  bool hasState = false;
+  ResourceDescriptor::RUNSTATE state = ResourceDescriptor::STATE_ILLEGAL;
+  wxBitmap stateIcon;
 };
 
 // wx 3.3 measures tabs on a wxReadOnlyDC.
@@ -234,6 +242,33 @@ int tabKeyStep(const wxKeyEvent& ev)
   if (ev.CmdDown() && ev.ShiftDown() && (k == '[' || k == '{')) return -1;
 #endif
   return 0;
+}
+
+// An Editor or Viewer tab with a calculation shows that calculation's run
+// state (shape and colour of the Organizer's state column) instead of the
+// role dot, so a launched or finished calculation does not read as "green".
+void refreshState(Tab& t)
+{
+  const bool before = t.hasState;
+  const ResourceDescriptor::RUNSTATE old = t.state;
+  t.hasState = false;
+  if (t.tool && !t.pinned) {
+    const wxString title = t.tool->GetTitle();
+    std::string ctx = InProcessTools::context(t.tool);
+    if ((title.Contains("Editor") || title.Contains("Viewer")) &&
+        (ctx.find("http") == 0 || ctx.find("file://") == 0)) {
+      // Pool resources are shared and owned by the factory.
+      ICalculation *calc = dynamic_cast<ICalculation*>(
+          EDSIFactory::getResource(EcceURL(ctx)));
+      if (calc) {
+        t.hasState = true;
+        t.state = calc->getState();
+      }
+    }
+  }
+  if (t.hasState && (!before || old != t.state || !t.stateIcon.IsOk()))
+    t.stateIcon =
+        WxState::alphaBitmap(t.state, wxWindow::FromDIP(12, s_book));
 }
 
 wxColour dotFor(const wxString& title)
@@ -698,8 +733,13 @@ public:
 
     int cy = r.y + r.height / 2;
     dc.SetPen(*wxTRANSPARENT_PEN);
-    dc.SetBrush(wxBrush(t && t->dot.IsOk() ? t->dot : dotFor(page.caption)));
-    dc.DrawCircle(r.x + 14 + 5, cy, 5);
+    if (t && t->hasState && t->stateIcon.IsOk()) {
+      const wxSize d = t->stateIcon.GetSize();
+      dc.DrawBitmap(t->stateIcon, r.x + 14 + 5 - d.x / 2, cy - d.y / 2, true);
+    } else {
+      dc.SetBrush(wxBrush(t && t->dot.IsOk() ? t->dot : dotFor(page.caption)));
+      dc.DrawCircle(r.x + 14 + 5, cy, 5);
+    }
 
     int tx = r.x + 14 + 10 + 8;
     int right = r.GetRight() - 12 - (closeState != wxAUI_BUTTON_STATE_HIDDEN ? 20 : 0);
@@ -1323,6 +1363,14 @@ void ToolTabs::setTitle(wxTopLevelWindow *tool, const wxString& title)
 }
 
 
+void ToolTabs::refreshStates()
+{
+  if (!s_book) return;
+  for (Tab& t : tabs()) refreshState(t);
+  s_book->Refresh();
+}
+
+
 void ToolTabs::contextChanged()
 {
   static bool pending = false;
@@ -1330,6 +1378,7 @@ void ToolTabs::contextChanged()
   pending = true;
   s_hostFrame->CallAfter([]() {
     pending = false;
+    ToolTabs::refreshStates();
     refreshTabTips();
     if (s_hostFrame) fillWindowMenu(s_hostFrame->wxFrame::GetMenuBar());
   });
@@ -1598,11 +1647,17 @@ bool ToolTabs::testCommand(const wxString& cmd, const wxString& arg,
   if (cmd == "tabs") {
     outcome = describe();
     if (arg == "dots" && s_book) {
+      refreshStates();
       outcome += " dots=";
       for (size_t i = 0; i < s_book->GetPageCount(); i++) {
         Tab *t = findPage(s_book->GetPage(i));
-        if (t) outcome += wxString::Format("%d:%s ", (int)i,
-                         t->dot.GetAsString(wxC2S_HTML_SYNTAX));
+        if (!t) continue;
+        if (t->hasState)
+          outcome += wxString::Format("%d:state:%s ", (int)i,
+              wxString::FromUTF8(WxState::getName(t->state).c_str()));
+        else
+          outcome += wxString::Format("%d:role:%s ", (int)i,
+              t->dot.GetAsString(wxC2S_HTML_SYNTAX));
       }
     }
   } else if (cmd == "livecount") {

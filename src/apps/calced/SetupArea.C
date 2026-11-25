@@ -8,6 +8,7 @@
 
 #include "wx/wx.h"
 #include "wx/statline.h"
+#include "wx/tglbtn.h"
 
 #include "dsm/ICalculation.H"
 #include "dsm/JCode.H"
@@ -112,18 +113,20 @@ SetupArea::SetupArea(wxWindow *parent, CalcEd *editor)
   p_title->SetFont(bold);
   head->Add(p_fold, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 6);
   head->Add(p_title, 1, wxALIGN_CENTER_VERTICAL);
+  // The input and output views share one two-way switch in place of the
+  // title; any other view (details, basis, launch) shows its title again.
+  p_inBtn = new wxToggleButton(this, wxID_ANY, "Input file");
+  p_outBtn = new wxToggleButton(this, wxID_ANY, "Output file");
+  p_inBtn->SetToolTip("The input file as Save writes it");
+  p_outBtn->SetToolTip("The job's output file");
+  p_inBtn->Bind(wxEVT_TOGGLEBUTTON, [this](wxCommandEvent&) { showInput(); });
+  p_outBtn->Bind(wxEVT_TOGGLEBUTTON, [this](wxCommandEvent&) { showOutput(); });
+  head->Add(p_inBtn, 0, wxALIGN_CENTER_VERTICAL);
+  head->Add(p_outBtn, 0, wxALIGN_CENTER_VERTICAL);
+  p_headSpacer = head->AddStretchSpacer(1);
   p_openEditor = new wxButton(this, wxID_ANY, "Open in editor");
-  p_openEditor->SetToolTip("Show the whole output file in the external text editor");
-  p_openEditor->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
-    ICalculation *calc = p_ed->p_iCalc;
-    istream *is = calc ? calc->getDataFile(JCode::PRIMARY_OUTPUT) : 0;
-    if (!is) return;
-    string text;
-    StringConverter::streamToText(*is, text);
-    delete is;
-    WxEditSessionMgr sessionMgr;
-    sessionMgr.edit(text, "output", p_ed, true, "Calculation Output");
-  });
+  p_openEditor->SetToolTip("Show the whole file in the external text editor");
+  p_openEditor->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { openInEditor(); });
   p_openEditor->Hide();
   head->Add(p_openEditor, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, 6);
   top->Add(head, 0, wxEXPAND | wxALL, 6);
@@ -147,11 +150,15 @@ SetupArea::SetupArea(wxWindow *parent, CalcEd *editor)
   // The preview follows unsaved changes, 500 ms after the last one.
   p_timer = new wxTimer(this);
   Bind(wxEVT_TIMER, [this](wxTimerEvent&) { dryRun(); }, p_timer->GetId());
+  p_switchTimer = new wxTimer(this);
+  Bind(wxEVT_TIMER, [this](wxTimerEvent&) {
+    if (p_kind == LAUNCH && submitted()) showOutput();
+  }, p_switchTimer->GetId());
   p_outTimer = new wxTimer(this);
   Bind(wxEVT_TIMER, [this](wxTimerEvent&) {
     if (p_kind != OUTPUT || !loadOutput(false)) p_outTimer->Stop();
   }, p_outTimer->GetId());
-  showInput();
+  showDefault();
 }
 
 
@@ -160,6 +167,7 @@ SetupArea::~SetupArea()
   p_timer->Stop();
   delete p_timer;
   drop();
+  delete p_switchTimer;
   delete p_outTimer;
 }
 
@@ -168,6 +176,7 @@ void SetupArea::drop()
 {
   p_outTimer->Stop();
   p_openEditor->Hide();
+  if (p_launch) p_lastGreyed = p_launch->get("greyed");
   p_launch.reset();
   if (p_basisPanel) {
     p_basisPanel->Destroy();
@@ -181,8 +190,62 @@ void SetupArea::drop()
 }
 
 
+bool SetupArea::submitted() const
+{
+  return p_ed->p_iCalc &&
+         p_ed->p_iCalc->getState() >= ResourceDescriptor::STATE_SUBMITTED;
+}
+
+
+void SetupArea::showDefault()
+{
+  if (submitted()) showOutput();
+  else showInput();
+}
+
+
+// The calculation was (or was no longer) submitted: a launch opens the
+// output once, and a reset gives the choice of views back.
+void SetupArea::submittedChanged(bool on)
+{
+  if (!on) { p_autoOutput = false; return; }
+  if (p_autoOutput) return;
+  p_autoOutput = true;
+  if (p_kind == INPUT) showOutput();
+}
+
+
+void SetupArea::openInEditor()
+{
+  if (p_kind != INPUT && p_kind != OUTPUT) return;
+  string text;
+  if (p_kind == OUTPUT) {
+    ICalculation *calc = p_ed->p_iCalc;
+    istream *is = calc ? calc->getDataFile(JCode::PRIMARY_OUTPUT) : 0;
+    if (!is) return;
+    StringConverter::streamToText(*is, text);
+    delete is;
+  } else {
+    text = previewText();
+  }
+  WxEditSessionMgr sessionMgr;
+  sessionMgr.edit(text, p_kind == OUTPUT ? "output" : "input", p_ed, true,
+                  p_kind == OUTPUT ? "Calculation Output" : "Input File");
+}
+
+
 void SetupArea::mark()
 {
+  const bool files = p_kind == INPUT || p_kind == OUTPUT;
+  p_title->Show(!files);
+  p_inBtn->Show(files);
+  p_outBtn->Show(files);
+  p_inBtn->SetValue(p_kind == INPUT);
+  p_outBtn->SetValue(p_kind == OUTPUT);
+  p_openEditor->Show(files);
+  if (p_headSpacer) p_headSpacer->Show(files);
+  Layout();
+
   // The button whose details fill the area stays marked.
   struct B { long id; Kind k; } bs[] = {
     {CalcEd::ID_BUTTON_CALCED_THEORY, THEORY},
@@ -225,7 +288,7 @@ bool SetupArea::showDetails(Kind kind, const string& cmd)
   e->transport.reset(new EditorTransport(p_ed, kind == THEORY));
   e->host = new wxPanel(p_body, wxID_ANY);
   details::DetailsPanel *panel = new details::DetailsPanel(e->host,
-      *e->model, [this]() { CallAfter([this]() { showInput(); }); });
+      *e->model, [this]() { CallAfter([this]() { showDefault(); }); });
   e->model->attach(e->transport.get(), panel);
   e->panel = panel;
   p_body->GetSizer()->Add(e->host, 1, wxEXPAND);
@@ -284,19 +347,25 @@ void SetupArea::showBasis()
 
 bool SetupArea::showLaunch()
 {
+  if (submitted()) return false;   // the Launch panel is offered once
   fold(false);   // a view asked for is shown
   if (!LaunchEmbed::maker()) return false;
   if (p_kind == LAUNCH && p_launch) return true;
   drop();
   p_input->Hide();
   p_launch.reset(LaunchEmbed::maker()(p_body, p_ed->getContext(),
-      [this]() { CallAfter([this]() { showInput(); }); },
+      [this]() { CallAfter([this]() { showDefault(); }); },
       [this]() { if (p_launch) { Layout(); p_body->Layout(); fitBody(); } },
       [this](const string& text, int sev) {
         WxFeedback *fb = p_ed->getFeedback();
         if (!fb) return;
         //  No flush: it is wxSafeYield, which greys the whole window for
         //  each launch log line (#1266); the launch loop's yield draws it.
+        // After the submit the panel is left, once its launch loop (which
+        // yields) has gone quiet: it must not be destroyed under it.
+        if (text.find("Successfully submitted") != string::npos ||
+            p_switchTimer->IsRunning())
+          p_switchTimer->StartOnce(1500);
         if (text.empty()) fb->clearMessage();
         else fb->setMessage(text, (WxFeedback::Severity)sev, false, false);
       }));
@@ -326,7 +395,10 @@ bool SetupArea::showLaunch()
 
 string SetupArea::launchGet(const string& what)
 {
-  return p_launch ? p_launch->get(what) : "";
+  if (p_launch) return p_launch->get(what);
+  // The panel has been left after the launch: what it last said about
+  // the editor being greyed out.
+  return what == "greyed" ? p_lastGreyed : "";
 }
 
 
@@ -494,7 +566,7 @@ bool SetupArea::setValue(const string& name, const string& value)
 
 void SetupArea::closeDetails(Kind kind)
 {
-  if (p_kind == kind && p_emb) showInput();
+  if (p_kind == kind && p_emb) showDefault();
 }
 
 
@@ -552,7 +624,6 @@ void SetupArea::showOutput()
   p_input->Show();
   fitBody();
   p_title->SetLabel("Output file");
-  p_openEditor->Show();
   p_input->ChangeValue("");
   if (loadOutput(true)) p_outTimer->Start(5000);
   mark();

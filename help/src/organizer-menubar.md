@@ -412,11 +412,20 @@ greyed out.
   the button becomes **Launch anyway**; nothing blocks the launch. Close it
   from the Launcher's own menu or by choosing Theory, Runtype or Basis Set
   Details again. Once the job is submitted, the editor's **Launch...** is
-  off (Run Mgmt > Reset for Rerun allows a new launch) and a row under it
-  has **Viewer**, which opens the calculation's Viewer (the job's progress
-  and, when it ends, its results), and **Output**, which shows the job's
-  output file in the area on the right. It follows a running job;
-  **Open in editor** shows the file in your text editor.
+  off, the Launch panel is not offered again, and the fields stay as they were
+  (greyed). Under the buttons a **Results** box appears. It has the Viewer
+  icon at the left, which opens the calculation's Viewer (the job's progress
+  and, when it ends, its results). At the right it has **Terminate...** while
+  the job is submitted or running, and, once it has ended, **Duplicate**
+  (with Continue from Last Geometry and Continue from Final Orbitals, as in
+  the Organizer) and **Reset for Rerun...**, which asks before it removes the
+  outputs. The area on the right has an **Input file | Output file** switch
+  in place of its title. After a launch it opens on **Output file**, at the
+  end, and follows a running job. **Open in editor** shows the file that is
+  on display in your text editor. The tab of the editor and the tab of the
+  calculation's Viewer show the calculation's run-state icon in place of the
+  coloured dot; the Organizer, a Builder without a calculation and the other
+  tools keep their dots.
 
 A change applies to tools opened afterwards. The tab strip is made when the
 Organizer starts: after changing from Wide to a layout with tabs, start

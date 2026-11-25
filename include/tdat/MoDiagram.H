@@ -810,7 +810,8 @@ class MoDiagram
                                  vector<MoLevel>& centre,
                                  const vector<MoLevel>& right,
                                  const vector<MoConnection>& connections,
-                                 vector<string>* pairWarnings = 0);
+                                 vector<string>* pairWarnings = 0,
+                                 bool overlapClassified = false);
 
     /**
      * Fill a fragment column's electrons as whole pairs, in energy order

@@ -4137,7 +4137,8 @@ void MoDiagramPanel::buildOnce()
     }();
     if (centralMainGroup) MoDiagram::fillWholePairs(right.levels);
     MoDiagram::classifyByEnergy(left.levels, centre.levels,
-                                right.levels, links, &pairWarnings);
+                                right.levels, links, &pairWarnings,
+                                useOverlapPopulation || useMetalLigand);
 
     //  SAY WHICH OF THE TWO PLACEMENTS ACTUALLY HAPPENED.
     //

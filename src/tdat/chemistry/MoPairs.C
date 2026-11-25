@@ -111,14 +111,16 @@ static string stripMark(const string& label)
 }
 
 
-void MoPairs::settle(vector<MoLevel>& L, vector<string>* messages)
+void MoPairs::settle(vector<MoLevel>& L, vector<string>* messages, bool overlapClassified)
 {
    for (size_t i = 0; i < L.size(); i++)
       if (L[i].character == MoLevel::MIXED) { L[i].character = MoLevel::NONBONDING; L[i].pairing = -1; }
 
    vector<string> order;
    vector<size_t> lonely;
-   for (size_t i = 0; i < L.size(); i++) {
+   //  One fragment set, classified by overlap population: there is no
+   //  partner structure to test, the sign is the label.
+   for (size_t i = 0; i < L.size() && !overlapClassified; i++) {
       const MoLevel& a = L[i];
       if (a.character != MoLevel::BONDING && a.character != MoLevel::ANTIBONDING) continue;
       bool ok = false;
@@ -149,7 +151,7 @@ void MoPairs::settle(vector<MoLevel>& L, vector<string>* messages)
    //  Demoting one end can orphan the other end of a pair that passed
    //  only because of it; the partners were all tested above against the
    //  original characters, so a second pass is needed for those.
-   for (size_t i = 0; i < L.size(); i++) {
+   for (size_t i = 0; i < L.size() && !overlapClassified; i++) {
       MoLevel& a = L[i];
       if (a.character != MoLevel::BONDING && a.character != MoLevel::ANTIBONDING) continue;
       bool ok = false;

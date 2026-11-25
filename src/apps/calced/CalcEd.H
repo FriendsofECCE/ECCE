@@ -465,9 +465,17 @@ class CalcEd: public CalcEdGUI,
 
     WxFeedback *p_feedback;
     EcceTool   *p_builderTool;
-    // Under the buttons once the job is submitted: Viewer and Output.
-    wxBoxSizer *p_resultsRow = nullptr;
+    // The "Results" box under the buttons once the job is submitted: the
+    // Viewer icon, and Terminate (job live) or Duplicate and Reset (ended).
+    wxStaticBoxSizer *p_resultsRow = nullptr;
+    wxButton *p_terminateBtn = nullptr;
+    wxButton *p_duplicateBtn = nullptr;
+    wxButton *p_rerunBtn = nullptr;
     void showOutput();
+    void updateResultsBox();
+    // terminate | duplicate | duplicate-last | duplicate-orbitals | rerun,
+    // run by the Organizer; answer "yes"/"cancel" or "" to ask.
+    string resultsAction(const string& action, const string& answer);
     EcceTool   *p_basisSetTool;
 
     string                  p_codeName;

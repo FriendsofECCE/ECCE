@@ -48,6 +48,18 @@ public:
   // The calculation URL a tracked window has open (its poll context, else
   // the one it was opened for); empty if none.
   static string context(const wxTopLevelWindow *frame);
+  // What the Organizer does for a calculation on behalf of another tool's
+  // window (the editor's Results box): action is duplicate, duplicate-last,
+  // duplicate-orbitals, rerun or terminate; answer "yes" or "cancel" stands
+  // in for the confirm dialog, "" shows it.  The result is the new
+  // calculation's URL for a duplicate, else ok/cancelled, or a reason.
+  using CalcAction = std::function<string(const string& action,
+                                          const string& url,
+                                          const string& answer)>;
+  static void setCalcAction(CalcAction fn);
+  // "no Organizer in this process" when none is registered.
+  static string calcAction(const string& action, const string& url,
+                           const string& answer);
   // Asks every tool window to close; false if one refused (Organizer Quit).
   static bool closeAll(bool force);
   // A tool's close handler is running (it may yield): a Quit meanwhile
