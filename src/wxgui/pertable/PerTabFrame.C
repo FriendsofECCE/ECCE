@@ -23,6 +23,7 @@ using std::cerr;
 #include "wxgui/ewxMenuBar.H"
 
 #include "wxgui/PerTabFrame.H"
+#include "wxgui/ToolTabs.H"
 
 IMPLEMENT_DYNAMIC_CLASS( PerTabFrame, ewxFrame )
 
@@ -137,6 +138,9 @@ void PerTabFrame::OnCloseWindow( wxCloseEvent& event )
   Preferences prefs("PerTable");
   saveWindowSettings("PerTab", prefs, true);
   prefs.saveFile();
+  // As a tab its windows live in the notebook page: take the page down now,
+  // or the notebook activates the tab of a frame that is gone.
+  ToolTabs::release(this, false);
   Destroy();
 }
 
