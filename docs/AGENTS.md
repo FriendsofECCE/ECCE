@@ -510,6 +510,10 @@ modal loop greys it whole when tools are tabs); `greywatch` answers the
 count, or `off`. `tests/apps/one_process_test.py --launcher-only` checks
 that opening the editor leaves it at 0.
 
+The tabbed part of `one_process_test.py` (`ECCE_TABS_ONLY=1`) runs as six
+ctests, `apps_organizer_one_process_tabs1`..`6`, each under 30 min;
+`ECCE_TABS_PART=N` runs group N alone and each step prints `time <step> N s`.
+
 Desk (#1237, `ECCE_TEST_ORGANIZER`): `desk` answers `desk WxH shown=0|1
 splitter=WxH sel=<tool-tab notebook selection or none> pages=N chain=<classes up
 to the top level, "(hidden)" after a hidden one>`. After a tool tab closes it

@@ -3800,21 +3800,22 @@ if(PYTHON3_EXECUTABLE)
                        SKIP_RETURN_CODE 77)
   # Builder and Calculation Editor as windows of the Organizer's process,
   # ECCE_ONE_PROCESS=1 (#983).
-  # Two ctests so each part stays inside the per-test budget: the tabbed
-  # window (layouts, tabs, tools) and the core start/Quit checks.
-  add_test(NAME apps_organizer_one_process
-           COMMAND ${CMAKE_COMMAND} -E env ECCE_TABS_ONLY=1
-                   ${PYTHON3_EXECUTABLE}
-                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/one_process_test.py
-           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  # The tabbed window (layouts, tabs, tools) in six ctests of under 30 min
+  # each (ECCE_TABS_PART, #1253) and the core start/Quit checks.
+  foreach(part 1 2 3 4 5 6)
+    add_test(NAME apps_organizer_one_process_tabs${part}
+             COMMAND ${CMAKE_COMMAND} -E env ECCE_TABS_ONLY=1 ECCE_TABS_PART=${part}
+                     ${PYTHON3_EXECUTABLE}
+                     ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/one_process_test.py
+             WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+    set_tests_properties(apps_organizer_one_process_tabs${part} PROPERTIES
+                         TIMEOUT 1800 SKIP_RETURN_CODE 77)
+  endforeach()
   add_test(NAME apps_organizer_one_process_core
            COMMAND ${CMAKE_COMMAND} -E env ECCE_CORE_ONLY=1
                    ${PYTHON3_EXECUTABLE}
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/one_process_test.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
-  # The tabbed part runs ~74 min on the offload hosts (#1253).
-  set_tests_properties(apps_organizer_one_process PROPERTIES TIMEOUT 6000
-                       SKIP_RETURN_CODE 77)
   set_tests_properties(apps_organizer_one_process_core PROPERTIES TIMEOUT 3300
                        SKIP_RETURN_CODE 77)
   # The basis panel's contraction editor and exponents view (#1063).
