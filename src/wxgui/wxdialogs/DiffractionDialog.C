@@ -1180,7 +1180,7 @@ void DiffractionView::onPattern(int mode)
   p_panel->Show(!p_powder);
   p_plot->Show(p_powder);
   p_experimental->Enable(p_powder || mode == 0);
-  p_options->SetTitle("Diffraction options: " + p_view->GetStringSelection());
+  p_options->SetTitle("Diffraction options: " + p_view->GetString(p_view->GetSelection()));
   p_left->Layout();
   p_leftWin->FitInside();
   if (p_options->IsShown()) showOptions();

@@ -165,6 +165,8 @@ void refreshTabTips()
   }
 }
 
+int s_tabSelects = 0;   // selections made by stepping (tests)
+
 void selectIndex(int idx)
 {
   if (!s_book || idx < 0 || idx >= (int)s_book->GetPageCount()) return;
@@ -173,8 +175,6 @@ void selectIndex(int idx)
   if (t && t->tool) ToolTabs::select(t->tool);
   else s_book->SetSelection(idx);
 }
-
-int s_tabSelects = 0;   // selections made by stepping (tests)
 
 // One step through the tabs, wrapping around.  A key may arrive both as the
 // menu accelerator and through the key hook: a second step in the same
