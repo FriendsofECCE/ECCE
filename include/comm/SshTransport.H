@@ -11,6 +11,7 @@ struct SshJump;
 
 struct ssh_session_struct;
 struct sftp_session_struct;
+namespace SshMaster { class Conn; }
 
 // Runs scripts on a remote host over libssh: one exec channel per run(),
 // the script delivered as data on the channel's stdin, SFTP for files.
@@ -71,7 +72,16 @@ public:
   // keyboard-interactive, then password).
   virtual bool connect(std::string& error);
   virtual void disconnect();
-  virtual bool connected() const { return p_session != 0; }
+  virtual bool connected() const { return p_session != 0 || p_masterCtl != 0; }
+
+  // Set before connect(): every channel then comes from ECCE's connection
+  // master at ep (SshMaster.H) instead of a login of this process's own.
+  void setMasterEndpoint(const std::string& ep) { p_masterEp = ep; }
+  bool viaMaster() const { return p_masterCtl != 0; }
+  const std::string& masterEndpoint() const { return p_masterEp; }
+  // For eccesshmaster, which serves channels on this login.
+  ssh_session_struct* sessionForMaster() const { return p_session; }
+  std::string execLineForMaster(const std::string& cmd) const { return execLine(cmd); }
 
   virtual TransportResult run(const std::string& script, int timeoutSec = -1);
   virtual long spawnDetached(const std::string& script, std::string& error,
@@ -142,6 +152,8 @@ private:
                      std::string& error);
   bool sftp(std::string& error);
   std::string envPrefix(std::string& error) const;
+  TransportResult masterRun(const std::string& full, int timeoutSec);
+  RemoteStream* masterStream(const std::string& script, int& fd, std::string& error);
 
   std::string p_host, p_user;
   int p_port;
@@ -159,6 +171,8 @@ private:
   ssh_session_struct* p_session;
   bool p_lent;   // p_session belongs to an openStreamOnLogin() stream
   sftp_session_struct* p_sftp;
+  std::string p_masterEp;
+  SshMaster::Conn* p_masterCtl;
 };
 
 #endif

@@ -15,6 +15,6 @@ podman run --rm --network host -v "$root:/src:Z" -v "$state:/state:Z,ro" \
   -e N="${1:-1}" localhost/ecce-sshdev bash -c '
   set -e
   g++ -std=c++17 -Wall -Wextra -O1 -I/src/include -o /tmp/testSsh \
-    /src/tests/transport/testSshTransport.C /src/src/comm/rcommand/SshTransport.C \
+    /src/tests/transport/testSshTransport.C /src/src/comm/rcommand/SshTransport.C /src/src/comm/rcommand/SshMaster.C \
     /src/src/comm/rcommand/Transport.C -lssh
   for i in $(seq $N); do /tmp/testSsh /state/id_ed25519; done'

@@ -928,7 +928,8 @@ bool Launch::validateRemoteLogin(void)
                                   p_cache->remoteShell, locShell,
                                   p_cache->userName, password,
                                   frontendMachine, frontendBypass,
-                                  shellPath, libPath, sourceFile);
+                                  shellPath, libPath, sourceFile, 0,
+                                  p_cache->frontendFlag);
 
   } else {
     p_lastMessage = p_cache->machineName;
@@ -940,6 +941,17 @@ bool Launch::validateRemoteLogin(void)
     ret = p_connection->isOpen();
     if (!ret)
       p_lastMessage = p_connection->commError();
+#ifdef _WIN32
+    // Without fork() the job store can only share this login through
+    // eccesshmaster: say so now, before anything is submitted.
+    else if (p_cache->frontendFlag && p_connection->sshBackend() == "libssh" &&
+             !p_connection->sharedLogin()) {
+      ret = false;
+      p_lastMessage = "This machine is registered for a single connection or "
+        "a front end, which needs ECCE's shared login (eccesshmaster), and it "
+        "could not be started: " + p_connection->sharedLoginError();
+    }
+#endif
     else
       // The status area shows how the connection was made, so a
       // transport problem can be told apart without reading a trace.
@@ -2662,12 +2674,14 @@ bool Launch::startJobStore(const string& importDir)
   p_storeStarted = true;
   if (!p_storePrepared) prepareJobStore();
 
-  // A single login (single-connection or front-end machine) can only be
-  // handed on by fork(), except over OpenSSH, where ECCE's control master
-  // lets a fresh eccejobmaster reuse it, restarts included. The forked
-  // child opens its own broker connection (MqttLink::reclaimAfterFork).
-  // Windows has no fork(): #1284.
-  const bool useInheritedConnection = p_cache->frontendFlag &&
+  // A single login (single-connection or front-end machine) is shared with
+  // a fresh eccejobmaster through ECCE's OpenSSH control master or, on the
+  // built-in client, through eccesshmaster.  Only when neither is up is it
+  // handed on by fork() (not on Windows, where validateRemoteLogin refused
+  // it); the forked child opens its own broker connection
+  // (MqttLink::reclaimAfterFork).
+  const bool shared = p_connection && p_connection->sharedLogin();
+  const bool useInheritedConnection = p_cache->frontendFlag && !shared &&
       (!p_connection || p_connection->sshBackend() != "openssh");
 
   if (useInheritedConnection) {
@@ -2695,6 +2709,10 @@ bool Launch::startJobStore(const string& importDir)
         ret = true;
     }
   } else {
+    // The job store uses the master's login and never logs in itself; when
+    // the master is gone it says so, and Reconnect logs in again.
+    const string envPrefix = shared ? "ECCE_SSH_MASTER_REQUIRE=" +
+      RCommand::quotePath(p_connection->sharedLoginEndpoint()) + " " : "";
     // nohup added to fix to sh/bash shell issue with exitting ECCE
     string clientCmd = "nohup " + Ecce::ecceBinCommand("eccejobmaster") + " ";
 
@@ -2793,12 +2811,13 @@ bool Launch::startJobStore(const string& importDir)
       if (progEnd == string::npos) progEnd = cmd.size();
       for (size_t i = 0; i < progEnd; i++)
         if (cmd[i] == '\\') cmd[i] = '/';
+      cmd = envPrefix + cmd;
       string out;
       if (!p_localconn || !p_localconn->execbg(cmd, out, ""))
         status = 1;
     }
 #else
-    int status = system((char*)clientCmd.c_str());
+    int status = system((envPrefix + clientCmd).c_str());
 #endif
     if (status<<8 != 0) {
       ret = false;

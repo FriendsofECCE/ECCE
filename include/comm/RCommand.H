@@ -64,7 +64,7 @@ public:
              const string& password="", const string& frontendMachine="",
              const string& frontendBypass="", const string& shellPath="",
              const string& libPath="", const string& sourceFile="",
-             int port = 0);
+             int port = 0, bool shareLogin = false);
 
   // Destructor
     ~RCommand(void);
@@ -97,6 +97,19 @@ public:
     // "libssh" or "openssh" when an ssh transport serves this connection
     // (OpenSSH for hosts whose ssh config shares connections), else "".
     string sshBackend() const;
+    // True when the built-in ssh client reaches this machine through ECCE's
+    // connection master (eccesshmaster, #1284): one login shared with every
+    // ECCE program on this route.  shareLogin in the constructor starts one
+    // when none is up; any libssh connection uses one that is.
+    bool sharedLogin() const;
+    string sharedLoginEndpoint() const;
+    // Why a requested master could not be started ("" if it was, or none
+    // was asked for).
+    const string& sharedLoginError() const { return p_sharedLoginError; }
+#ifdef ECCE_HAVE_LIBSSH
+    // The libssh transport, for eccesshmaster; 0 for any other.
+    class SshTransport* libsshTransport();
+#endif
     // ssh options that let another OpenSSH client (a terminal) reuse this
     // connection's shared login; empty when there is none to add.
     vector<string> terminalSshOptions() const;
@@ -284,6 +297,8 @@ private:
     bool p_loginRefused = false;
     bool p_loginUnreachable = false;
     bool p_timedOut = false;
+    bool p_shareLogin = false;
+    string p_sharedLoginError;
     Transport* p_transport;  // null until a connection is made
     bool p_ssh;              // the Transport is a RemoteTransport
     string p_scriptPrefix;   // PATH/LD_LIBRARY_PATH setup for every script
@@ -293,7 +308,11 @@ private:
     bool sshConnect(const string& machine, const string& userName,
                     const string& password, const string& jumpHost = "");
     bool sshConnectLibssh(const string& machine, const string& userName,
-                          const string& password, const string& jumpHost);
+                          const string& password, const string& jumpHost,
+                          const string& masterEndpoint = "");
+    bool startSshMaster(const string& ep, const string& machine,
+                        const string& userName, const string& password,
+                        const string& jumpHost);
     bool sshConnectOpenssh(const string& machine, const string& userName,
                            const string& jumpHost, const string& password,
                            bool* tryLibssh = 0);
