@@ -72,6 +72,9 @@ out.
 - W3.2: the Periodic Builder's Centre lattice box has no hook.
 - W4.2: the structure picture on the Builder button is timed, not judged.
 - W5.2: dragging a tab out needs a real mouse (`towindow`/`totabs` is used).
+- W2.4c: the Builder's edits are unsaved, so closing must ask (#1307/#1308) and
+  the step fails if it did not, or if there was no Builder tab. W1.2 and W5.4
+  close a Builder that was only opened, and must NOT ask.
 - W5.3: the pointer moving over the Window menu's items (#1239) has no hook.
 - W6.2: a Slurm submit needs a real cluster; W6 uses a copy of a finished
   calculation in an SSH folder reached through the fake ssh.

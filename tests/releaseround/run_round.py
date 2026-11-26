@@ -517,8 +517,11 @@ class Round(object):
                      all(": ok" in o or "BNZ" in o for o in ligs),
                      "ligands=%s; %s; %s" % (cands[:2], ligs, lig_lines[-1:]))
             asked, tabs = org.closeTab("Builder")
-            step("W2.4c", "PASS" if tabIndex(tabs, "Builder") is None else "FAIL",
-                 "closing the edited Builder tab: asked=%s tabs=%s" % (asked, tabs))
+            # The edits above are unsaved, so closing MUST ask (#1307, #1308);
+            # asked is None when there was no Builder tab, which is not a pass.
+            step("W2.4c", "PASS" if asked is True and tabIndex(tabs, "Builder") is None
+                 else "FAIL", "closing the edited, unsaved Builder tab must ask and "
+                 "then close: asked=%s tabs=%s" % (asked, tabs))
 
             # Save As's calculation dialog has no hook: the same structure
             # goes into a Vina calculation made with File > New, whose
@@ -783,7 +786,9 @@ class Round(object):
                 picks.append(org.send("windowmenu %d" % n) or "")
                 time.sleep(1)
             alive = org.alive()
-            passfail("W5.3", alive and items and all(p for p in picks),
+            # all([]) is True: an empty tab list must not pass.
+            passfail("W5.3", alive and items and picks
+                     and len(picks) == len(tabPages(t2)) and all(p for p in picks),
                      "windowitems=%s; windowmenu each=%s" % (items, picks))
             step("W5.3h", "MANUAL", "moving the pointer over the Window menu's items "
                  "(the #1239 highlight path) has no hook")
@@ -803,7 +808,9 @@ class Round(object):
                     asked.append("%s: %s" % (pages[n], org.send("answer no", 10)))
                     time.sleep(2)
             tabs = org.send("tabs") or ""
-            passfail("W5.4", len(tabPages(tabs)) == 1 and not asked,
+            # This Builder was only opened, never edited: closing asks nothing.
+            # Nothing closed means W5.1 left one tab and there was nothing to test.
+            passfail("W5.4", len(tabPages(tabs)) == 1 and closed and not asked,
                      "closed %s; needed an answer: %s; left %s" % (closed, asked, tabs))
             secs = org.quit(30)
             time.sleep(3)
@@ -956,6 +963,14 @@ def main():
             if not keep:
                 shutil.rmtree(root, ignore_errors=True)
         reported = set(s[0] for s in STEPS)
+        # EXPECTED is hand-kept: a numbered step in the source beyond it
+        # would never be required to report.
+        src = open(__file__).read()
+        for w in only:
+            top = max([int(n) for n in re.findall(r'"%s\.(\d+)"' % w, src)] or [0])
+            if top > EXPECTED.get(w, 0):
+                step(w + ".x", "FAIL", "the source has %s.%d but EXPECTED says %d: "
+                     "update EXPECTED" % (w, top, EXPECTED.get(w, 0)))
         for w in only:
             for n in range(1, EXPECTED.get(w, 0) + 1):
                 sid = "%s.%d" % (w, n)
