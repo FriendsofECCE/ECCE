@@ -90,10 +90,11 @@ say "$(hostname): $ref = ${sha:0:10}, $cmd $* (slot $got)"
 # $SRC is the checkout, $BLD the persistent per-ref build directory.
 case $cmd in
   build)    inner='configure; ${BUILDWRAP:-} ninja -C $BLD/b -j'$JOBS' -k 0' ;;
-  ctest)    inner='configure; ${BUILDWRAP:-} ninja -C $BLD/b -j'$JOBS' -k 0 && cd $BLD/b && ctest -j${CTEST_JOBS:-2} --output-on-failure "$@"' ;;
+  # --no-tests=error: a -R that matches nothing must fail, not pass green.
+  ctest)    inner='configure; ${BUILDWRAP:-} ninja -C $BLD/b -j'$JOBS' -k 0 && cd $BLD/b && ctest -j${CTEST_JOBS:-2} --no-tests=error --output-on-failure "$@"' ;;
   # GUI tests (apps_*) use /opt/ecce without an install (the examples tests
   # skip when its Version differs); ctesti gives them this ref's.
-  ctesti)   inner='install_tree && cd $BLD/bi && ECCE_TEST_HOME=$BLD/install ECCE_TEST_WRAPPERS=$BLD/install-bin ctest -j${CTEST_JOBS:-2} --output-on-failure "$@"' ;;
+  ctesti)   inner='install_tree && cd $BLD/bi && ECCE_TEST_HOME=$BLD/install ECCE_TEST_WRAPPERS=$BLD/install-bin ctest -j${CTEST_JOBS:-2} --no-tests=error --output-on-failure "$@"' ;;
   teaching) inner='configure; ${BUILDWRAP:-} ninja -C $BLD/b -j'$JOBS' -k 0 && cd $SRC && tests/teaching/run_tests.py --build $BLD/b --jobs 4 "$@"' ;;
   apps)     inner='install_tree; cd $SRC && ECCE_TEST_HOME=$BLD/install ECCE_TEST_WRAPPERS=$BLD/install-bin tests/apps/run_tests.py "$@"' ;;
   clip)     inner='install_tree; cd $SRC && ECCE_TEST_HOME=$BLD/install ECCE_TEST_WRAPPERS=$BLD/install-bin tests/apps/clip_test.py "$@"' ;;
