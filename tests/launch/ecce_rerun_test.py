@@ -71,6 +71,7 @@ def main():
         os.chmod(os.path.join(wrappers, entry), 0o755)
     s.registerMachine("localhost", "Shell", {"NWChem": slow})
     s.registerMachine("stored", "Shell", {"NWChem": slow})
+    s.registerMachine("faraway", "Shell", {"NWChem": slow}, host="faraway.invalid")
     work = os.path.join(s.state, "decks")
     rundir = os.path.join(s.state, "run")
     os.makedirs(work, exist_ok=True)
@@ -331,6 +332,37 @@ def main():
         state = s.waitState(copy, seconds=60, want=harness.FINAL_STATES)
         check(state == "killed", "the running original was terminated (%s)" % state)
         s.driver("kill", copy)
+
+        # A launch that never opened the Launch panel has no run directory
+        # stored; on this computer the default is used and written back, so
+        # the next launch sees it too.
+        home = s.env().get("ECCE_REALUSERHOME") or s.env()["HOME"]
+        url, out = s.create("norundir", "nwchem_es", deck, "nwch.nw", rundir)
+        if check(url is not None, "created norundir"):
+            shutil.rmtree(path(url))
+            shutil.copytree(fixture, path(url))
+            rc, out = s.driver("mdsetup", url, "localhost", "", s.user(),
+                               "queue=normal", "procs=1", "nodes=1", "wall=0 1:0")
+            check(rc == 0, "launch settings stored with no run directory")
+            check(send("setstate %s completed" % url) == "ok", "state set: norundir")
+            rc, out, err = go("launch", url)
+            say(out + err)
+            check(rc == 0 and re.fullmatch(r"norundir: rerun as norundir_r2, job id \S+\n", out),
+                  "local launch with no run directory is not refused")
+            rc, settings = s.driver("launchdata", url + "_r2")
+            check("rundir=%s/ecce-runs\n" % home in settings,
+                  "the default run directory was written back (%s)" % settings.replace("\n", " "))
+            s.driver("kill", url + "_r2")
+
+        # A path on someone else's computer is not ours to invent.
+        url, out = s.create("norundirfar", "nwchem_es", deck, "nwch.nw", rundir)
+        if check(url is not None, "created norundirfar"):
+            rc, out = s.driver("mdsetup", url, "faraway", "", s.user(),
+                               "queue=normal", "procs=1", "nodes=1", "wall=0 1:0")
+            check(rc == 0, "launch settings stored with no run directory (remote)")
+            rc, out = s.driver("plan", url)
+            check(out.strip() == "no run directory stored",
+                  "remote launch with no run directory is still refused (%s)" % out.strip())
     finally:
         if org and org.poll() is None:
             org.terminate()
