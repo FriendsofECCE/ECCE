@@ -3501,6 +3501,14 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/render_alpha_test.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_render_alpha PROPERTIES TIMEOUT 600 SKIP_RETURN_CODE 77)
+  # A Builder is marked modified only by its own edits, not by another
+  # tab's load (#1307).
+  add_test(NAME apps_builder_dirty_scope
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/builder_dirty_scope_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_builder_dirty_scope PROPERTIES TIMEOUT 1800
+                       SKIP_RETURN_CODE 77)
   # Builder > Tools > Dock Floating Panels returns panels to an emptied dock
   # (#53), through the builder's ECCE_TEST_DOCK hook.
   add_test(NAME apps_dock
