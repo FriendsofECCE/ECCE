@@ -18,12 +18,15 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
+import checks  # noqa: E402
 
 import apps                 # noqa: E402
 import fixture              # noqa: E402
 import pbc_ux_test          # noqa: E402
 import pbc_edit_test as pe  # noqa: E402
 from builder_panes_test import _Results   # noqa: E402
+
+CHECKS = checks.Checks(5, "viewer cell")
 
 LATTICE = "lattice_vectors: \n 6.0 0.0 0.0\n 0.0 6.0 0.0\n 0.0 0.0 6.0\n"
 
@@ -102,7 +105,7 @@ def check(display, results):
         if error:
             results.fail("viewer cell", "cannot install fixture: %s" % error)
             return
-        results.checks += 1
+        CHECKS.ran.append(name)
         auth = fixture.authFile(os.path.join(fixture.stateHome(), ".ECCE",
                                              "auth.pipe"), user=fixture.USER)
         work, problems, log = pbc_ux_test.runScene(
@@ -189,7 +192,7 @@ def checkBuilder(display, results, png=None):
                 continue
             for problem in cellProblems(path):
                 results.fail("builder cell " + tag, problem)
-        results.checks += 1
+        CHECKS.ran.append(name)
     finally:
         fixture.remove(name)
 
@@ -213,6 +216,7 @@ def main():
     os.environ["ECCE_NO_REAP"] = "1"
 
     results = _Results()
+    CHECKS.expect(1 if args.builder_only else 5)
     xdisplay.SCREEN = "1366x768x24"
     with xdisplay.Display() as display:
         log = []
@@ -231,6 +235,7 @@ def main():
                 restore()
         finally:
             apps.stopServices(display)
+    CHECKS.recordOn(results)
     for failure in results.failures:
         print("FAIL  " + failure)
     if not results.failures:

@@ -26,6 +26,7 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(os.path.dirname(HERE))
 sys.path.insert(0, HERE)
+import checks  # noqa: E402
 
 import apps       # noqa: E402
 import fixture    # noqa: E402
@@ -178,7 +179,8 @@ def main():
         urls = installLocal(folder, CALCS)
         os.environ["ECCE_LOCAL_DATA"] = folder
         restore = fixture.settleUpgradeNotices()
-        bad = []
+        CHECKS = checks.Checks(sum(1 for calc in CALCS for view, _ in VIEWS
+                                   if view != "spin" or calc == "o2"), "ecceqm motable")
         try:
             for calc, url in urls.items():
                 for view, mode in VIEWS:
@@ -210,15 +212,12 @@ def main():
                     elif pngdir:
                         os.makedirs(pngdir, exist_ok=True)
                         shutil.copy(png, pngdir)
-                    print("%s  %s%s" % ("ok  " if not problems else "FAIL", shot,
-                                        "" if not problems else ": " + "; ".join(problems)))
-                    if problems:
-                        bad.append(shot)
+                    CHECKS(not problems, shot + ("" if not problems else ": " + "; ".join(problems)))
         finally:
             restore()
             os.environ.pop("ECCE_LOCAL_DATA", None)
-        if bad and not report:
-            results.fail("motable", "wrong: %s" % ", ".join(bad))
+        if not report:
+            CHECKS.recordOn(results, "motable")
     run_tests.checkApp = checkApp
     sys.argv = [sys.argv[0], "--app", "builder"] + sys.argv[1:]
     return run_tests.main()

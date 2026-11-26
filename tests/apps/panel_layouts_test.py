@@ -28,6 +28,7 @@ import tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
+import checks  # noqa: E402
 
 import apps       # noqa: E402
 import fixture    # noqa: E402
@@ -43,7 +44,7 @@ PANEL = "MOs"
 MIN_VIEWER = 200      # px, each way
 MIN_PANEL = 80        # px high: the MOs pane's own minimum
 
-failures = []
+CHECKS = checks.Checks(len(LAYOUTS), "panel layouts")
 
 
 def readMetrics(path):
@@ -162,14 +163,13 @@ def check(display, url, label, mode, expected):
                    clipProblem(metrics, PANEL) or rowsProblem(metrics, mode))
     if problem is None:
         need, have = metrics.get("width", {}).get(PANEL, (0, 0))
-        print("ok    %s (%d px, controls need %d, %d table rows)"
-              % (label, have, need, metrics.get("rows", {}).get(PANEL, -1)))
+        CHECKS(True, "%s (%d px, controls need %d, %d table rows)"
+               % (label, have, need, metrics.get("rows", {}).get(PANEL, -1)))
         return
-    failures.append(label)
-    print("FAIL  %s: %s\n%s" % (label, problem, run_tests._tail(log, 15)))
-    print("      panes: %s  rows: %s  client: %s" % (
-        {n: p[:4] for n, p in metrics["panes"].items()}, metrics.get("grid"),
-        metrics["client"]))
+    CHECKS(False, "%s: %s" % (label, problem), run_tests._tail(log, 15) + "\n" + (
+        "      panes: %s  rows: %s  client: %s" % (
+            {n: p[:4] for n, p in metrics["panes"].items()}, metrics.get("grid"),
+            metrics["client"])))
 
 
 def main():
@@ -178,6 +178,7 @@ def main():
     def checkApp(display, name, results, verbose=False):
         if not fixture.available():
             results.notes.append("no calculation fixture checked in; skipped")
+            CHECKS.skip("no calculation fixture checked in")
             return
         url = installCalc()
         restorePrefs = fixture.settleUpgradeNotices()
@@ -187,9 +188,7 @@ def main():
                       mode, expected)
         finally:
             restorePrefs()
-        if failures:
-            results.fail("panels", "%d of %d layouts wrong: %s"
-                         % (len(failures), len(LAYOUTS), ", ".join(failures)))
+        CHECKS.recordOn(results, "panels")
     run_tests.checkApp = checkApp
     sys.argv = [sys.argv[0], "--app", "builder"] + sys.argv[1:]
     return run_tests.main()

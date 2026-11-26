@@ -20,6 +20,7 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
+import checks  # noqa: E402
 
 import apps       # noqa: E402
 import fixture    # noqa: E402
@@ -64,7 +65,7 @@ STORED = {"orca/h2o_sym.out": (r"pointgroup C2v multiplicity 1 basis "
 METHANE = "nwchem-methane/methane.eprint"
 COMPANION = (r"ECCE_TEST_IMPORTREPORT: output 'methane\.out' progress 1")
 
-failures = []
+CHECKS = checks.Checks(len(CASES), "calc import")
 
 
 def resetCheck(log):
@@ -118,10 +119,9 @@ def check(display, name, expected):
         # folder that was selected before.
         problem = "imported calculation not selected in the tree"
     else:
-        print("ok    %s: %s" % (name, done.group(0)))
+        CHECKS(True, "%s: %s" % (name, done.group(0)))
         return
-    failures.append(name)
-    print("FAIL  %s: %s\n%s" % (name, problem, run_tests._tail(log, 20)))
+    CHECKS(False, "%s: %s" % (name, problem), run_tests._tail(log, 20))
 
 
 def main():
@@ -130,9 +130,7 @@ def main():
     def checkApp(display, name, results, verbose=False):
         for case, expected in CASES:
             check(display, case, expected)
-        if failures:
-            results.fail("calcimport", "%d of %d imports wrong: %s"
-                         % (len(failures), len(CASES), ", ".join(failures)))
+        CHECKS.recordOn(results, "calcimport")
     run_tests.checkApp = checkApp
     sys.argv = [sys.argv[0], "--app", "organizer"] + sys.argv[1:]
     return run_tests.main()

@@ -25,6 +25,7 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(os.path.dirname(HERE))
 sys.path.insert(0, HERE)
+import checks  # noqa: E402
 
 import apps       # noqa: E402
 import fixture    # noqa: E402
@@ -386,12 +387,13 @@ def main():
         urls = installLocal(folder, CALCS)
         os.environ["ECCE_LOCAL_DATA"] = folder
         restore = fixture.settleUpgradeNotices()
-        bad = []
+        only = os.environ.get("ECCE_DP_ONLY")
+        CHECKS = checks.Checks(len([c for c in CALCS if not only or c in only.split(",")]),
+                               "density profile panel")
         try:
             t = "dp-%s" % xdisplay.SCREEN.split("x")[1]
             out = os.path.join(folder, "shots")
             os.makedirs(out, exist_ok=True)
-            only = os.environ.get("ECCE_DP_ONLY")
             for case, url in urls.items():
                 if only and case not in only.split(","):
                     continue
@@ -420,14 +422,13 @@ def main():
                     if png.startswith(t) and pngdir:
                         os.makedirs(pngdir, exist_ok=True)
                         shutil.copy(os.path.join(out, png), pngdir)
-                print("%s  %s %s%s" % ("ok  " if not problems else "FAIL", t, case,
-                                       "" if not problems else ": " + "; ".join(problems)))
-                bad += ["%s: %s" % (case, p) for p in problems]
+                CHECKS(not problems, "%s %s%s" % (t, case,
+                       "" if not problems else ": " + "; ".join(problems)))
         finally:
             restore()
             os.environ.pop("ECCE_LOCAL_DATA", None)
-        if bad and not report:
-            results.fail("densityprofile", "; ".join(bad))
+        if not report:
+            CHECKS.recordOn(results, "densityprofile")
 
     run_tests.checkApp = checkApp
     for screen in SCREENS:

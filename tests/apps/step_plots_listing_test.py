@@ -18,6 +18,7 @@ import tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
+import checks  # noqa: E402
 
 import md_summary_test as md  # noqa: E402  (sets the tests/launch path)
 import builder_overlay_test as bo  # noqa: E402
@@ -25,14 +26,8 @@ import energies_groups_test as eg  # noqa: E402
 import harness  # noqa: E402
 from harness import say  # noqa: E402
 
-failures = []
-
-
-def check(ok, what):
-    say(("ok   " if ok else "FAIL ") + what)
-    if not ok:
-        failures.append(what)
-    return ok
+CHECKS = checks.Checks(3, "step plots listing")
+check = CHECKS
 
 
 def listed(out, entry):
@@ -101,8 +96,7 @@ def main():
             display.__exit__(None, None, None)
         s.stop()
         shutil.rmtree(work, ignore_errors=True)
-    say("FAILED: " + "; ".join(failures) if failures else "PASSED")
-    return 1 if failures else 0
+    return CHECKS.report()
 
 
 if __name__ == "__main__":

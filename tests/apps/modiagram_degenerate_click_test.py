@@ -17,6 +17,7 @@ import tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
+import checks  # noqa: E402
 
 import apps                   # noqa: E402
 import isolate                # noqa: E402
@@ -53,12 +54,10 @@ def main():
     os.makedirs(os.path.join(data, "users", "local"))
     os.environ["ECCE_LOCAL_DATA"] = data
     xdisplay.SCREEN = "1366x900x24"
-    failures = []
-
-    def check(ok, what):
-        print("%s %s" % ("ok   " if ok else "FAIL ", what))
-        if not ok:
-            failures.append(what)
+    # Raised per case, once that case's degenerate levels are known (#1309).
+    CHECKS = checks.Checks(1, "modiagram degenerate click")
+    check = CHECKS
+    declared = 0
 
     with xdisplay.Display() as display:
         subprocess.run([os.path.join(apps.INSTALL, "bin", "ecce-gateway-start")],
@@ -68,6 +67,8 @@ def main():
                 source = os.path.normpath(source)
                 if not os.path.isdir(source):
                     check(False, "%s: example present at %s" % (name, source))
+                    declared += 1
+                    CHECKS.expect(declared)
                     continue
                 url = base.makeCalc(data, name, source=source)
                 out = os.path.join(work, "run-" + name)
@@ -106,12 +107,13 @@ def main():
                     #  Grouped by energy alone, so the hover text must say so.
                     check("degenerate within 0.5 mEh (no symmetry found)" in hits,
                           "ethane_scan: a merged level's hover says it was grouped by energy")
+                declared += 4 + sets + (3 if name == "ethane_scan" else 0)
+                CHECKS.expect(declared)
         finally:
             subprocess.run([os.path.join(apps.INSTALL, "bin", "ecce-gateway-stop")],
                            env=display.env(), timeout=120)
     shutil.rmtree(work, ignore_errors=True)
-    print("FAILED: " + ", ".join(failures) if failures else "PASSED")
-    return 1 if failures else 0
+    return CHECKS.report()
 
 
 if __name__ == "__main__":

@@ -23,17 +23,13 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(os.path.dirname(HERE))
 sys.path.insert(0, HERE)
 sys.path.insert(0, os.path.join(REPO, "tests", "apps"))
+import checks  # noqa: E402
 
 import harness                      # noqa: E402
 
-failures = []
-
-
-def check(ok, what):
-    harness.say("  %s %s" % ("ok  " if ok else "FAIL", what))
-    if not ok:
-        failures.append(what)
-    return ok
+CHECKS = checks.Checks(12, "long lines")
+check = CHECKS
+failures = CHECKS.failures
 
 
 def deck(final_newline):
@@ -129,9 +125,7 @@ def main():
         left = s.stop()
         if left:
             failures.append("processes left running: %r" % left)
-    harness.say("FAILED (%d): %s" % (len(failures), "; ".join(failures))
-                if failures else "PASSED")
-    return 1 if failures else 0
+    return CHECKS.report()
 
 
 if __name__ == "__main__":

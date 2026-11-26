@@ -31,9 +31,11 @@ import tempfile
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(HERE))
 sys.path.insert(0, HERE)
+import checks  # noqa: E402
 sys.path.insert(0, os.path.join(ROOT, "tests", "panels"))
 
 SKIP = 77
+CHECKS = checks.Checks(5, "g16 esp")
 MOCOMP = os.path.join(ROOT, "tests", "mocomp")
 FCHK = os.path.join(MOCOMP, "molden", "h2co631.fchk")
 RES = 40
@@ -156,7 +158,6 @@ def main():
     os.makedirs(os.path.join(data, "users", "local"))
     os.environ["ECCE_LOCAL_DATA"] = data
     xdisplay.SCREEN = "1366x768x24"
-    problems = []
     try:
         with xdisplay.Display(screen="1366x768x24") as display:
             subprocess.run([os.path.join(home, "bin", "ecce-gateway-start")],
@@ -169,32 +170,27 @@ def main():
                 result = omo.runBuilder(
                     display, url, out, "esp %d\nespdump %s\n" % (RES, dump))
                 shot = os.path.join(out, "esp.png")
-                if not os.path.exists(dump):
-                    problems.append("no grid written: %s"
-                                    % (result.log or "")[-1500:])
+                wrote = CHECKS(os.path.exists(dump), "the Builder wrote the grid",
+                               (result.log or "")[-1500:])
             finally:
                 subprocess.run([os.path.join(home, "bin",
                                              "ecce-gateway-stop")],
                                env=display.env(), timeout=120)
         if options.keep_dump and os.path.exists(dump):
             shutil.copy(dump, options.keep_dump)
-        if not problems:
-            problems += check(dump, work)
+        if wrote:
+            check(dump, work)
     finally:
         shutil.rmtree(work, ignore_errors=True)
-    if problems:
-        for p in problems:
-            print("FAIL  " + p)
-        return 1
-    print("PASSED")
-    return 0
+    return CHECKS.report()
 
 
 def check(dump, work):
-    problems = []
     n, origin, corner, rows = readDump(dump)
-    if n != [RES] * 3 or len(rows) != RES ** 3:
-        return ["grid is %s with %d rows" % (n, len(rows))]
+    grid_ok = n == [RES] * 3 and len(rows) == RES ** 3
+    CHECKS(grid_ok, "grid is %s with %d rows" % (n, len(rows)))
+    if not grid_ok:
+        return
     pts = list(nodes(n, origin, corner))
     cell = 1.0
     for k in range(3):
@@ -202,8 +198,7 @@ def check(dump, work):
     #  A grid of 0.2 A misses the cores, so the integral is only a sanity
     #  check; the density itself is held to cubegen below.
     electrons = sum(r[0] for r in rows) * cell / BOHR ** 3
-    if not 12.0 < electrons < 17.0:
-        problems.append("density integrates to %.2f electrons" % electrons)
+    CHECKS(12.0 < electrons < 17.0, "density integrates to %.2f electrons" % electrons)
 
     def at(x, y, z):
         best = min(range(len(pts)), key=lambda i: (pts[i][0] - x) ** 2 +
@@ -211,42 +206,31 @@ def check(dump, work):
         return rows[best][1]
 
     far_h = at(0.0, 3.0, -2.0)
-    if not far_h > 0:
-        problems.append("potential beside the hydrogens is %g, want > 0"
-                        % far_h)
+    CHECKS(far_h > 0, "potential beside the hydrogens is %g, want > 0" % far_h)
     near_o = at(1.8, 0.0, 0.9)
-    if not near_o < far_h:
-        problems.append("potential at the oxygen side (%g) is not below the "
-                        "hydrogen side (%g)" % (near_o, far_h))
-    if not problems:
-        print("ok    potential sign: +%.4f beside H, %.4f at O" % (far_h,
-                                                                   near_o))
+    CHECKS(near_o < far_h, "potential at the oxygen side (%g) is below the "
+           "hydrogen side (%g)" % (near_o, far_h))
 
     base = cubegenExe()
+    CHECKS.expect(7 if base else 5)
     if not base:
         print("skip  no cubegen: potential not held to a second program")
-        return problems
+        return
     ref = cubegenGrid(base, "potential", n, origin, corner, work)
     dens = cubegenGrid(base, "density", n, origin, corner, work)
     keep = [i for i, p in enumerate(pts)
             if all(math.dist(p, nuc[1:]) > 0.8 for nuc in NUCLEI)]
     worst = max(abs(rows[i][1] - ref[i]) for i in keep)
     if len(ref) != len(rows):
-        problems.append("reference has %d nodes, ECCE %d" % (len(ref),
-                                                             len(rows)))
-    elif worst > 2e-3:
-        problems.append("potential differs by up to %.2e Hartree/e over %d "
-                        "nodes" % (worst, len(keep)))
+        CHECKS(False, "reference has %d nodes, ECCE %d" % (len(ref), len(rows)))
     else:
-        print("ok    potential held to cubegen on %d nodes" % len(keep))
+        CHECKS(worst <= 2e-3, "potential matches cubegen on %d nodes, worst %.2e "
+               "Hartree/e" % (len(keep), worst))
     #  Closer than that to a heavy nucleus the density is the 1s core,
     #  which the grid evaluates less exactly; no surface is drawn there.
     dworst = max(abs(rows[i][0] - dens[i]) for i in keep)
-    if dworst > 1e-3:
-        problems.append("density differs by up to %.2e e/bohr^3" % dworst)
-    else:
-        print("ok    density held to cubegen on %d nodes" % len(keep))
-    return problems
+    CHECKS(dworst <= 1e-3, "density matches cubegen on %d nodes, worst %.2e "
+           "e/bohr^3" % (len(keep), dworst))
 
 
 if __name__ == "__main__":

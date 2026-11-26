@@ -23,6 +23,7 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
+import checks  # noqa: E402
 
 import apps       # noqa: E402
 import fixture    # noqa: E402
@@ -37,7 +38,7 @@ FIXTURES = ("nh3_geovib", "h2o_geovib", "ch4_force", "ch4_geovib",
 
 BUILDER_CASES = ("nh3_geovib", "ammonia")
 
-failures = []
+CHECKS = checks.Checks(len(FIXTURES), "mopac import modes")
 
 
 def props(name):
@@ -191,12 +192,10 @@ def umbrellaProblems(arrows):
 def check(display, name, log, work):
     p = props(name)
     if not re.search(r"ECCE_TEST_IMPORTREPORT: state \d+ ", log) or p is None:
-        failures.append(name)
-        print("FAIL  %s: the import did not finish or stored nothing" % name)
+        CHECKS(False, "%s: the import did not finish or stored nothing" % name)
         return
     if not os.path.exists(os.path.join(p, "VIB")):
-        failures.append(name)
-        print("FAIL  %s: the import stored no normal modes" % name)
+        CHECKS(False, "%s: the import stored no normal modes" % name)
         return
     modes = readVib(os.path.join(p, "VIB"))
     symbols, xyz = readLastGeometry(os.path.join(p, "GEOMTRACE"))
@@ -219,10 +218,9 @@ def check(display, name, log, work):
         if not bad:
             extra += ", umbrella mode %d symmetric" % (umb + 1)
     if problems:
-        failures.append(name)
-        print("FAIL  %s: %s" % (name, "; ".join(problems)))
+        CHECKS(False, "%s: %s" % (name, "; ".join(problems)))
     else:
-        print("ok    %s: rigid-motion share %.1e%s" % (name, share, extra))
+        CHECKS(True, "%s: rigid-motion share %.1e%s" % (name, share, extra))
 
 
 def main():
@@ -236,8 +234,7 @@ def main():
             work = os.path.join(fixture.stateHome(), "builder-scene")
             os.makedirs(work, exist_ok=True)
             check(display, os.path.basename(case), result.log or "", work)
-        if failures:
-            results.fail("mopac-import-modes", ", ".join(failures))
+        CHECKS.recordOn(results, "mopac-import-modes")
     run_tests.checkApp = checkApp
     sys.argv = [sys.argv[0], "--app", "organizer"] + sys.argv[1:]
     return run_tests.main()

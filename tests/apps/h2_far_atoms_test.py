@@ -19,13 +19,13 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(os.path.dirname(HERE))
 sys.path.insert(0, HERE)
+import checks  # noqa: E402
 sys.path.insert(0, os.path.join(REPO, "tests", "launch"))
 
 import builder_overlay_test as bo  # noqa: E402
 import harness  # noqa: E402
 from harness import say  # noqa: E402
 
-check = bo.check
 H2 = os.path.join(REPO, "data", "client", "examples", "genchem",
                   "molecular-orbitals-of-diatomics", "ecceqm-H2", "stored", "H2")
 HEAD = ('<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>\n')
@@ -104,6 +104,9 @@ def main():
             harness.skip("%s is not built in %s" % (exe, build))
     import xdisplay
 
+    CHECKS = checks.Checks(15, "h2 far atoms")
+    check = CHECKS
+
     s = harness.Session(build, "h2far", {}, local=True, keep=args.keep)
     png = args.png or os.path.join(s.state, "png")
     os.makedirs(png, exist_ok=True)
@@ -158,9 +161,7 @@ def main():
         if display:
             display.__exit__(None, None, None)
         s.stop()
-    failures = bo.failures
-    say("FAILED: " + "; ".join(failures) if failures else "PASSED")
-    return 1 if failures else 0
+    return CHECKS.report()
 
 
 if __name__ == "__main__":

@@ -32,13 +32,13 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(os.path.dirname(HERE))
 sys.path.insert(0, HERE)
+import checks  # noqa: E402
 sys.path.insert(0, os.path.join(REPO, "tests", "launch"))
 
 import builder_overlay_test as bo  # noqa: E402
 import harness  # noqa: E402
 from harness import say  # noqa: E402
 
-check = bo.check
 CASES = (("calc-water-freq-g16", os.path.join(HERE, "fixtures")),
          ("calc-water-smd-g16", os.path.join(HERE, "fixtures")),
          ("h2o-geovib", os.path.join(REPO, "tests", "ecceqm", "fixtures")))
@@ -125,6 +125,11 @@ def main():
         if not os.path.isdir(os.path.join(source, name)):
             harness.skip("fixture %s is missing" % name)
     import xdisplay
+
+    CHECKS = checks.Checks(2 * len(CASES) if args.baseline else
+                           sum(28 if "smd" in name else 27 for name, _ in CASES),
+                           "energies groups")
+    check = CHECKS
 
     s = harness.Session(build, "energiesgroups", {}, local=True, keep=args.keep)
     png = args.png or os.path.join(s.state, "png")
@@ -239,9 +244,7 @@ def main():
         if display:
             display.__exit__(None, None, None)
         s.stop()
-    failures = bo.failures
-    say("FAILED: " + "; ".join(failures) if failures else "PASSED")
-    return 1 if failures else 0
+    return CHECKS.report()
 
 
 if __name__ == "__main__":

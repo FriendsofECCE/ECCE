@@ -19,6 +19,7 @@ import tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
+import checks  # noqa: E402
 
 import apps            # noqa: E402
 import run_tests       # noqa: E402
@@ -34,15 +35,8 @@ CASES = [
     ("large", (180.0, 175.0, -250.0, -240.0)),
 ]
 
-failures = []
-
-
-def check(ok, what, detail=""):
-    print("%s %s%s" % ("ok   " if ok else "FAIL ", what,
-                       ("\n      " + detail) if (detail and not ok) else ""))
-    if not ok:
-        failures.append(what)
-    return ok
+CHECKS = checks.Checks(22, "reaction profile layout")
+check = CHECKS
 
 
 def run(display):
@@ -79,8 +73,7 @@ def run(display):
 def main():
     def checkApp(display, name, results, verbose=False):
         run(display)
-        if failures:
-            results.fail("profile", "energy profile layout wrong: %s" % ", ".join(failures))
+        CHECKS.recordOn(results, "profile")
     run_tests.checkApp = checkApp
     sys.argv = [sys.argv[0], "--app", "organizer"] + sys.argv[1:]
     return run_tests.main()

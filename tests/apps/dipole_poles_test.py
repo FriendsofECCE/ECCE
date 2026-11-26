@@ -23,6 +23,7 @@ import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
+import checks  # noqa: E402
 
 import apps                   # noqa: E402
 import isolate                # noqa: E402
@@ -143,12 +144,10 @@ def main():
     os.makedirs(os.path.join(data, "users", "local"))
     os.environ["ECCE_LOCAL_DATA"] = data
     xdisplay.SCREEN = "1700x1000x24"
-    failures = []
-
-    def check(ok, what):
-        print("%s %s" % ("ok   " if ok else "FAIL ", what))
-        if not ok:
-            failures.append(what)
+    # Raised per case, once that case's mu says how many checks it runs (#1309).
+    CHECKS = checks.Checks(1, "dipole poles")
+    check = CHECKS
+    declared = 0
 
     # The molecule is turned so the arrow lies across the view.
     turn = {"so2": 90, "h2o": 90, "hcl": 90, "hf": 90, "nh3": 70, "co": 90}
@@ -173,6 +172,8 @@ def main():
                     r"BUILDER: atom \d+ \S+ (\S+) (\S+) (\S+)", log)]
                 mu = stored(calc, "DIPOLE")
                 mag = math.sqrt(sum(x * x for x in mu))
+                declared += 4 if mag < 0.005 else 8
+                CHECKS.expect(declared)
                 label = re.search(r"vector DIPOLE label=(.*)", log)
                 label = label.group(1).strip() if label else None
                 arrows = re.search(r"vector DIPOLE arrows=(\d+)", log)
@@ -219,12 +220,11 @@ def main():
                 check(dot > 0.99, "%s: the arrow points along mu (cos %.3f)" % (name, dot))
         finally:
             pass
-    if not failures:
+    if not CHECKS.failures:
         shutil.rmtree(work, ignore_errors=True)
     else:
         print("work dir kept:", work)
-    print("FAILED: %d" % len(failures) if failures else "all ok")
-    return 1 if failures else 0
+    return CHECKS.report()
 
 
 if __name__ == "__main__":

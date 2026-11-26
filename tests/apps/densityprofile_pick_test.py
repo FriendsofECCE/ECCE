@@ -28,6 +28,7 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(os.path.dirname(HERE))
 sys.path.insert(0, HERE)
+import checks  # noqa: E402
 
 import apps       # noqa: E402
 import fixture    # noqa: E402
@@ -207,12 +208,15 @@ def main():
     pngdir = os.environ.get("ECCE_DP_PNG")
     report = bool(os.environ.get("ECCE_DP_REPORT"))
 
+    CHECKS = checks.Checks(len(CALCS), "density profile pick")
+
     def checkApp(display, name, results, verbose=False):
+        if os.environ.get("ECCE_DP_BEFORE"):
+            CHECKS.skip("ECCE_DP_BEFORE: pictures only, nothing is checked")
         folder = os.path.join(fixture.stateDir(), "dppick-localdata")
         urls = installLocal(folder, CALCS)
         os.environ["ECCE_LOCAL_DATA"] = folder
         restore = fixture.settleUpgradeNotices()
-        bad = []
         try:
             t = "dpk"
             out = os.path.join(folder, "shots")
@@ -237,14 +241,14 @@ def main():
                     for png in os.listdir(out):
                         if png.startswith(t + "-" + case):
                             shutil.copy(os.path.join(out, png), pngdir)
-                print("%s  %s%s" % ("ok  " if not problems else "FAIL", case,
-                                    "" if not problems else ": " + "; ".join(problems)))
-                bad += ["%s: %s" % (case, q) for q in problems]
+                if not os.environ.get("ECCE_DP_BEFORE"):
+                    CHECKS(not problems, "%s%s" % (case,
+                           "" if not problems else ": " + "; ".join(problems)))
         finally:
             restore()
             os.environ.pop("ECCE_LOCAL_DATA", None)
-        if bad and not report:
-            results.fail("densityprofile_pick", "; ".join(bad))
+        if not report:
+            CHECKS.recordOn(results, "densityprofile_pick")
 
     run_tests.checkApp = checkApp
     xdisplay.SCREEN = SCREEN

@@ -19,6 +19,8 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(os.path.dirname(HERE))
 sys.path.insert(0, os.path.join(REPO, "tests", "queues"))
 import run_tests as q   # noqa: E402
+sys.path.insert(0, os.path.join(REPO, "tests", "apps"))
+import checks  # noqa: E402
 
 PROGRESS = os.path.join(REPO, "tests", "progress", "fixtures")
 SYNTH = os.path.join(REPO, "tests", "jobstore", "fixtures", "synthetic")
@@ -42,13 +44,8 @@ CASES = [
      os.path.join(PARSERS, "qe", "si_md.pwout"), 0),
 ]
 
-failures = []
-
-
-def check(ok, what):
-    print("  %s %s" % ("ok  " if ok else "FAIL", what))
-    if not ok:
-        failures.append(what)
+CHECKS = checks.Checks(6, "notconverged gensub")
+check = CHECKS
 
 
 def statusOf(g, code, name, infile, outfile, sample):
@@ -78,8 +75,7 @@ def main():
                   (code, os.path.relpath(sample, REPO), got, want))
     finally:
         g.close()
-    print("FAILED: %s" % "; ".join(failures) if failures else "PASSED")
-    return 1 if failures else 0
+    return CHECKS.report()
 
 
 if __name__ == "__main__":

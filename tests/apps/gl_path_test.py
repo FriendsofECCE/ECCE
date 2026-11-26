@@ -21,6 +21,7 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(HERE))
 sys.path.insert(0, HERE)
+import checks  # noqa: E402
 
 SCENE = """
 background 1 1 1
@@ -64,12 +65,8 @@ def main():
     isolate.killLeftovers(state)
     os.environ["ECCE_NO_REAP"] = "1"
     source = os.path.join(ROOT, "tests", "modiagram", "fixtures", "ecceqm-c2h6")
-    failures = []
-
-    def check(ok, what):
-        print("%s %s" % ("ok   " if ok else "FAIL ", what))
-        if not ok:
-            failures.append(what)
+    CHECKS = checks.Checks(5, "gl path")
+    check = CHECKS
 
     with xdisplay.Display() as display:
         log = []
@@ -91,7 +88,7 @@ def main():
                     name = "glpath-" + label
                     url, error = fixture.install(name, source_dir=source)
                     if error:
-                        failures.append("install: " + error)
+                        check(False, "install: " + error)
                         continue
                     cargs = ("-context", url)
                     if (os.path.realpath(state)
@@ -122,7 +119,7 @@ def main():
                         before = darkPixels(os.path.join(work, "before.ppm"))
                         after = darkPixels(os.path.join(work, "after.ppm"))
                     except (IOError, AttributeError):
-                        failures.append(label + ": no snapshots")
+                        check(False, label + ": no snapshots")
                         print(text[-1500:])
                         continue
                     check(after > before + 20,
@@ -132,8 +129,7 @@ def main():
                 restore()
         finally:
             apps.stopServices(display)
-    print("FAILED" if failures else "ok")
-    return 1 if failures else 0
+    return CHECKS.report()
 
 
 if __name__ == "__main__":

@@ -23,6 +23,7 @@ import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
+import checks  # noqa: E402
 
 import apps                   # noqa: E402
 import isolate                # noqa: E402
@@ -166,12 +167,9 @@ def main():
     os.makedirs(os.path.join(data, "users", "local"))
     os.environ["ECCE_LOCAL_DATA"] = data
     xdisplay.SCREEN = "1700x1000x24"
-    failures = []
-
-    def check(ok, what):
-        print("%s %s" % ("ok   " if ok else "FAIL ", what))
-        if not ok:
-            failures.append(what)
+    picked = [c for c in CASES if os.environ.get("ECCE_BONDDIP_ONLY", c[0]) == c[0]]
+    CHECKS = checks.Checks(6 * len(picked), "bond dipoles")
+    check = CHECKS
 
     with xdisplay.Display() as display:
         subprocess.run([os.path.join(apps.INSTALL, "bin", "ecce-gateway-start")],
@@ -231,12 +229,11 @@ def main():
             check(int(summary.group(2)) == visible + 1,
                   "%s: %d bond arrows + the molecular arrow (%s)"
                   % (name, visible, summary.group(2)))
-    if not failures:
+    if not CHECKS.failures:
         shutil.rmtree(work, ignore_errors=True)
     else:
         print("work dir kept:", work)
-    print("FAILED: %d" % len(failures) if failures else "all ok")
-    return 1 if failures else 0
+    return CHECKS.report()
 
 
 if __name__ == "__main__":

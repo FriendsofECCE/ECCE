@@ -18,6 +18,7 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
+import checks  # noqa: E402
 
 import apps       # noqa: E402
 import fixture    # noqa: E402
@@ -39,7 +40,7 @@ CASES = [
     ("*/" + os.path.abspath(os.path.join(DATA, "benzene.xyz")), None),
 ]
 
-failures = []
+CHECKS = checks.Checks(len(CASES), "builder import")
 
 
 def check(display, name, expected):
@@ -61,10 +62,9 @@ def check(display, name, expected):
     elif expected is not None and int(done.group(1)) != expected:
         problem = "%s atoms, expected %d" % (done.group(1), expected)
     else:
-        print("ok    %s" % name)
+        CHECKS(True, name)
         return
-    failures.append(name)
-    print("FAIL  %s: %s\n%s" % (name, problem, run_tests._tail(log, 20)))
+    CHECKS(False, "%s: %s" % (name, problem), run_tests._tail(log, 20))
 
 
 def main():
@@ -73,9 +73,7 @@ def main():
     def checkApp(display, name, results, verbose=False):
         for case, expected in CASES:
             check(display, case, expected)
-        if failures:
-            results.fail("import", "%d of %d imports failed: %s"
-                         % (len(failures), len(CASES), ", ".join(failures)))
+        CHECKS.recordOn(results, "import")
     run_tests.checkApp = checkApp
     sys.argv = [sys.argv[0], "--app", "builder"] + sys.argv[1:]
     return run_tests.main()

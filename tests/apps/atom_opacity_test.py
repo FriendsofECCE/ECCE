@@ -29,6 +29,7 @@ import tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
+import checks  # noqa: E402
 
 import apps       # noqa: E402
 import isolate    # noqa: E402
@@ -57,13 +58,12 @@ deselect
 snap sel
 """
 
-failures = []
+CHECKS = checks.Checks(7, "atom opacity")
 
 
 def fail(what, why, log=""):
     tail = "\n".join("      | " + l for l in (log or "").splitlines()[-int(os.environ.get("OPACITY_LOG_LINES", "12")):])
-    failures.append(what)
-    print("FAIL  %s: %s\n%s" % (what, why, tail))
+    CHECKS(False, "%s: %s" % (what, why), tail)
 
 
 def ppm(path):
@@ -146,7 +146,7 @@ def check(what, out, shots, log):
     if problems:
         fail(what, "; ".join(problems), log)
     else:
-        print("ok    %s: 100%% unchanged, 30%% shows through in the right order" % what)
+        CHECKS(True, "%s: 100%% unchanged, 30%% shows through in the right order" % what)
     return sign, c100, c30, centre(shots["sel"])
 
 
@@ -228,18 +228,17 @@ def main():
                                  "%s blend %s (off by %s)" % (label, seen, best,
                                  tuple(round(v) for v in cands[best]), dist))
                         else:
-                            print("ok    Atom opacity (%s): %s centre %s = %s blend"
-                                  % (name, label, seen, want))
-                if len(signs) == 2 and signs[0] == signs[1]:
-                    fail("Atom opacity", "swapping the atoms did not swap the "
-                         "colour on top at 100%")
+                            CHECKS(True, "Atom opacity (%s): %s centre %s = %s blend"
+                                   % (name, label, seen, want))
+                if len(signs) == 2:
+                    CHECKS(signs[0] != signs[1], "Atom opacity: swapping the atoms "
+                           "swaps the colour on top at 100%")
             finally:
                 stop = os.path.join(apps.INSTALL, "bin", "ecce-gateway-stop")
                 subprocess.run([stop], env=display.env(), timeout=120)
     finally:
         shutil.rmtree(work, ignore_errors=True)
-    print("FAILED: " + ", ".join(failures) if failures else "PASSED")
-    return 1 if failures else 0
+    return CHECKS.report()
 
 
 if __name__ == "__main__":
