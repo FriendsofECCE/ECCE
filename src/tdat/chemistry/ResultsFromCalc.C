@@ -672,13 +672,10 @@ bool gather(IPropCalculation *calc, Parsed& out, string& why)
 
   if (!MoAoBasis::coefficients(calc, out.symbols, false, out.rows[0]) ||
       out.rows[0].empty()) {
-    // A calculation that has an MO property and still gives no coefficients
-    // read it and got nothing back, which is not the same as having none:
-    // say so, or the file is quietly stored without its orbitals (#1282).
-    const vector<string> names = calc->propertyNames();
-    why = std::find(names.begin(), names.end(), "MO") != names.end()
-              ? "the MO property is there but was read as empty"
-              : "no MO coefficients";
+    // The MO property exists (checked above), so reaching here means it was
+    // read and gave nothing back, which is not the same as having none: say
+    // so, or the file is quietly stored without its orbitals (#1282).
+    why = "the MO property is there but was read as empty";
     return false;
   }
   if (calc->getProperty("MOBETA") != 0)
