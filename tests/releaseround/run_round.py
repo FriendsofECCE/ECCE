@@ -734,8 +734,21 @@ class Round(object):
             if len(calcs) < 2:
                 return step("W5.1", "FAIL", "examples: %s" % a)
             u1, u2 = "file://" + calcs[0][0], "file://" + calcs[1][0]
+            # A run calculation's Builder opens as its Viewer (#1254), so the
+            # Builder and the Editor go on a Duplicate, which has not run.
+            self.home(org)
+            before = set(c[0] for c in calcsUnder(urlPath(self.project)))
+            paste = org.send("server paste copy %s %s" % (self.project, u1), 120) or ""
+            pasted = [c[0] for c in calcsUnder(urlPath(self.project)) if c[0] not in before]
+            dup = org.send("duplicate file://" + pasted[0], 120) or "" if pasted else "no copy"
+            fresh = [c[0] for c in calcsUnder(urlPath(self.project))
+                     if c[0] not in before and c[0] not in pasted]
+            if not fresh:
+                return step("W5.1", "FAIL", "no unrun copy for the Builder: paste=%s "
+                            "pasted=%s duplicate=%s" % (paste, pasted, dup[:120]))
+            u0 = "file://" + fresh[0]
             open(org.script, "w").close()
-            for line in ("start Builder " + u1, "start CalculationEditor " + u1,
+            for line in ("start Builder " + u0, "start CalculationEditor " + u0,
                          "start CalculationViewer " + u1,
                          "start CalculationViewer " + u2):
                 org.send(line)
@@ -748,6 +761,8 @@ class Round(object):
                      and any("Builder" in p for p in pages)
                      and any("Editor" in p for p in pages), "tabs=%s" % tabs)
             i = tabIndex(tabs, "Builder")
+            if i is None:
+                return step("W5.2", "FAIL", "no Builder tab to move: tabs=%s" % tabs)
             out = org.send("towindow %d" % i) or ""
             time.sleep(3)
             t1 = org.send("tabs") or ""
