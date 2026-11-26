@@ -46,6 +46,7 @@
 #include "util/BrowserHelp.H"
 #include "wxgui/WxHelpViewer.H"
 #include "util/Ecce.H"
+#include "util/Filesystem.H"
 #include "util/JMSMessage.H"
 #include "util/JMSPublisher.H"
 #include "util/KeyValueReader.H"
@@ -2189,7 +2190,7 @@ string WxMachineRegister::explain(const string& refName, string& err) const
           << " -Q Shell\n -c NWChem\n -d localhost\n -n 1\n -N 1\n"
           << " -r " << dir << "\n -i a\n -o a\n -f " << dir << "/submit__x\n";
     }
-    wxString cmd = "python3 \"" + string(Ecce::ecceHome()) +
+    wxString cmd = "perl \"" + string(Ecce::ecceHome()) +
                    "/scripts/gensub\" -p \"" + params + "\"";
     wxExecuteEnv env;
     wxGetEnvMap(&env.env);
@@ -4639,7 +4640,13 @@ static void cshNotices(const string& text, int firstLine, vector<string>& out)
     fputs(text.c_str(), f);
     fclose(f);
 
-    wxString cmd = "perl \"" + string(Ecce::ecceHome()) +
+#ifdef _WIN32
+    ecce::fs::path py = ecce::fs::path(Ecce::ecceHome()) / "python" / "python.exe";
+    string pyExe = ecce::fs::exists(py) ? py.string() : string("python.exe");
+#else
+    string pyExe = "python3";
+#endif
+    wxString cmd = "\"" + pyExe + "\" \"" + string(Ecce::ecceHome()) +
                    "/scripts/ecce-csh2sh\" --check \"" + tmpl + "\"";
     wxArrayString lines, errors;
     wxExecute(cmd, lines, errors, wxEXEC_SYNC);
