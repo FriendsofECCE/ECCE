@@ -10,7 +10,9 @@ on an Xvfb display with the isolated HOME and data folder of tests/apps
 (ECCE_TEST_HOME, ECCE_TEST_WRAPPERS), drives it with ECCE_TEST_ORGANIZER
 commands, ECCE_BUILDER_SCRIPT for Builder and Viewer tabs, and quits it.
 One line per step: `W1.3 PASS|FAIL|MANUAL|SKIP <evidence or reason>`,
-then a summary; exit 1 on any FAIL, 77 without an install or Xvfb.
+then a summary; exit 0 only when every expected step was reported and
+none failed. A step the runner never reached is a FAIL, and so is a round
+that checked nothing (no install, no Xvfb, the Organizer did not start).
 """
 
 import os
@@ -452,7 +454,8 @@ class Round(object):
         sel = [i for i in info if i.startswith("SELOVERLAY:")]
         missing = [k for k, rx in wants
                    if not any(re.search(rx, e, re.I) for e in entries)
-                   and not (k == "geometry" and re.search(r"atoms=[1-9]", bi))]
+                   and not (k == "geometry" and re.search(r"atoms=[1-9]", bi))
+                   and not (k == "cell" and re.search(r"lattice=1", bi))]
         if not closed:
             bad.append("Viewer tab still open after close: %s" % tabs)
         ok = done and entries and not missing and not bad
@@ -640,7 +643,7 @@ class Round(object):
                      "launch=[%s] go=[%s] states=%s" % (launch, go, " -> ".join(states)))
             if completed(states[-1]):
                 r = self.viewerCheck(org, url, "W3.4", (("energy", r"energ"),
-                                                        ("cell", r"cell|lattice|geom")))
+                                                        ("cell", r"cell|lattice")))
                 bands = [e for e in r["entries"] if re.search(r"band|dos", e, re.I)]
                 step("W3.4b", "PASS" if bands else "SKIP",
                      "band/DOS entries: %s" % (bands or "none for an scf run"))
@@ -731,8 +734,21 @@ class Round(object):
             if len(calcs) < 2:
                 return step("W5.1", "FAIL", "examples: %s" % a)
             u1, u2 = "file://" + calcs[0][0], "file://" + calcs[1][0]
+            # A run calculation's Builder opens as its Viewer (#1254), so the
+            # Builder and the Editor go on a Duplicate, which has not run.
+            self.home(org)
+            before = set(c[0] for c in calcsUnder(urlPath(self.project)))
+            paste = org.send("server paste copy %s %s" % (self.project, u1), 120) or ""
+            pasted = [c[0] for c in calcsUnder(urlPath(self.project)) if c[0] not in before]
+            dup = org.send("duplicate file://" + pasted[0], 120) or "" if pasted else "no copy"
+            fresh = [c[0] for c in calcsUnder(urlPath(self.project))
+                     if c[0] not in before and c[0] not in pasted]
+            if not fresh:
+                return step("W5.1", "FAIL", "no unrun copy for the Builder: paste=%s "
+                            "pasted=%s duplicate=%s" % (paste, pasted, dup[:120]))
+            u0 = "file://" + fresh[0]
             open(org.script, "w").close()
-            for line in ("start Builder " + u1, "start CalculationEditor " + u1,
+            for line in ("start Builder " + u0, "start CalculationEditor " + u0,
                          "start CalculationViewer " + u1,
                          "start CalculationViewer " + u2):
                 org.send(line)
@@ -745,6 +761,8 @@ class Round(object):
                      and any("Builder" in p for p in pages)
                      and any("Editor" in p for p in pages), "tabs=%s" % tabs)
             i = tabIndex(tabs, "Builder")
+            if i is None:
+                return step("W5.2", "FAIL", "no Builder tab to move: tabs=%s" % tabs)
             out = org.send("towindow %d" % i) or ""
             time.sleep(3)
             t1 = org.send("tabs") or ""
@@ -873,6 +891,25 @@ class Round(object):
 
 
 WORKFLOWS = ("W1", "W2", "W3", "W4", "W5", "W6")
+# The numbered steps of each workflow (wiki Release-9.6.0). Every one must be
+# reported as PASS, FAIL, MANUAL or SKIP; silence is a FAIL, so a workflow
+# that returns early cannot pass by leaving its later steps out. Lettered
+# sub-steps (W3.2c, W5.2d, ...) are extras and not required.
+EXPECTED = {"W1": 7, "W2": 6, "W3": 4, "W4": 5, "W5": 5, "W6": 5}
+
+
+def underTest():
+    """Machine, platform, commit and install the round ran on, for the record."""
+    import platform
+    import socket
+    try:
+        commit = subprocess.run(["git", "-C", REPO, "describe", "--always", "--dirty", "--abbrev=12"],
+                                capture_output=True, text=True, timeout=20).stdout.strip()
+    except Exception:
+        commit = ""
+    return "host=%s platform=%s commit=%s install=%s" % (
+        socket.gethostname(), platform.platform(), commit or "unknown",
+        os.environ.get("ECCE_TEST_HOME", "(unset)"))
 
 
 def main():
@@ -884,6 +921,8 @@ def main():
     keep = "--keep" in sys.argv
     if keep:
         sys.argv.remove("--keep")
+
+    print("under test: %s" % underTest(), flush=True)
 
     def checkApp(display, name, results, verbose=False):
         import one_process_test as op
@@ -903,6 +942,12 @@ def main():
         finally:
             if not keep:
                 shutil.rmtree(root, ignore_errors=True)
+        reported = set(s[0] for s in STEPS)
+        for w in only:
+            for n in range(1, EXPECTED.get(w, 0) + 1):
+                sid = "%s.%d" % (w, n)
+                if sid not in reported:
+                    step(sid, "FAIL", "not reached: the runner reported nothing for this step")
         fails = [s for s in STEPS if s[1] == "FAIL"]
         if fails:
             results.fail("releaseround", "; ".join(s[0] for s in fails))
@@ -910,15 +955,22 @@ def main():
     run_tests.checkApp = checkApp
     sys.argv = [sys.argv[0], "--app", "organizer", "--budget", "7200"] + sys.argv[1:]
     rc = run_tests.main()
+    if not STEPS:
+        step("round", "FAIL", "nothing was checked (harness exit %s): no install, no "
+             "Xvfb, or the Organizer did not start" % rc)
+    elif rc != 0 and not any(s[1] == "FAIL" for s in STEPS):
+        step("round", "FAIL", "the test harness exited %s with no step failed: "
+             "see its output above" % rc)
     print("\n==== release round summary")
+    print("under test: %s" % underTest())
     for s in STEPS:
         print("%-6s %-6s %s" % (s[0], s[1], s[2][:200]))
     count = {k: sum(1 for s in STEPS if s[1] == k)
              for k in ("PASS", "FAIL", "MANUAL", "SKIP")}
     print("PASS %(PASS)d  FAIL %(FAIL)d  MANUAL %(MANUAL)d  SKIP %(SKIP)d" % count)
-    if count["FAIL"]:
+    if count["FAIL"] or rc != 0:
         return 1
-    return rc if not STEPS else 0
+    return 0
 
 
 if __name__ == "__main__":

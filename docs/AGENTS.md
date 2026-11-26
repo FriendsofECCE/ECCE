@@ -166,7 +166,7 @@ implemented. See [Viewer panels](../help/src/viewer-panels.md).
 
 With one atom selected the Builder/Viewer shows `El N  (x, y, z) Å  RES` at the
 bottom left of the 3-D view; with two atoms the distance `El N - El M  d Å`
-(#1236). Builder script `selectoverlay [N [M]]` (from 1) selects those atoms and
+(#1236). Builder script `selectoverlay [N [M]]` (from 1; Builder and Viewer tabs and the scene script) selects those atoms and
 prints `SELOVERLAY: <count> [<overlay text>]`; test
 `tests/apps/atom_numbers_test.py`.
 
@@ -542,8 +542,12 @@ Release round (#1279): `tests/releaseround/run_round.py [--only W1,...]
 [--keep]` runs the release workflow scripts W1-W6 headlessly through the
 hooks above (an isolated HOME and data folder, one fresh Organizer per
 workflow) and prints one `W1.3 PASS|FAIL|MANUAL|SKIP <evidence>` line per
-step, then a summary; exit 1 on a FAIL. ctest `releaseround` (label
-`long`); offload: `run-offload.sh <sha> apptest
+step, then a summary naming the host, platform and commit. Exit 0 only when
+every numbered step of each workflow run was reported and none failed: a step
+the runner never reached is a FAIL, and so is a round that checked nothing
+(no install, no Xvfb, the Organizer did not start); there is no skip code.
+ctest `releaseround` (label `long`, so `-LE long` leaves it out); for a release,
+run the script itself or check that ctest ran 1 test; offload: `run-offload.sh <sha> apptest
 tests/releaseround/run_round.py`. Steps without a hook (a drag, the
 pointer over a menu, a Slurm submit) are listed as MANUAL;
 `tests/releaseround/README.md` maps each step to its hook.
@@ -620,7 +624,7 @@ the tool's **Window > Move to Tabs** puts it back. With
 `ECCE_ONE_PROCESS=0` every tool opens in a window whatever the setting. Test
 hooks: `tabs` (tabs, `*` = active, tools in windows, the menu bar's menus;
 `tabs dots` also appends each tab's painted dot colour as `dots=0:#3060B0 ...`),
-`launcher machine|pick NAME|launch|get WHAT` (the Launcher script's commands on the active Launcher tab; `get machines` lists the machine choice), `builderinfo` (the active Builder or Viewer tab: `atoms=N title=...`, the atoms its scene draws; `not a Builder tab` otherwise), `tab N`, `towindow N`, `totabs <title part>`, `mainwindow` (the main window: `host=MainFrame organizer=hidden ...`, or `host=none`
+`launcher machine|pick NAME|launch|get WHAT` (the Launcher script's commands on the active Launcher tab; `get machines` lists the machine choice), `builderinfo` (the active Builder or Viewer tab: `atoms=N inscene=0|1 lattice=0|1 title=...`, the atoms its scene draws and whether the structure has a cell; `not a Builder tab` otherwise), `tab N`, `towindow N`, `totabs <title part>`, `mainwindow` (the main window: `host=MainFrame organizer=hidden ...`, or `host=none`
 when the Organizer is its own window), `menu exit|about|preferences|minimize|<id>` and `hostclose` (a menu command, or the window
 manager's close, on the main window; queued, answer the questions with `answer`; Quit, Preferences and About always reach the Organizer, also from a tool tab; a logged error never opens a modal box: a tool tab's goes to its log panel, others to a non-modal box on the main window, and with `ECCE_TEST_ORGANIZER` every log message is also on stderr), `windowmenu [N]` (the **Window** menu every bar has while hosted, `0:Organizer* 1:Viewer`; N chooses that entry and switches the tab; the main window's title then reads "ECCE Organizer <ver> - <tab>"; on macOS this menu has its own Minimize (Cmd-M; hook `menu minimize`) but no Zoom item or window list, since wx's automatic Window menu is off in one-program mode; `ECCE_DEBUG_MENUS=1` logs every menu-bar swap on stderr), `tabtips` (each tab's tooltip, `0:|1:(HOME)/proj/calc – Viewer|`; the Organizer's is empty; tab labels are the tool's name only), `nexttab` / `prevtab` (Window > Next Tab / Previous Tab, wrapping; answers the selected index), `tabkey next|prev|pgdn|pgup` (Ctrl+Tab, Ctrl+Shift+Tab, Ctrl+PgDn, Ctrl+PgUp as the key hook gets them; answers the selected index; steps less than 400 ms after the previous one only move a pending target, selected 150 ms after the last, #1267), `tabsteps N` (N Next Tab steps in a row; answers `selected=<i> selects=<tabs drawn>`), `windowitems` (every Window menu item in order: `Next Tab[Ctrl+PgDn]|Previous Tab[Ctrl+PgUp]|-|` on Linux (Ctrl+Tab on Windows, Cmd+Shift+] on macOS) then `Organizer|Viewer – (HOME)/proj/calc*|`, `-` a separator, `*` the active tab; starting a Builder, Viewer, Calculation Editor or Launcher for a calculation that already has that tool's tab selects that tab instead of opening another), `orgwindow prefs|find|props URL` then `orgwindowinfo` (the Organizer's modeless windows sit on the main window: `transient=host inside=1 mapped=1`), `layout show|normal|small|wide|KEY=tab|window`
 (prints `preset=... rows=builder:tab,...`), `tabmenu N` (the tab's

@@ -72,9 +72,10 @@ void registerBuilderInProcess()
         inScene = find.getPath() != NULL;
       }
     }
-    return wxString::Format("atoms=%d inscene=%d title=%s",
+    //  "lattice": the structure has a cell (a periodic calculation's Viewer).
+    return wxString::Format("atoms=%d inscene=%d lattice=%d title=%s",
                             frag ? (int)frag->numAtoms() : -1, inScene,
-                            b->GetTitle());
+                            frag && frag->getLattice() ? 1 : 0, b->GetTitle());
   });
   InProcessTools::add(BUILDER, openBuilder);
   InProcessTools::add(CALCVIEWER, openViewer);

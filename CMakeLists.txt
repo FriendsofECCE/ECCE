@@ -3863,8 +3863,8 @@ if(PYTHON3_EXECUTABLE)
            COMMAND ${PYTHON3_EXECUTABLE}
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/releaseround/run_round.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/releaseround)
-  set_tests_properties(releaseround PROPERTIES TIMEOUT 9000
-                       SKIP_RETURN_CODE 77 LABELS long)
+  # No skip code: a round that could not run must not look like a pass.
+  set_tests_properties(releaseround PROPERTIES TIMEOUT 9000 LABELS long)
   # Busy cursor, status line and slow-start window while a tool starts (#1071).
   add_test(NAME apps_organizer_tool_start
            COMMAND ${PYTHON3_EXECUTABLE}
