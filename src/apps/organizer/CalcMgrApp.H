@@ -43,6 +43,7 @@ DECLARE_CLASS(CalcMgrApp)
   void rerunRequestMCB(JMSMessage& msg);
   void terminateRequestMCB(JMSMessage& msg);
   void annotateRequestMCB(JMSMessage& msg);
+  void allocationsRequestMCB(JMSMessage& msg);
   void moveRequestMCB(JMSMessage& msg);
   void workflowRequestMCB(JMSMessage& msg);
   void reconnectRequestMCB(JMSMessage& msg);

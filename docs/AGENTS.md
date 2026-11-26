@@ -1126,6 +1126,20 @@ answers and prints `ALLOC: machine|account|used|checked` per row;
 `allocations refresh` presses Refresh first. Test:
 `tests/launch/allocations_ssh_test.sh --build <tree>`.
 
+`ecce-allocations [--refresh] [--timeout SECONDS] [machine]` prints the same
+table from a script, by asking the running Organizer (it never queries a
+cluster itself; the login belongs to the session). One tab-separated line per
+machine and account: machine, account, the usage line (or `not checked:
+<reason>`, `not recognised: <line>`, `<line> (old; <reason>)`, `still
+checking`), and `checked YYYY-MM-DD HH:MM (N min ago)`. Without `--refresh`
+it reads what the Organizer knows (answers are kept 15 minutes) and opens no
+login, so a cheap read stays cheap. `--refresh` is the Refresh button: it logs
+in where needed, then waits up to `--timeout` seconds (default 30) and prints
+what has arrived; accounts still unanswered print as `still checking`, so run
+it again to read them. `machine` limits the output to that machine. Exit 0: all
+current; 1: some line has no current value, or nothing matched; 2: ECCE is not
+running.
+
 ### How ECCE logs in
 
 ECCE uses its own ssh library and keeps a master connection. It asks for the
@@ -1437,7 +1451,7 @@ to. Other variables: the `ENVIRONMENT.md` file next to this one.
 ## Commands
 
 The `ecce-launch`, `ecce-terminate`, `ecce-reconnect`, `ecce-fetch`,
-`ecce-annotate`, `ecce-rerun`, `ecce-move`, `ecce-copy`, `ecce-mkdir`, `ecce-rename` and `ecce-workflow` commands do not start ECCE; they ask the running Organizer to act, so ECCE has
+`ecce-annotate`, `ecce-allocations`, `ecce-rerun`, `ecce-move`, `ecce-copy`, `ecce-mkdir`, `ecce-rename` and `ecce-workflow` commands do not start ECCE; they ask the running Organizer to act, so ECCE has
 to be running with the same data mode. Without it they print `ECCE is not
 running: start ECCE first` and do nothing. A calculation is given as a folder
 (local data) or a URL (data server). One line is printed per calculation.

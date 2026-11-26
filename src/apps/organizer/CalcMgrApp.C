@@ -24,6 +24,7 @@
 #include "wxgui/OneInstanceChannel.H"
 #include "wxgui/ToolTabs.H"
 #include "util/JMSPublisher.H"
+#include "comm/AllocationQuery.H"
 #include "wx/wxprec.h"
 
 #ifdef __BORLANDC__
@@ -344,6 +345,8 @@ bool CalcMgrApp::OnInit()
   subscribe("ecce_terminate_request", (wxJmsCBFunc)&CalcMgrApp::terminateRequestMCB);
   // ecce-annotate (#742)
   subscribe("ecce_annotate_request", (wxJmsCBFunc)&CalcMgrApp::annotateRequestMCB);
+  // ecce-allocations (#1319)
+  subscribe("ecce_allocations_request", (wxJmsCBFunc)&CalcMgrApp::allocationsRequestMCB);
   // ecce-move / ecce-rename (#824)
   subscribe("ecce_move_request", (wxJmsCBFunc)&CalcMgrApp::moveRequestMCB);
   // ecce-workflow
@@ -575,6 +578,41 @@ void CalcMgrApp::annotateRequestMCB(JMSMessage& msg)
     r->addProperty("line" + std::to_string(i), lines[i]);
   publish("ecce_annotate_reply", *r);
   delete r;
+}
+
+
+// ecce-allocations: what the Allocations window's Refresh runs, answered at once
+// with the state now. The tool asks again while accounts are still Checking, so
+// this never waits on a login on the GUI thread.
+void CalcMgrApp::allocationsRequestMCB(JMSMessage& msg)
+{
+  if (!p_calcMgr || p_calcMgr->IsBeingDeleted()) return;
+  auto clean = [](string s) {
+    for (size_t i = 0; i < s.size(); i++)
+      if (s[i] == '\t' || s[i] == '\n' || s[i] == '\r') s[i] = ' ';
+    return s;
+  };
+  const string only = msg.getProperty("machine");
+  const bool force = msg.getProperty("force") == "yes";
+  vector<string> lines;
+  vector<AllocationQuery::Target> targets = AllocationQuery::targets();
+  for (size_t i = 0; i < targets.size(); i++) {
+    if (!only.empty() && targets[i].machine != only) continue;
+    AllocationQuery::Result r = AllocationQuery::check(targets[i], force, []() {});
+    const char* st = r.state == AllocationQuery::Result::Checking ? "checking"
+                   : r.state == AllocationQuery::Result::Value ? "value" : "none";
+    lines.push_back(clean(targets[i].machine) + "\t" + clean(targets[i].account) + "\t" + st +
+                    "\t" + clean(r.host) + "\t" + clean(r.used) + "\t" + clean(r.raw) + "\t" +
+                    std::to_string(r.when) + "\t" + (r.old ? "1" : "0") + "\t" + clean(r.why));
+  }
+  JMSMessage* rep = newMessage();
+  rep->addProperty("reply_id", msg.getProperty("reply_id"));
+  rep->addProperty("kind", "done");
+  rep->addIntProperty("n", (int)lines.size());
+  for (size_t i = 0; i < lines.size(); i++)
+    rep->addProperty("line" + std::to_string(i), lines[i]);
+  publish("ecce_allocations_reply", *rep);
+  delete rep;
 }
 
 

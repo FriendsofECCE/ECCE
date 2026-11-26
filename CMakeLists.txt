@@ -624,6 +624,12 @@ target_include_directories(ecce-annotate PRIVATE ${XercesC_INCLUDE_DIRS})
 target_link_libraries(ecce-annotate PRIVATE
   eccecommxt eccecomm eccercmd eccedsi eccedav eccecipc eccefaces eccexml
   eccetdat ecceutil ${XercesC_LIBRARIES})
+# Tools > Allocations from the command line, through the running Organizer (#1319).
+add_executable(ecce-allocations src/apps/launch/ecce-allocations.C)
+target_include_directories(ecce-allocations PRIVATE ${XercesC_INCLUDE_DIRS})
+target_link_libraries(ecce-allocations PRIVATE
+  eccecommxt eccecomm eccercmd eccedsi eccedav eccecipc eccefaces eccexml
+  eccetdat ecceutil ${XercesC_LIBRARIES})
 # Move and rename through the running Organizer (#824): one source, two tools.
 foreach(_mv ecce-move ecce-rename ecce-copy ecce-mkdir)
   add_executable(${_mv} src/apps/launch/ecce-move.C)
@@ -1365,7 +1371,7 @@ set(ECCE_GUI_APPS
   mddynamics mdenergy mdoptimize mdprepare gmxprepare msgdialog metadyn organizer
   passdialog hostkeydialog pertable solvate builder vizthumbnail)
 set(ECCE_CLI_APPS
-  load_tgbs ecmd eccejobmaster eccejobstore ecce-localdata ecce-launch ecce-rerun ecce-terminate ecce-annotate ecce-move ecce-rename ecce-copy ecce-mkdir ecce-workflow ecce-series ecce-batch-smiles ecce-site-screen ecce-reconnect ecce-reparse ecce-fetch ecce-site-admin mocomp ecce-thermo ecce-force-compare ecce-density-field ecce-pdbqt
+  load_tgbs ecmd eccejobmaster eccejobstore ecce-localdata ecce-launch ecce-rerun ecce-terminate ecce-annotate ecce-allocations ecce-move ecce-rename ecce-copy ecce-mkdir ecce-workflow ecce-series ecce-batch-smiles ecce-site-screen ecce-reconnect ecce-reparse ecce-fetch ecce-site-admin mocomp ecce-thermo ecce-force-compare ecce-density-field ecce-pdbqt
   autosym autosym_cpp getfrag getfrag_cpp genmol genmol_cpp genmollat genmollat_cpp
   cleansym cleansym_cpp symops symops_cpp mdanalysis)
 if(LIBSSH_FOUND)
@@ -6104,6 +6110,7 @@ endif()
 set(ECCE_COMMAND_WRAPPERS
   ecce-terminate=bin/ecce-terminate
   ecce-annotate=bin/ecce-annotate
+  ecce-allocations=bin/ecce-allocations
   ecce-rerun=bin/ecce-rerun
   ecce-move=bin/ecce-move
   ecce-rename=bin/ecce-rename

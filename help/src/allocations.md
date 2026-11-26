@@ -46,3 +46,12 @@ for the password. **Close** closes the window; it can be resized.
 - `<usage> (old; <reason>)`: the last check failed, so the usage shown is from
   an earlier one; **Checked** says `(old)` after its time.
 - `checking...`: the answer is on its way. The window can be used meanwhile.
+
+## From the command line
+
+`ecce-allocations [--refresh] [--timeout SECONDS] [machine]` prints the same
+table, one line per machine and account, by asking the running Organizer.
+Without `--refresh` it shows what is known now and logs in to nothing. With
+`--refresh` it does what **Refresh** does, waits up to `--timeout` seconds
+(30 by default) and prints what has arrived; an account not yet answered is
+printed as `still checking`.

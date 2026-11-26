@@ -133,6 +133,26 @@ def main():
         b = r2.get("allocbad", NONE)
         check(b[2].startswith("not checked: not logged in to sshbad") and b[3] == "",
               "a refused login says why (%s)" % b[2])
+        # #1319: the command line reaches the same Organizer. The cache holds
+        # alloc from the Refresh above, so no login is needed to read it.
+        cli = os.path.join(build, "ecce-allocations")
+        if os.access(cli, os.X_OK):
+            r_ = subprocess.run([cli, "alloc"], env=genv, stdout=subprocess.PIPE,
+                                stderr=subprocess.PIPE, timeout=120)
+            out = r_.stdout.decode()
+            say("  ecce-allocations alloc: rc=%s %s" % (r_.returncode, out.strip()))
+            f = out.strip().split("\t")
+            check(r_.returncode == 0 and len(f) == 4 and f[0] == "alloc" and
+                  f[1] == "acct-1" and "7.4" in f[2] and f[3].startswith("checked "),
+                  "ecce-allocations prints the cached line without --refresh")
+            r_ = subprocess.run([cli, "--refresh", "--timeout", "20", "allocbad"], env=genv,
+                                stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=120)
+            out = r_.stdout.decode()
+            say("  ecce-allocations --refresh allocbad: rc=%s %s" % (r_.returncode, out.strip()))
+            check(r_.returncode == 1 and "not checked: not logged in to sshbad" in out,
+                  "--refresh on a refused login says why and exits 1")
+        else:
+            say("  SKIP ecce-allocations is not built in %s" % build)
     finally:
         if org and org.poll() is None:
             os.killpg(org.pid, 15)
