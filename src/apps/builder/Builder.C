@@ -2609,7 +2609,11 @@ void Builder::saveSettings()
      config->Write("/ShowCmd", p_toolMenu->IsChecked(ID_SHOW_CMD));
    }
 
-   saveWindowSettings(config, true);
+   // While the Builder is a tab this frame is not the window on screen, so
+   // its position and size are the hidden frame's: writing them would lose
+   // the geometry a Builder opened in a window should come back with.  The
+   // host saves its own (CalcMgr::saveSettings guards the same way).
+   if (!ToolTabs::hosts(this)) saveWindowSettings(config, true);
 
    // We don't allow struct lib mode across context switches
    if (p_currentMode == ID_MODE_STRUCTLIB) {
