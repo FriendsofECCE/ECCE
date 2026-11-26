@@ -27,7 +27,7 @@ More pictures and the full feature list: [ECCE overview](docs/OVERVIEW.md).
 Download from the [releases page](https://github.com/FriendsofECCE/ECCE/releases).
 
 * **ECCE 9** (latest
-  [9.6.0](https://github.com/FriendsofECCE/ECCE/releases/tag/v9.6.0)),
+  [9.6.1](https://github.com/FriendsofECCE/ECCE/releases/tag/v9.6.1)),
   for Linux, macOS and Windows: the recommended version. The macOS and
   Windows clients are experimental.
 * **ECCE 8.18.x** (latest
@@ -44,11 +44,11 @@ Download from the [releases page](https://github.com/FriendsofECCE/ECCE/releases
 Then start `ecce` (on macOS and Windows: ECCE in Applications or the
 Start menu). Details for each system: [Installing ECCE](docs/INSTALLING.md).
 
-## Coming in 9.6.1
+## Coming in 9.6.2
 
-On main, not in a package yet: nothing since 9.6.0.
+On main, not in a package yet: nothing since 9.6.1.
 
-What 9.6.0 brought: [release notes](docs/release-notes-9.6.0.md).
+What 9.6.1 brought: [release notes](docs/release-notes-9.6.1.md).
 
 ## First steps
 
