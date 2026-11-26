@@ -740,6 +740,7 @@ class Builder: public BuilderGUI,
       bool densityMapCommand(SceneScript& s, const vector<string>& w,
                              const string& outdir);
       bool selectOverlayCommand(SceneScript& s, const vector<string>& w);
+      bool selectOverlay(const vector<string>& w, string& err);
       string selectionDetailText();
       bool atomNumbersCommand(SceneScript& s, const vector<string>& w);
       bool clipCommand(SceneScript& s, const vector<string>& w,

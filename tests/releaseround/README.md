@@ -18,9 +18,25 @@ It uses the tests/apps machinery: Xvfb, an isolated HOME
 (`ECCE_REALUSERHOME`), private services, and one data folder per round
 (`ECCE_LOCAL_DATA`). Each workflow starts a fresh Organizer in one-program
 mode with the Normal layout and quits it. Output: one line per step,
-`W1.3 PASS|FAIL|MANUAL|SKIP <evidence>`, then a summary; exit 1 on any
-FAIL, 77 without an install or Xvfb. `--keep` keeps the work folder
+`W1.3 PASS|FAIL|MANUAL|SKIP <evidence>`, then a summary that starts with
+the host, platform and commit under test. `--keep` keeps the work folder
 (Organizer logs per workflow, `organizer.log`).
+
+Exit status: 0 only when every numbered step of each workflow run (W1.1-W1.7,
+W2.1-W2.6, W3.1-W3.4, W4.1-W4.5, W5.1-W5.5, W6.1-W6.5) was reported and none
+failed. Silence is a failure:
+
+- A numbered step the runner never reported is `FAIL not reached`, so a
+  workflow that returns early cannot pass by leaving steps out.
+- A round that checked nothing (no install, no Xvfb, the Organizer did not
+  start) is a FAIL with exit 1. There is no skip code: a round that could not
+  run must not look like one that passed.
+- A harness failure with no failed step is reported as step `round`.
+
+For a release, run the script itself (or the offload line above) and read the
+summary. `ctest -R releaseround` is only safe if ctest reports 1 test run: a
+pattern that matches nothing exits 0 (#1301), and `-LE long` leaves the round
+out.
 
 ## How the steps map to hooks
 

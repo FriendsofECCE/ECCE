@@ -375,13 +375,21 @@ bool Builder::densityMapCommand(SceneScript& s, const vector<string>& w,
 
 bool Builder::selectOverlayCommand(SceneScript& s, const vector<string>& w)
 {
+  string err;
+  return selectOverlay(w, err) || s.fail(err);
+}
+
+
+//  Shared by the scene script and the Builder script that Viewer tabs run.
+bool Builder::selectOverlay(const vector<string>& w, string& err)
+{
   SGFragment *frag = getSG() ? getSG()->getFragment() : 0;
-  if (!frag) return s.fail("selectoverlay: no structure");
+  if (!frag) { err = "selectoverlay: no structure"; return false; }
   frag->m_bondHighLight.clear();
   frag->m_atomHighLight.clear();
   for (size_t i = 1; i < w.size(); i++) {
     const int n = atoi(w[i].c_str());
-    if (n < 1 || n > (int)frag->numAtoms()) return s.fail("selectoverlay: no such atom");
+    if (n < 1 || n > (int)frag->numAtoms()) { err = "selectoverlay: no such atom"; return false; }
     frag->m_atomHighLight.push_back(n - 1);
   }
   updateSelectionText();

@@ -2435,6 +2435,11 @@ void Builder::runBuilderScript(const std::string& file)
         }
         fprintf(stderr, "BUILDER: overlay tab=%d%s\n", p_columnTab,
                 list.c_str());
+      } else if (w[0] == "selectoverlay") {
+        //  "selectoverlay [N [M]]": select atoms N (and M), from 1, and
+        //  report the bottom-left overlay text (#1236).
+        std::string err;
+        outcome = selectOverlay(w, err) ? "ok" : "FAIL: " + err;
       } else if (w[0] == "stamp") {
         //  Wall-clock seconds, to time what a script line saw.
         fprintf(stderr, "BUILDER: stamp %.3f\n",
