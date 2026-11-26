@@ -47,6 +47,7 @@
 #include "tdat/CompactCell.H"
 #include "tdat/Fragment.H"
 #include "tdat/CifIO.H"
+#include "tdat/MolIO.H"
 #include "tdat/LinearPointGroup.H"
 #include "tdat/FragUtil.H"
 #include "tdat/TFormula.H"
@@ -5402,6 +5403,18 @@ bool Fragment::restoreGRO(istream& infile, bool genBonds)
 bool Fragment::restoreCIF(istream& infile, bool genBonds)
 {
   return CifIO::read(*this, infile, genBonds);
+}
+
+
+bool Fragment::restoreSDF(istream& infile, bool genBonds)
+{
+  return MolIO::readSdf(*this, infile, genBonds);
+}
+
+
+bool Fragment::restoreMOL2(istream& infile, bool genBonds)
+{
+  return MolIO::readMol2(*this, infile, genBonds);
 }
 
 bool Fragment::dumpCIF(ostream& out)

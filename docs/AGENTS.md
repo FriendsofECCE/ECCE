@@ -967,6 +967,18 @@ the first. The key can still be typed. The same ranking and range formatter
 are `LigandSelect::ligandCandidates`/`atomRangeString` (`include/tdat/LigandSelect.H`).
 In the Organizer's editor tab Runtype Details opens in the Set-up area (`setup runtype`; `setup info` reports `ligandpick=N`, the candidates listed, and `setup set ES.Runtype.Docking.LigandAtoms 10-15` sets the key); the standalone editor runs the Python dialog. `ECCE_VINA_TRACE=1` makes the Python dialog print how it chose the default (`VINADLG:` lines on the editor's stderr).
 
+**Structure file formats the Builder reads.** File > Open... and File > Add
+Structure from File... read `.xyz`, `.pdb`/`.ent`, `.gro`, `.car`, `.cif`,
+`.mvm` and, since 9.6.1, `.sdf`/`.mol` (MDL V2000) and `.mol2` (Tripos). The
+two new ones bring their own bond block, so their bond orders come from the
+file and are not guessed from distances: SDF type 4 and mol2 `ar` become the
+tree's aromatic order 1.5, mol2 `am`, `du` and `un` become single. A `.sdf`
+holding several records gives its first record only, and the same for a
+`.mol2` with several `@<TRIPOS>MOLECULE` records. An MDL V3000 file is
+refused with a message rather than misread. There is no SDF or mol2 writer,
+so File > Export Structure... still offers only `.gro`, `.pdb` and `.xyz`.
+Test: ctest `fragreaders` (`ethene.sdf`, `benzene.mol2`, `v3000.sdf`).
+
 **Local file chooser (#342).** Builder File > Open... and Add Structure from
 File... use the platform's file dialog (`ecceLocalFile`,
 `include/wxgui/LocalFileDialog.H`, last folder per use in

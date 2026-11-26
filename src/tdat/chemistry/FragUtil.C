@@ -1246,6 +1246,11 @@ bool FragUtil::load( istream& is,
       ret = frag->restoreGRO(is,genBOs);
    } else if (STLUtil::compareString(type,string("CIF"))==0) {
       ret = frag->restoreCIF(is,genBOs);
+   } else if (STLUtil::compareString(type,string("SDF"))==0 ||
+              STLUtil::compareString(type,string("MOL"))==0) {
+      ret = frag->restoreSDF(is,genBOs);
+   } else if (STLUtil::compareString(type,string("MOL2"))==0) {
+      ret = frag->restoreMOL2(is,genBOs);
    } else if (STLUtil::compareString(type,string("PDB"))==0) {
       bool groupFlg = true;
       bool readBonds = false;

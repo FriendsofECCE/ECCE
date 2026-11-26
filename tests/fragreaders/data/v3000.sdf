@@ -1,0 +1,9 @@
+ethene V3000
+  ECCE   test file
+
+  0  0  0     0  0            999 V3000
+M  V30 BEGIN CTAB
+M  V30 COUNTS 6 5 0 0 0
+M  V30 END CTAB
+M  END
+$$$$

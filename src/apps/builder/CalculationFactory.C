@@ -27,6 +27,8 @@ wxFORCE_LINK_MODULE(CifCalculation)
 wxFORCE_LINK_MODULE(CubeCalculation)
 wxFORCE_LINK_MODULE(PdbCalculation)
 wxFORCE_LINK_MODULE(MvmCalculation)
+wxFORCE_LINK_MODULE(SdfCalculation)
+wxFORCE_LINK_MODULE(Mol2Calculation)
 wxFORCE_LINK_MODULE(XyzCalculation)
 
 

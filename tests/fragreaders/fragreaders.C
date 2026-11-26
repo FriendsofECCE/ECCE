@@ -423,6 +423,81 @@ int main(int argc, char **argv)
     }
   }
 
+  {
+    //  MDL mol/sdf (V2000): atom and bond blocks in fixed columns, the
+    //  bond orders from the file rather than guessed from distances.
+    string tag = "ethene.sdf";
+    Fragment *frag = load(dir + "/ethene.sdf", "SDF");
+    if (frag) {
+      check(frag->numAtoms() == 6, tag + ": 6 atoms (got "
+            + to_string(frag->numAtoms()) + ")");
+      if (frag->numAtoms() == 6) {
+        check(string(frag->atomRef(0)->atomicSymbol()) == "C"
+              && string(frag->atomRef(1)->atomicSymbol()) == "C"
+              && string(frag->atomRef(5)->atomicSymbol()) == "H",
+              tag + ": C C H H H H");
+        const double *c = frag->atomRef(2)->coordinates();
+        check(fabs(c[0] - 0.9289) < 1e-4 && fabs(c[1] - 1.2321) < 1e-4
+              && fabs(c[2]) < 1e-4, tag + ": atom 3 at 0.9289 1.2321 0");
+      }
+      check(frag->numBonds() == 5, tag + ": 5 bonds (got "
+            + to_string(frag->numBonds()) + ")");
+      TBond *cc = frag->bond(0, 1);
+      check(cc != 0 && fabs(cc->order() - 2.0) < 1e-6,
+            tag + ": C=C is a double bond");
+      TBond *ch = frag->bond(0, 2);
+      check(ch != 0 && fabs(ch->order() - 1.0) < 1e-6,
+            tag + ": C-H is a single bond");
+      //  The file holds a second record after $$$$; only the first is read.
+      check(frag->numAtoms() == 6, tag + ": the methane record after $$$$ "
+            "is not added");
+      delete frag;
+    }
+  }
+
+  {
+    //  A V3000 file must be refused, not misread as V2000.
+    ifstream is((dir + "/v3000.sdf").c_str());
+    Fragment frag;
+    FragUtil util(&frag);
+    check(!util.load(is, "SDF", 1.0, true), "v3000.sdf: refused");
+    check(frag.numAtoms() == 0, "v3000.sdf: no atoms made");
+  }
+
+  {
+    //  Tripos mol2: the element comes from the SYBYL type before the dot
+    //  and the aromatic ring bonds come out as the tree's 1.5.
+    string tag = "benzene.mol2";
+    Fragment *frag = load(dir + "/benzene.mol2", "MOL2");
+    if (frag) {
+      check(frag->numAtoms() == 12, tag + ": 12 atoms (got "
+            + to_string(frag->numAtoms()) + ")");
+      if (frag->numAtoms() == 12) {
+        bool syms = true;
+        for (int i = 0; i < 6; i++)
+          if (string(frag->atomRef(i)->atomicSymbol()) != "C") syms = false;
+        for (int i = 6; i < 12; i++)
+          if (string(frag->atomRef(i)->atomicSymbol()) != "H") syms = false;
+        check(syms, tag + ": C.ar is carbon, H is hydrogen");
+        const double *c = frag->atomRef(1)->coordinates();
+        check(fabs(c[0] - 0.6985) < 1e-4 && fabs(c[1] - 1.2098) < 1e-4
+              && fabs(c[2]) < 1e-4, tag + ": atom 2 at 0.6985 1.2098 0");
+      }
+      check(frag->numBonds() == 12, tag + ": 12 bonds (got "
+            + to_string(frag->numBonds()) + ")");
+      bool ring = true;
+      for (int i = 0; i < 6; i++) {
+        TBond *b = frag->bond(i, (i + 1) % 6);
+        if (b == 0 || fabs(b->order() - 1.5) > 1e-6) ring = false;
+      }
+      check(ring, tag + ": the six ring bonds are aromatic (1.5)");
+      TBond *ch = frag->bond(0, 6);
+      check(ch != 0 && fabs(ch->order() - 1.0) < 1e-6,
+            tag + ": C-H is a single bond");
+      delete frag;
+    }
+  }
+
   cout << (failures ? "FAILED" : "PASSED") << " (" << failures
        << " failures)" << endl;
   return failures ? 1 : 0;
