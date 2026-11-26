@@ -421,16 +421,19 @@ class Round(object):
             outp2 = org.send("setup results output", 30) or ""
             rr = org.send("setup rerun cancel", 30) or ""
             st2 = (org.send("state " + url) or "").strip()
-            before = len(calcsUnder(urlPath(self.project)))
-            dup = org.send("setup duplicate", 60) or ""
-            time.sleep(3)
-            after = len(calcsUnder(urlPath(self.project)))
+            # The Viewer before the duplicate: duplicating moves the editor
+            # to the new copy, which has never run, so its Results box has no
+            # Viewer to open and the check would fail on the wrong calculation.
             rv = org.send("setup results viewer", 30) or ""
             time.sleep(4)
             vtabs = org.send("tabs") or ""
             opened = tabIndex(vtabs, "Viewer") is not None
             if opened:
                 org.closeTab("Viewer")
+            before = len(calcsUnder(urlPath(self.project)))
+            dup = org.send("setup duplicate", 60) or ""
+            time.sleep(3)
+            after = len(calcsUnder(urlPath(self.project)))
             passfail("W1.8", "results=shown" in res and "actions=duplicate,rerun" in res
                      and "editlaunch=disabled" in res and outp == "output"
                      and not inp.startswith(("unknown", "no ")) and "output" in outp2
