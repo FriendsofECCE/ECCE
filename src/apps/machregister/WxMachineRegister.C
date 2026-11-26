@@ -2189,7 +2189,7 @@ string WxMachineRegister::explain(const string& refName, string& err) const
           << " -Q Shell\n -c NWChem\n -d localhost\n -n 1\n -N 1\n"
           << " -r " << dir << "\n -i a\n -o a\n -f " << dir << "/submit__x\n";
     }
-    wxString cmd = "perl \"" + string(Ecce::ecceHome()) +
+    wxString cmd = "python3 \"" + string(Ecce::ecceHome()) +
                    "/scripts/gensub\" -p \"" + params + "\"";
     wxExecuteEnv env;
     wxGetEnvMap(&env.env);

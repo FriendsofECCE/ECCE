@@ -174,6 +174,7 @@ unit is produced in `ai.<code>`/the `.tpl`, closest to the input deck.
 - [`CONFIG.<machine>` is the site file, then the user file, merged per key (C++ and gensub alike)](config-machine-is-site-then-user-per-key.md)
 - [`GENSUB_EXPLAIN=1 gensub` prints each CONFIG key's effective value and where it came from](gensub-explain-config-provenance.md)
 - [`ConfigFile` reads and writes `CONFIG.<m>`; `MachineConfigDraft` is what Register Machines edits](configfile-writer-and-draft.md)
+- [The csh-to-sh rules exist twice: `ecce_cshtosh.py` (ecce-csh2sh) and `CshToSh.pm` (gensub)](csh-rules-live-in-two-languages.md)
 - [Register Machines is a tabbed frame over a draft; `ECCE_MACHREG_SCRIPT` drives the real window](register-machines-frame-and-test-hook.md)
 - [Register Machines asks the scheduler (discover, test) and previews the job script from the unsaved form](register-machines-queue-tools.md)
 - [Queue defaults, the memory unit is MB, and the Launcher's Machine settings button](queue-defaults-and-launcher-machine-settings.md)

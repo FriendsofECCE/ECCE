@@ -1678,13 +1678,16 @@ if(APPLE)
           COMPONENT client)
 endif()
 
-# scripts/ecce-csh2sh and its rules module CshToSh.pm: converts the csh snippets
-# in submit.site / CONFIG.* to the sh gensub now writes.  gensub `use`s
-# CshToSh.pm from its own directory, so it travels with it; the launcher runs
-# ecce-csh2sh once per user and version, and the package scripts run it
-# (--check only) over the site files.  Both files are needed or gensub itself
-# fails to compile.
+# scripts/ecce-csh2sh (Python) and its rules module ecce_cshtosh.py: converts the
+# csh snippets in submit.site / CONFIG.* to the sh gensub now writes.  The
+# launcher runs ecce-csh2sh once per user and version, and the package scripts
+# run it (--check only) over the site files.  gensub is Perl and `use`s
+# CshToSh.pm from its own directory, so that file stays; it is needed or gensub
+# itself fails to compile.
 install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/ecce-csh2sh
+        DESTINATION scripts
+        COMPONENT client)
+install(FILES ${CMAKE_SOURCE_DIR}/scripts/ecce_cshtosh.py
         DESTINATION scripts
         COMPONENT client)
 install(FILES ${CMAKE_SOURCE_DIR}/scripts/CshToSh.pm
@@ -5893,7 +5896,7 @@ if(PYTHON3_EXECUTABLE)
   # tests/csh2sh -- ecce-csh2sh and the csh rules gensub shares with it: fixtures
   # converted and reported, converted snippets run under dash against tcsh's own
   # environment, backups and idempotence, and the launcher's once-per-version
-  # run.  Needs perl; the tcsh comparisons skip without tcsh.
+  # run.  Needs perl (gensub is Perl); the tcsh comparisons skip without tcsh.
   add_test(NAME csh2sh
            COMMAND ${PYTHON3_EXECUTABLE}
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/csh2sh/run_tests.py

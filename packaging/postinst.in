@@ -5,7 +5,7 @@ set -e
 case "$1" in
   configure)
     ECCE_HOME=@ECCE_HOME_DIR@
-    if [ -x "$ECCE_HOME/scripts/ecce-csh2sh" ] && command -v perl >/dev/null 2>&1; then
+    if [ -x "$ECCE_HOME/scripts/ecce-csh2sh" ] && command -v python3 >/dev/null 2>&1; then
       rc=0
       out=$(ECCE_HOME="$ECCE_HOME" "$ECCE_HOME/scripts/ecce-csh2sh" --check --siteconfig --brief 2>/dev/null) || rc=$?
       if [ "$rc" = 1 ]; then

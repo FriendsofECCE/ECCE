@@ -15,7 +15,7 @@ once-per-version run, and the rule list gensub and ecce-csh2sh share.
 
     tests/csh2sh/run_tests.py [--build DIR] [--update] [-v]
 
-Exit 77 (CTest SKIP) without perl or dash.
+Exit 77 (CTest SKIP) without perl (gensub's) or dash.
 """
 
 import argparse
@@ -64,7 +64,7 @@ def c2s(args, home=None, user=None):
     env["ECCE_HOME"] = home or ""
     if user:
         env["ECCE_REALUSERHOME"] = user
-    return run(["perl", C2S] + args, env=env)
+    return run([sys.executable, C2S] + args, env=env)
 
 
 def twins(tmp):
@@ -278,8 +278,9 @@ def runSuite():
 
 def rulesSuite():
     say("shared rules")
-    # gensub's own translate/refuse behaviour is covered by tests/queues; here that
-    # both tools read one list and nothing parses csh twice.
+    # gensub's own translate/refuse behaviour is covered by tests/queues.  gensub is
+    # Perl and keeps CshToSh.pm, ecce-csh2sh is Python (ecce_cshtosh.py): the two must
+    # give the same text, changes and issues for every fixture, in both modes.
     gensub = read(os.path.join(REPO, "scripts", "gensub"))
     check("CshToSh::snippet" in gensub, "gensub translates through CshToSh")
     check("@cshOnly" not in gensub, "gensub carries no second rule list")
@@ -291,6 +292,32 @@ def rulesSuite():
     out = r.stdout.decode()
     check(out == "export A=b\nif (-e x) then\nendif\n|2\n",
           "basic mode (gensub) translates the plain forms and refuses the structured ones", out)
+
+    import json
+    sys.path.insert(0, os.path.join(REPO, "scripts"))
+    import ecce_cshtosh
+    perl_prog = (
+        'use JSON::PP; use CshToSh; local $/; my $t = <STDIN>; '
+        'my %o = ($ARGV[0] eq "s" ? (structured => 1, assume_twins => $ARGV[1], exists => sub { 0 }) : ()); '
+        'my $r = CshToSh::snippet($t, %o); '
+        'print JSON::PP->new->canonical->encode({text => $r->{text}, changes => $r->{changes}, '
+        'issues => [map { +{%$_, why => defined $_->{why} ? $_->{why} : undef} } @{$r->{issues}}]});')
+    srcs = sorted(glob.glob(os.path.join(HERE, "cases", "*.cfg")) + glob.glob(os.path.join(HERE, "run", "*.csh")))
+    bad = []
+    for path in srcs:
+        text = read(path)
+        for mode, twins in (("b", "0"), ("s", "0"), ("s", "1")):
+            p = subprocess.run(["perl", "-I", os.path.join(REPO, "scripts"), "-e", perl_prog, mode, twins],
+                               input=text.encode("latin-1"), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            want = json.loads(p.stdout.decode("latin-1"))
+            kw = {} if mode == "b" else dict(structured=True, assume_twins=twins == "1",
+                                              exists=lambda f: False)
+            got = ecce_cshtosh.snippet(text, **kw)
+            got = json.loads(json.dumps(got))
+            if got != want:
+                bad.append("%s (%s%s)" % (os.path.basename(path), mode, twins))
+    check(not bad, "the Python rules (ecce_cshtosh.py) agree with CshToSh.pm on %d fixtures x 3 modes" % len(srcs),
+          ", ".join(bad))
 
 
 # --- notes beyond the cases ---------------------------------------------------------
