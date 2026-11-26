@@ -1636,7 +1636,7 @@ void MDPrep::doQuit(bool force, bool notifyEditor)
 
    // save current settings
    Preferences prefs(WHOAMI);
-   saveWindowSettings(WHOAMI, prefs, false);
+   if (!ToolTabs::hosts(this)) saveWindowSettings(WHOAMI, prefs, false);
    prefs.saveFile();
 
    Show(false);

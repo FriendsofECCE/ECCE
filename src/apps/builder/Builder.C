@@ -8203,7 +8203,9 @@ void Builder::viewPosToScreenPos(int& x, int& y)
 {
     wxSize size = p_viewer->GetSize();
     y = size.GetHeight() - y;
-    ClientToScreen(&x,  &y);
+    // The pick coordinates belong to the viewer's own window, which is on
+    // screen even while this hidden frame is a tab; the frame's origin is not.
+    p_viewer->ClientToScreen(&x,  &y);
 }
 
 

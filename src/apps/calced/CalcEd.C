@@ -6148,7 +6148,7 @@ void CalcEd::startTheoryApp(const bool& localInitFlag)
     string err;
     // The dialog places itself over the editor before it is first shown,
     // instead of appearing where the window manager puts it and moving.
-    wxRect r = GetScreenRect();
+    wxRect r = ToolTabs::screenWindow(this)->GetScreenRect();
     wxSetEnv("ECCE_EDITOR_RECT", wxString::Format("%d,%d,%d,%d",
              r.x, r.y, r.width, r.height));
     // Set-up tab: the details fill its detail area when they have a .dlg.
@@ -6249,7 +6249,7 @@ void CalcEd::startRuntypeApp(const bool& localInitFlag)
     string err;
     // The dialog places itself over the editor before it is first shown,
     // instead of appearing where the window manager puts it and moving.
-    wxRect r = GetScreenRect();
+    wxRect r = ToolTabs::screenWindow(this)->GetScreenRect();
     wxSetEnv("ECCE_EDITOR_RECT", wxString::Format("%d,%d,%d,%d",
              r.x, r.y, r.width, r.height));
     // Set-up tab: the details fill its detail area when they have a .dlg.

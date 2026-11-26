@@ -950,7 +950,7 @@ void MDEdBase::_quitMCB(JMSMessage& msg)
    if (msg.getSender().getName() == GATEWAY) {
       // save window location
       Preferences prefs(getAppName());
-      saveWindowSettings(getAppName(), prefs, false);
+      if (!ToolTabs::hosts(this)) saveWindowSettings(getAppName(), prefs, false);
       prefs.saveFile();
 
       Destroy();
@@ -1161,7 +1161,7 @@ void MDEdBase::taskAppDestroy()
 {
    // save window location
    Preferences prefs(getAppName());
-   saveWindowSettings(getAppName(), prefs, false);
+   if (!ToolTabs::hosts(this)) saveWindowSettings(getAppName(), prefs, false);
    prefs.saveFile();
 
    Destroy();
@@ -1250,7 +1250,7 @@ void MDEdBase::doQuit(bool force, bool notifyEditor)
 
    // save window location
    Preferences prefs(getAppName());
-   saveWindowSettings(getAppName(), prefs, false);
+   if (!ToolTabs::hosts(this)) saveWindowSettings(getAppName(), prefs, false);
    prefs.saveFile();
 
    Destroy();
