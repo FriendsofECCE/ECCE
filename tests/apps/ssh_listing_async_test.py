@@ -137,7 +137,7 @@ def run(display):
         check(all("d%02d" % i in o["kids"] for i in range(6)),
               "the listing is in the tree", o["kids"])
         check("bar=1" in o["bar2"], "the second listing shows the panel", o["bar2"])
-        check(o["after"].startswith("idle bar=0"), "Cancel ends the listing and hides the panel", o["after"])
+        check(o["after"].startswith("listing: idle bar=0"), "Cancel ends the listing and hides the panel", o["after"])
         check("applied=2" in o["later"], "a cancelled listing is not applied", o["later"])
         check(not re.search(r"d00", o["kids2"]), "the cancelled folder stays unloaded", o["kids2"])
     finally:
