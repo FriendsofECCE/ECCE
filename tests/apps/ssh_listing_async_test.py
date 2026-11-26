@@ -75,6 +75,8 @@ def run(display):
             last = ""
             while time.monotonic() < end:
                 last = command("listing")
+                if last.startswith("listing: "):   # answers echo the command
+                    last = last[len("listing: "):]
                 if pred(last):
                     return last
                 time.sleep(0.2)

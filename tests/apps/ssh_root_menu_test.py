@@ -83,7 +83,7 @@ def run(display):
             t0 = time.monotonic()
             out["select"] = command("select %s/" % address)
             end = time.monotonic() + 60   # the listing runs off the GUI thread (#1220)
-            while time.monotonic() < end and not command("listing").startswith("idle"):
+            while time.monotonic() < end and not command("listing").startswith("listing: idle"):
                 time.sleep(0.2)
             out["desk"] = command("desk")
             out["selwall"] = time.monotonic() - t0
