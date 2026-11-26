@@ -10198,7 +10198,10 @@ void CalcMgr::OnTreectrlBeginDrag( wxTreeEvent& event )
     }
     */
 
-    wxDropSource dragSource( my_data, this );
+    // The drag starts on the tree, so the tree is the drag source: while the
+    // Organizer is a tab its own frame is never shown, and GTK asserts on an
+    // unrealized drag widget (gtk_drag_begin), losing the drag.
+    wxDropSource dragSource( my_data, p_treeCtrl );
     p_uiBusy++;
     (void)dragSource.DoDragDrop( wxDrag_DefaultMove );
     p_uiBusy--;
