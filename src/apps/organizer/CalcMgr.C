@@ -4183,7 +4183,12 @@ void CalcMgr::showServersMenu()
     wxToolBarToolBase* tool = p_toolBar->FindToolForPosition(x, at.y / 2);
     if (tool && tool->GetId() == p_serversToolId) { at.x = x; break; }
   }
-  PopupMenu(&menu, p_toolBar->GetPosition() + at);
+  // While the Organizer is a tab this frame is not on screen, so a menu
+  // popped on it has nothing to attach to and the position means nothing:
+  // go through the page, in the page's coordinates.
+  wxWindow *host = ToolTabs::popupParent(this);
+  host->PopupMenu(&menu, host->ScreenToClient(
+                             p_toolBar->ClientToScreen(at)));
 }
 
 void CalcMgr::syncServerRoots()
