@@ -4,6 +4,7 @@
   using std::cout;
   using std::endl;
 
+#include <cstdio>
 #include <cstdint>
 #include <unordered_map>
 
@@ -98,6 +99,13 @@ SGContainer *SGContainer::clone()
 {
   SGContainer *ret = new SGContainer;
   return ret;
+}
+
+string SGContainer::eventId() const
+{
+  char buf[32];
+  snprintf(buf, sizeof(buf), "sg%p", (const void *)this);
+  return buf;
 }
 
 string SGContainer::commandObjectType() const
