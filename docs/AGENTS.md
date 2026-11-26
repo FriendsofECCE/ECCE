@@ -558,7 +558,7 @@ without the check a round could pass having docked nothing.
 `--allow-missing-codes` turns that into a SKIP for a deliberately partial
 round.
 ctest `releaseround` (label `long`, so `-LE long` leaves it out); for a release,
-run the script itself or check that ctest ran 1 test; offload: `run-offload.sh <sha> apptest
+run the script itself or check that ctest ran 1 test; offload `ctest`/`ctesti` fail (non-zero) when `-R` matches no test (`--no-tests=error`, #1301); offload: `run-offload.sh <sha> apptest
 tests/releaseround/run_round.py`. Steps without a hook (a drag, the
 pointer over a menu, a Slurm submit) are listed as MANUAL;
 `tests/releaseround/README.md` maps each step to its hook.

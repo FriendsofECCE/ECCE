@@ -1469,6 +1469,13 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/tools/check_props_test.py)
 endif()
 
+# #1301: the offload ctest modes must fail a -R that matches no test.
+if(PYTHON3_EXECUTABLE)
+  add_test(NAME tools_offload_ctest_empty
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/tools/offload_ctest_empty_test.py)
+endif()
+
 # ecce-contacts (#693, #708): coordination shells, H-bonds, ensemble patterns.
 install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/ecce_contacts.py
         DESTINATION bin RENAME ecce-contacts
