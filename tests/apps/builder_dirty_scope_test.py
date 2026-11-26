@@ -125,6 +125,23 @@ def checkDirty(display):
         check(got and asked is True, "an edited Builder stays modified when "
               "a new Viewer opens",
               "edit ran=%s asked=%s tabs=%s" % (got, asked, tabs))
+
+        # Generate Bonds after a save is an edit: it deletes the nubs (#1308)
+        u = dup()
+        mark = org.mark()
+        openBuilder(u, ["wait 3000", "add C Tetrahedral 8 0 0", "save", "wait 3000",
+                        "info", "menu Build|Generate Bonds", "wait 1000", "info",
+                        "wait 45000"])
+        end = time.time() + 120
+        infos = []
+        while time.time() < end and len(infos) < 2:
+            infos = [l for l in org.logText(mark).splitlines() if "BUILDER: atoms=" in l]
+            time.sleep(1)
+        changed = (len(infos) >= 2 and "nubs=0" not in infos[0]
+                   and "nubs=0" in infos[1])
+        asked, tabs = org.closeTab("Builder")
+        check(changed and asked is True, "Generate Bonds after a save (nubs "
+              "deleted) asks on close", "info=%s asked=%s tabs=%s" % (infos, asked, tabs))
     finally:
         org.quit()
         org.kill()
