@@ -270,12 +270,22 @@ bool ScanPoint::structure(PropertyTask *calc, const string& spec,
 }
 
 
+// ecce-contacts compares every pair of atoms in Python, on the GUI thread.
+static const size_t kMaxPatternAtoms = 500;
+
 bool ScanPoint::ensemblePatterns(PropertyTask *calc, vector<Pattern>& out,
                                  string& why)
 {
   out.clear();
   const int n = ensembleSize(calc);
   if (n < 1) { why = "The calculation has no conformer ensemble."; return false; }
+  // Docking poses hold the whole receptor: its coordination patterns say
+  // nothing about the pose, and ecce-contacts on thousands of atoms holds
+  // the window for minutes.
+  if (ensembleIsPoses(calc)) {
+    why = "Coordination patterns are not made for docking poses.";
+    return false;
+  }
 
   // Frames go out in rank order, so the script's index is the rank.
   static int serial = 0;
@@ -292,6 +302,14 @@ bool ScanPoint::ensemblePatterns(PropertyTask *calc, vector<Pattern>& out,
         f.close();
         std::error_code ec;
         ecce::fs::remove(file, ec);
+        return false;
+      }
+      if (el.size() > kMaxPatternAtoms) {
+        f.close();
+        std::error_code ec;
+        ecce::fs::remove(file, ec);
+        why = "Coordination patterns are made for structures of up to " +
+              std::to_string(kMaxPatternAtoms) + " atoms.";
         return false;
       }
       char line[160];
