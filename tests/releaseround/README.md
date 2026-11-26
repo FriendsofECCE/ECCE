@@ -8,7 +8,13 @@ Nothing is written into ECCE's data behind its back; the only files the
 runner writes are the hook files and, for W6, the list of added servers.
 
     ECCE_TEST_HOME=<install> ECCE_TEST_WRAPPERS=<install>/../bin \
-        python3 tests/releaseround/run_round.py [--only W1,W4] [--keep]
+        python3 tests/releaseround/run_round.py [--only W1,W4] [--keep] \
+            [--allow-missing-codes]
+
+`vina` (W2) and `pw.x` (W3) must be on PATH: their launch steps report SKIP
+without them, and a SKIP counts as reported, so a round on a host that had
+lost a code would otherwise pass having launched nothing for it. Missing
+codes are a FAIL unless `--allow-missing-codes` is given.
 
 On an offload host: `tools/offload/run-offload.sh --host radium <sha>
 apptest tests/releaseround/run_round.py`. ctest: `releaseround` (label

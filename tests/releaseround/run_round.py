@@ -3,7 +3,8 @@
 The release workflow scripts W1-W6 (wiki Release-9.6.0, "Workflow scripts"),
 headless, through ECCE's own test hooks.
 
-    tests/releaseround/run_round.py [--only W1,W4] [--keep-going]
+    tests/releaseround/run_round.py [--only W1,W4] [--keep]
+                                   [--allow-missing-codes]
 
 Each workflow starts a fresh Organizer (one-program mode, Normal layout)
 on an Xvfb display with the isolated HOME and data folder of tests/apps
@@ -12,7 +13,10 @@ commands, ECCE_BUILDER_SCRIPT for Builder and Viewer tabs, and quits it.
 One line per step: `W1.3 PASS|FAIL|MANUAL|SKIP <evidence or reason>`,
 then a summary; exit 0 only when every expected step was reported and
 none failed. A step the runner never reached is a FAIL, and so is a round
-that checked nothing (no install, no Xvfb, the Organizer did not start).
+that checked nothing (no install, no Xvfb, the Organizer did not start),
+and so is a missing code: a release round that cannot launch Vina or
+Quantum ESPRESSO has not exercised docking or the periodic path, and must
+not report success for them. --allow-missing-codes gives a partial round.
 """
 
 import os
@@ -897,6 +901,12 @@ WORKFLOWS = ("W1", "W2", "W3", "W4", "W5", "W6")
 # sub-steps (W3.2c, W5.2d, ...) are extras and not required.
 EXPECTED = {"W1": 7, "W2": 6, "W3": 4, "W4": 5, "W5": 5, "W6": 5}
 
+# Codes the round launches, with the workflow that needs each. A step whose
+# code is absent reports SKIP, which satisfies EXPECTED just as PASS does, so
+# without this a round on a host that had quietly lost vina would pass having
+# docked nothing. ECCE-QM is not here: W1 launches it unconditionally.
+CODES = {"vina": "W2", "pw.x": "W3"}
+
 
 def underTest():
     """Machine, platform, commit and install the round ran on, for the record."""
@@ -921,6 +931,9 @@ def main():
     keep = "--keep" in sys.argv
     if keep:
         sys.argv.remove("--keep")
+    allowMissing = "--allow-missing-codes" in sys.argv
+    if allowMissing:
+        sys.argv.remove("--allow-missing-codes")
 
     print("under test: %s" % underTest(), flush=True)
 
@@ -961,6 +974,16 @@ def main():
     elif rc != 0 and not any(s[1] == "FAIL" for s in STEPS):
         step("round", "FAIL", "the test harness exited %s with no step failed: "
              "see its output above" % rc)
+    missing = sorted(c for c, w in CODES.items() if w in only and not which(c))
+    if missing and not allowMissing:
+        step("codes", "FAIL", "not on PATH: %s. The steps that need them reported "
+             "SKIP, so %s launched nothing. Install the codes, or pass "
+             "--allow-missing-codes for a partial round."
+             % (", ".join(missing),
+                ", ".join(sorted(set(CODES[c] for c in missing)))))
+    elif missing:
+        step("codes", "SKIP", "not on PATH: %s; partial round by "
+             "--allow-missing-codes" % ", ".join(missing))
     print("\n==== release round summary")
     print("under test: %s" % underTest())
     for s in STEPS:

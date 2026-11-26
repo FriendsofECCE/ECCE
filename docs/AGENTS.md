@@ -545,13 +545,18 @@ must say shown=1, a selection and no hidden window;
 `tests/apps/refresh_after_viewer_test.py` checks that.
 
 Release round (#1279): `tests/releaseround/run_round.py [--only W1,...]
-[--keep]` runs the release workflow scripts W1-W6 headlessly through the
+[--keep] [--allow-missing-codes]` runs the release workflow scripts W1-W6 headlessly through the
 hooks above (an isolated HOME and data folder, one fresh Organizer per
 workflow) and prints one `W1.3 PASS|FAIL|MANUAL|SKIP <evidence>` line per
 step, then a summary naming the host, platform and commit. Exit 0 only when
 every numbered step of each workflow run was reported and none failed: a step
 the runner never reached is a FAIL, and so is a round that checked nothing
 (no install, no Xvfb, the Organizer did not start); there is no skip code.
+A code the round launches and that is not on PATH (`vina` for W2, `pw.x` for
+W3) is also a FAIL: those steps report SKIP, which counts as reported, so
+without the check a round could pass having docked nothing.
+`--allow-missing-codes` turns that into a SKIP for a deliberately partial
+round.
 ctest `releaseround` (label `long`, so `-LE long` leaves it out); for a release,
 run the script itself or check that ctest ran 1 test; offload: `run-offload.sh <sha> apptest
 tests/releaseround/run_round.py`. Steps without a hook (a drag, the
