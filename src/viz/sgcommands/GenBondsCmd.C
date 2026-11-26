@@ -68,6 +68,11 @@ bool GenBondsCmd::execute()
       frag->touchNumbers();
       sg->touchChemDisplay();
 
+      // The Builder's modified flag follows these events; without them a
+      // Generate Bonds after a save closed without asking (#1308).
+      EventDispatcher::getDispatcher().publish(Event("GeomChange"));
+      if (frag->numResidues() > 0)
+        EventDispatcher::getDispatcher().publish(Event("ResidueChange"));
    }
 
    return ret;

@@ -1751,6 +1751,35 @@ bool Builder::isStandalone()
 }
 
 
+namespace {
+
+//  The dispatcher is process-wide and a change event carries no sender, so
+//  every Builder tab hears the others' edits and loads. The Builder that is
+//  publishing marks itself here; eventMCB of any other Builder then leaves
+//  its own dirty flag alone. Null (a panel publishing directly) = no scoping.
+//  GUI thread only, as the mark is hidden state.
+Builder *g_publishingBuilder = 0;
+
+class PublishingBuilderMark
+{
+public:
+  explicit PublishingBuilderMark(Builder *b) : p_prev(g_publishingBuilder)
+  {
+    if (!wxIsMainThread()) {
+      wxLogWarning("Builder change-event mark set off the GUI thread");
+      wxFAIL_MSG("Builder publishing mark is GUI-thread only");
+    }
+    g_publishingBuilder = b;
+  }
+  ~PublishingBuilderMark() { g_publishingBuilder = p_prev; }
+private:
+  Builder *p_prev;
+  PublishingBuilderMark(const PublishingBuilderMark&);
+  PublishingBuilderMark& operator=(const PublishingBuilderMark&);
+};
+
+}
+
 /**
  * Main url context method.
  * Doesn't matter whether the current context has changed since we're not
@@ -1758,6 +1787,7 @@ bool Builder::isStandalone()
  */
 void Builder::setContext(const string& url, const bool& force)
 {
+  PublishingBuilderMark publishing(this);
   wxBusyCursor busy;
   BuilderRedrawHold hold(this);
   //  Creating/re-docking this calculation's property panels must not
@@ -3008,6 +3038,7 @@ bool Builder::execute(Command *cmd, bool batch)
    // Skip empty command
    if (!cmd)
      return false;
+   PublishingBuilderMark publishing(this);
 
    //////////////////cout << "EXECUTE: " << *cmd << endl;
    try {
@@ -3471,6 +3502,16 @@ void Builder::eventMCB(const Event& event)
    string value = event.getValue();
 
    SGFragment *frag = getSG()->getFragment();
+
+   if (name == "ResidueChange" || name == "GeomChange" ||
+       name == "LatticeChange") {
+     if (!wxIsMainThread())
+       wxLogWarning("Builder::eventMCB: %s off the GUI thread", name.c_str());
+     // Another Builder's load or edit is no change to this calculation; the
+     // refresh below works on this Builder's own fragment, so it is skipped too.
+     if (g_publishingBuilder && g_publishingBuilder != this)
+       return;
+   }
 
    if (name == "ResidueChange" || name == "GeomChange") {
      // The Save item and toolbar button follow the dirty flag the close
@@ -9423,6 +9464,7 @@ void Builder::moveStartCB(void *userData, SoDragger *dragger)
  */
 void Builder::moveEndCB(void *userData, SoDragger *dragger)
 {
+  PublishingBuilderMark publishing(static_cast<Builder*>(userData));
   EventDispatcher::getDispatcher().publish(Event("GeomChange"));
 }
 
@@ -9512,6 +9554,7 @@ void Builder::rotateStartCB(void *userData, SoDragger *dragger)
  */
 void Builder::rotateEndCB(void *userData, SoDragger *dragger)
 {
+  PublishingBuilderMark publishing(static_cast<Builder*>(userData));
   EventDispatcher::getDispatcher().publish(Event("GeomChange"));
 }
 
