@@ -1438,20 +1438,10 @@ if(EXISTS ${CMAKE_SOURCE_DIR}/scripts/parsers)
 endif()
 
 # scripts/processmachine: Machine Registration's save handler
-# (WxMachineRegister::machineChangeButtonClickedCB() shells out to
-# $ECCE_HOME/scripts/processmachine, CGI-POST-style via stdin/
-# CONTENT_LENGTH). Same story as scripts/parsers above: genuinely modern,
-# syntactically clean Perl (no CGI.pm dependency, no hardcoded EMSL
-# paths -- its one CVS/svn integration path is already commented out in
-# the script itself), just never installed -- a pure packaging gap. Also
-# already writes to the correct place for a non-admin user without any
-# further changes: it branches on the "siteconfig" form field (site-wide
-# vs per-user registration) between $ECCE_HOME/siteconfig (read-only,
-# admin-only by design -- matches this build's other shared-vs-per-user
-# split, e.g. the JMS broker/data server) and $ECCE_REALUSERHOME/.ECCE
-# (always writable) -- Gateway's own "Machine Registration" tool invokes
-# `machregister` with no `-admin` flag, so ordinary use already resolves
-# to the writable per-user path.
+# (WxMachineRegister shells out to $ECCE_HOME/scripts/processmachine,
+# CGI-POST-style via stdin/CONTENT_LENGTH). A Python 3 script; it writes
+# to $ECCE_HOME/siteconfig or $ECCE_REALUSERHOME/.ECCE by the "siteconfig"
+# form field.
 if(EXISTS ${CMAKE_SOURCE_DIR}/scripts/processmachine)
   install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/processmachine
           DESTINATION scripts

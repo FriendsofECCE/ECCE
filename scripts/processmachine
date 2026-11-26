@@ -1,696 +1,481 @@
-#!/usr/bin/env perl
-################################################################################
-# FILENAME:  processmachine
+#!/usr/bin/env python3
+# Machine Registration's save handler: a CGI-style POST form on stdin
+# (CONTENT_LENGTH bytes), as ProcessMachine::run sends it.  Rewrites the
+# Machines/MyMachines, Queues, <machine>.Q and CONFIG.<machine> files.
 #
-#
-# PURPOSE:
-#   Do Machine registration processing from a GUI.
-#
-# DESCRIPTION:
-#   This script was originally a cgi script and was slightly modified
-#   to be used with a Motif app.  The POST method of input formatting
-#   was retained.
-#
-# LIMITATIONS:
-#   This script is designed to work with CVS if there are CVS dirs
-#   but the paths are hardwired to EMSL paths for CVS commands.
-#
-################################################################################
-
-# set this if you want debug output to the html page
-$debugOut = "false";
-
-%changeperms = { "init" => "this" };
-%newfile = { "init" => "this" };
-
-
-# This used to be a cgi POST script.  It works fine so we keep 
-# the same input method.
-# Names and values are form-encoded (the GUI encodes every byte that is
-# not [A-Za-z0-9-_.~]) and decoded exactly once, here.
-sub formDecode {
-  my ($text) = @_;
-  $text =~ tr/+/ /;
-  $text =~ s/%([a-fA-F0-9][a-fA-F0-9])/pack("C",hex($1))/eg;
-  return $text;
-}
-read(STDIN, $buffer, $ENV{'CONTENT_LENGTH'});
-@pairs = split(/&/,$buffer);
-foreach $pair (@pairs) {
-  ($name,$value) = split(/=/,$pair,2);
-  $value = &formDecode($value);
-  # Every value lands on one line of a file.
-  die "line break in $name - bailing..." if ($value =~ /[\r\n]/);
-  $contents{&formDecode($name)} = $value;
-}
-
-#
-# This block of code just dumps the arguments for debugging.
-#
-if ($debugOut eq "true") {
-  print "You submitted the following:\n";
-  while (($holder,$record) = each(%contents)) {
-     print "$holder=$record\n";
-  }
-}
-
-# To keep this script from having to know very much, the list of fully
-# registered codes is now passed in as an argument.  Old code to
-# determined this from the .cap files can be found in the previous
-# version if there is a need to revert to that type of strategy.
-#
-# We have to create a list of all codes fully registered with the system.
-# This was added while preparing ECCE to better support external code
-# registration.  
-#
-@fullyregistered = split(/,/,$contents{registeredcodes});;
-
-
-# Make sure some required variables are defined.  This isn't all of them
-# but it does make testing a little easier
-@addgottahaves = ("siteconfig", "machine", "name", "qmgr", "type", "nodes",
-                  "vendor", "model", "processor");
-@rmgottahaves = ("siteconfig", "name", "type");
-
-$siteflag = $contents{"siteconfig"};
-if ($siteflag eq "true") {
-  $path = $ENV{"ECCE_HOME"} . "/siteconfig";
-} else {
-  $path = $ENV{"ECCE_REALUSERHOME"} . "/.ECCE";
-}
-
-# Whether the GUI has paths to write.  When it has none, the CONFIG file is
-# still stripped of the keys the GUI owns (writeConfig), but never deleted if
-# anything else is in it.
-$configflag = "false";
-foreach $code (@fullyregistered) {
-  if (!($contents{"$code"} eq "" || $contents{$code} eq "EMSL")) {
-    $configflag = "true";
-  }
-}
-$configflag = "true" if (!($contents{"perlPath"} eq "" || $contents{"perlPath"} eq "EMSL"));
-$configflag = "true" if ($contents{"qmgrPath"} ne "");
-
-
-#  Queue definitions used to be written only for a site administrator
-#  ($siteflag), but admin mode also targets the root-owned site config, so
-#  the one mode that would write them could not (#131).  Queues are written
-#  for every registration now; in user mode $path is already ~/.ECCE, which
-#  is where the readers look.
-$queueflag = "true";
-
-$machine = $contents{"name"};
-# The name is part of file names and of a tab-separated Machines line.
-die "machine name may not contain a tab - bailing..." if ($machine =~ /\t/);
-
-if ($siteflag eq "true") {
-  $mFile = $path . "/Machines";
-} else {
-  $mFile = $path . "/MyMachines";
-}
-
-$cFile =  "CONFIG." . $machine;
-$qsFile = "Queues";
-$QFile = $machine . ".Q";
-
-$useRC = "false";
-#if (-e $path . "/CVS") {
-#  $useRC = "true";
-#  $rccmd = "cvs";
-#} elsif (-e $path . "/.svn") {
-#  $useRC = "true";
-#  $rccmd = "svn";
-#}
-
-$qmgr = $contents{"qmgr"};
-if ($qmgr eq "") {
-  $qmgr = "None";
-}
-
-if ($contents{"type"} eq "delete") {
-  foreach $var (@rmgottahaves) {
-    die "$var not specified as input - bailing..." if ($var eq "") ;
-  }
-  &doDelete();
-} else { 
-  die "machine name may not contain '/' - bailing..." if ($machine =~ m{/});
-  foreach $var ("machine", "vendor", "model", "processor") {
-    die "$var may not contain a tab - bailing..." if ($contents{$var} =~ /\t/);
-  }
-  # <machine>.Q separates queue names with spaces and keys with '|'.
-  for ($idx=0; $idx<$contents{"numQueues"}; $idx++) {
-    foreach $pair (split(/,/,$contents{"q".$idx})) {
-      ($key,$value) = split(/\|/,$pair,2);
-      die "queue name '$value' is not valid - bailing..."
-        if ($key eq "name" && $value !~ /^[A-Za-z0-9_.-]+$/);
-    }
-  }
-  foreach $var (@addgottahaves) {
-    die "$var not specified as input - bailing..." if ($var eq "") ;
-  }
-  &doAccept();
-}
-
-#######################################################################
-# Description
-#   Modify/create machine.Q if necessary
-#   Modify Queues if necessary
-#   Delete from Machines if necessary, then add
-#   Modify CONFIG file
-#######################################################################
-sub doAccept {
-
-  my($line,$codes, $keys, $shells);
-  my(@lines);
-  my($value,$key,$pair,@parts);
-
-  my ($sMachines, $sQ, $sQueues, $sCONFIG);
-  # First the Machines file
-  $sMachines = 0;
-  $sMachines = &checkOut($mFile,$useRC);
-
-  if ($queueflag eq "true") {
-    my ($wasThere,$qline,@otherLines);
-    $sQueues = 0;
-    ($wasThere,$qline,@otherLines) = &readQueues($machine);
-    if ($wasThere eq true || $qmgr ne "None") {
-      $sQueues = &checkOut("$path/$qsFile",$useRC);
-    }
-
-    $sQ = 0;
-    $sQ = &checkOut("$path/$QFile",$useRC);
-  }
-
-  $sCONFIG = 0;
-  $sCONFIG = &checkOut("$path/$cFile",$useRC)
-    if ($contents{"config"} ne "external");
-
-  if (open(MACHINES,"<$mFile")) {
-    @lines = <MACHINES>; 
-    close(MACHINES);
-  }
-  open(MACHINES,">$mFile") || die("Unable to open $mFile for write");
-  foreach $line (@lines) { 
-   if ($line !~ /^\Q$machine\E\t/) { 
-     print MACHINES "$line";
-    }
-  }
-  # Now print new stuff
-  $line = "$machine" . "\t";
-  $line .= $contents{"machine"} . "\t";
-  $line .= $contents{"vendor"} . "\t";
-  $line .= $contents{"model"} . "\t";
-  $line .= $contents{"processor"} . "\t";
-
-  $line .= $contents{"procs"};
-  if ($contents{"nodes"} > 0) {
-    $line .= ":" . $contents{"nodes"};
-  }
-  $line .= "\t";
-
-  # ssh is the only remote shell; the old sshftp and sshpass keys mean ssh.
-  $shell = "ssh";
-  $line .= $shell . "\t";;
-
-  foreach $code (@fullyregistered) {
-    $codes .= ":$code" if ($contents{$code} ne "");
-  }
-  $codes = ":" if ($codes eq "");  # don't leave empty field
-  $line .= $codes . "\t";
-
-  $keys = "MN:RD:SD:UN:PW";
-  $keys .= ":AA" if ($contents{"AA"} eq "true");
-
-  # TimeLimit, maxMemory, and minScratch enabled if set for any queue
-  $nqueues = $contents{"numQueues"};
-  $keys .= ":Q" if ($nqueues > 0);
-  for ($idx=0; $idx<$nqueues; $idx++) {
-    (@parts) = split(/,/,$contents{"q".$idx});
-    foreach $pair (@parts) {
-      if ($pair =~ /maxCPU/) {
-        $value = "";
-        ($key,$value) = split(/\|/,$pair);
-        if ($value ne "" && $value != 0) {
-          $keys .= ":TL";
-          last;
-        }
-      }
-    }
-    last if ($value ne "");
-  }
-  for ($idx=0; $idx<$nqueues; $idx++) {
-    (@parts) = split(/,/,$contents{"q".$idx});
-    foreach $pair (@parts) {
-      if ($pair =~ /maxMemory/) {
-        $value = "";
-        ($key,$value) = split(/\|/,$pair);
-        if ($value ne "" && $value != 0) {
-          $keys .= ":MM";
-          last;
-        }
-      }
-    }
-    last if ($value ne "");
-  }
-  for ($idx=0; $idx<$nqueues; $idx++) {
-    (@parts) = split(/,/,$contents{"q".$idx});
-    foreach $pair (@parts) {
-      if ($pair =~ /minScratch/) {
-        $value = "";
-        ($key,$value) = split(/\|/,$pair);
-        if ($value ne "" && $value != 0) {
-          $keys .= ":SS";
-          last;
-        }
-      }
-    }
-    last if ($value ne "");
-  }
-  $line .= $keys;
-
-  # Slurm with no time-limit capability drops #SBATCH --time, so a stored
-  # wall time is lost; the GUI shows the same note in its message area.
-  if (lc($qmgr) eq "slurm" && $keys !~ /:TL\b/) {
-    print "note: machine '$machine' does not pass a time limit: the stored "
-          . "wall time will not be passed to Slurm (#SBATCH --time) unless "
-          . "the time-limit capability is enabled.\n";
-  }
-
-  print MACHINES "$line\n";
-  close(MACHINES);
-  &checkIn($mFile,$useRC,
-           "\"Register Compute Servers application add/modify $machine\"");
-
-  if ($queueflag eq "true") {
-    # Now modify the Queues file.  This could mean removing stuff
-    # as well as adding so just do a remove followed by add.
-    my ($wasThere,$qline,@otherLines);
-    @ownLines = ();
-    ($wasThere,$qline,@otherLines) = &readQueues($machine);
-    #  Rewritten whenever the machine has an entry, not only when it is added
-    #  or removed, so a changed queue manager reaches <m>|queueMgrName.
-    if ($wasThere eq true || $qmgr ne "None") {
-      pop(@otherLines) while (@otherLines && $otherLines[-1] =~ /^\s*$/);
-      open(QUEUES,">$path/$qsFile") 
-         || die("Unable to open $path/$qsFile for write");
-      print QUEUES "Queues: $qline";
-      print QUEUES " $machine" if ($qmgr ne "None");
-      print QUEUES "\n";
-      print QUEUES @otherLines;
-      if ($qmgr ne "None") {
-        print QUEUES "\n";
-        print QUEUES "$machine|queueMgrName:    $qmgr\n";
-        print QUEUES "$machine|queueMgrVersion: 2.0~\n";
-        print QUEUES "$machine|prefFile:        $machine.Q\n";
-        #  Keys of this machine that the GUI does not set.
-        print QUEUES @ownLines;
-      }
-      close(QUEUES);
-      &checkIn("$path/$qsFile",$useRC,
-  "\"Register Compute Servers application add/modify of queues for $machine\"");
-    }
-
-
-    #####
-    # The Q file, recreated from the GUI's queues.  Other keys of those
-    # queues and lines not tied to a queue are kept (writeQFile).
-    #####
-    # In this case, get rid of Q file
-    my $nqueues = $contents{"numQueues"};
-    if ($nqueues == 0) {
-      removeFile("$path/$QFile",$useRC);
-    } else {
-      $qnames = "";
-      %qdetail = ();
-      %sent = ();
-      for ($idx=0; $idx<$nqueues; $idx++) {
-        (@parts) = split(/,/,$contents{"q".$idx});
-        $name = "";
-        foreach $pair (@parts) {
-          if ($pair =~ /name\|/) {
-            $value = "";
-            ($key,$value) = split(/\|/,$pair);
-            $qnames .= $value . " ";
-            $name = $value;
-            $name =~ s/^\s*//;
-          } else {
-            ($key,$value) = split(/\|/,$pair);
-            $value = "" if (!defined($value));
-            # A key the GUI sent, even empty, replaces the file's line;
-            # older callers that send no def* keep the hand-written ones.
-            $sent{$name}{lc($key)} = 1;
-            if (lc($key) eq "requestlines") {
-              # %-escaped on the wire; a .Q value is one line, so the lines
-              # are joined by a literal \n.
-              $value =~ s/%([0-9A-Fa-f]{2})/chr(hex($1))/ge;
-              $value =~ s/\n/\\n/g;
-              $qdetail{$name} .= $name . "|requestLines:       " . $value . "\n" if ($value ne "");
-            } elsif ($value ne "") {
-              $key = "minProcessors" if ($key =~ /minNodes/);
-              $key = "maxProcessors" if ($key =~ /maxNodes/);
-              $key = "runLimit" if ($key =~ /maxCPU/);
-              $key = "memLimit" if ($key =~ /maxMemory/);
-              $key = "scratchLimit" if ($key =~ /minScratch/);
-              $qdetail{$name} .= $name . "|" . $key . ":       " . $value . "\n";
-            }
-          }
-        }
-      }
-      &writeQFile($qnames);
-      &checkIn("$path/$QFile",$useRC,
-               "\"Register Compute Servers application queue settings\"");
-    }
-  }
-
-  &writeConfig() if ($contents{"config"} ne "external");
-}
-
-#######################################################################
-# Description
-#   Rewrite CONFIG.$machine: drop the keys the GUI owns (code paths,
-#   perlPath, qmgrPath; any case, outside blocks), write the GUI's values
-#   after the header comments, and keep every other line.  The file is
-#   deleted only when nothing but comments and blank lines is left.
-#######################################################################
-sub writeConfig {
-  my (@lines, @kept, @donelines, $line, $code, $inblock, $first);
-  my ($existed) = (-e "$path/$cFile") ? 1 : 0;
-
-  return if ($configflag ne "true" && !$existed);
-
-  if (open(CONFIG,"<$path/$cFile")) {
-    @lines = <CONFIG>;
-    close(CONFIG);
-  }
-
-  my @managed = (@fullyregistered, "perlPath", "qmgrPath");
-  $inblock = 0;
-  foreach $line (@lines) {
-    if ($inblock) {
-      $inblock = 0 if ($line =~ /^\}/);
-      push(@kept,$line);
-      next;
-    }
-    my $drop = 0;
-    foreach $code (@managed) {
-      if ($line =~ /^\s*\Q$code\E(?:\s*:|\s)/i &&
-          $line !~ /^\s*\Q$code\E\s*:?\s*\{/i) {
-        $drop = 1;
-        last;
-      }
-    }
-    next if ($drop);
-    # a block opens on a line ending in "{"
-    $inblock = 1 if ($line =~ /\{\s*$/ && $line !~ /^\s*#/);
-    push(@kept,$line);
-  }
-
-  # GUI lines go after the leading comment block
-  $first = 0;
-  $first++ while ($first < @kept && $kept[$first] =~ /^\s*#/);
-
-  @donelines = @kept[0..$first-1] if ($first > 0);
-  foreach $code (@fullyregistered) {
-    if ($contents{$code} ne "" && $contents{$code} ne "EMSL") {
-      push(@donelines,"$code: $contents{$code}\n");
-    }
-  }
-  if ($contents{"perlPath"} ne "" && $contents{"perlPath"} ne "EMSL") {
-    push(@donelines,"perlPath: $contents{'perlPath'}\n");
-  }
-  if ($contents{"qmgrPath"} ne "") {
-    push(@donelines,"qmgrPath: $contents{'qmgrPath'}\n");
-  }
-  push(@donelines,@kept[$first..$#kept]) if ($first <= $#kept);
-
-  my $content = grep(!/^\s*(#.*)?$/, @donelines);
-  if ($content == 0) {
-    removeFile("$path/$cFile",$useRC);
-    return;
-  }
-
-  open(CONFIG,">$path/$cFile") ||
-        die("Unable to open Config File $path/$cFile");
-  print CONFIG @donelines;
-  close(CONFIG);
-
-  &checkIn("$path/$cFile",$useRC,
-           "\"Register Compute Servers application configuration settings\"");
-}
-
-#######################################################################
-# Description
-#   Write $machine.Q: "Queues:" with the GUI's queue names, then for each
-#   queue the existing lines the GUI does not manage (memUnits, ...)
-#   followed by the GUI's own, then any other existing line not tied to a
-#   queue.  Queues the GUI dropped lose their lines.  %qdetail holds the
-#   GUI's lines by queue name.
-#######################################################################
-sub writeQFile {
-  my ($qnames) = @_;
-  my (@header, %own, @loose, $line, $queue, $key, @prior, $skip);
-  my @guikeys = ("minprocessors","maxprocessors","runlimit","memlimit",
-                 "scratchlimit","defprocessors","defrun","defmemory",
-                 "defscratch","requestlines");
-
-  my @names = split(' ',$qnames);
-  my %wanted = map { $_ => 1 } @names;
-
-  if (open(QOLD,"<$path/$QFile")) {
-    @prior = <QOLD>;
-    close(QOLD);
-  }
-  my $seenQueues = 0;
-  $skip = 0;
-  foreach $line (@prior) {
-    if ($skip) {                       # continuation of the Queues: line
-      $skip = ($line =~ /\\\s*$/);
-      next;
-    }
-    if ($line =~ /^\s*Queues\s*:/) {
-      $seenQueues = 1;
-      $skip = ($line =~ /\\\s*$/);
-      next;
-    }
-    if ($line =~ /^\s*(\S+?)\|(\w+)\s*:/) {
-      ($queue,$key) = ($1,$2);
-      next if (grep { $_ eq lc($key) } @guikeys[0..4]);
-      next if ($sent{$queue}{lc($key)}
-               && grep { $_ eq lc($key) } @guikeys[5..9]);
-      next if (!$wanted{$queue});
-      $own{$queue} .= $line;
-    } elsif ($line =~ /^\s*#/ || $line =~ /^\s*$/) {
-      if (!$seenQueues) { push(@header,$line) }
-      elsif ($line !~ /^\s*$/) { push(@loose,$line) }
-    } else {
-      push(@loose,$line);
-    }
-  }
-  @header = ("# Queue details for $machine \n","\n") if (!@header);
-
-  open(QFILE,">$path/$QFile") || die("Unable to open $path/$QFile");
-  print QFILE @header;
-  print QFILE "Queues:    $qnames\n\n";
-  foreach $queue (@names) {
-    print QFILE $own{$queue};
-    print QFILE $qdetail{$queue};
-  }
-  print QFILE @loose;
-  close(QFILE);
-}
-#######################################################################
-# Description
-#   Delete the entry in the Machines file
-#   Delete the entries in the Queues file
-#   Delete the CONFIG.$machine
-#   Delete the $machine.Q file
-#
-#   Check to make sure we can gain write access to all needed files
-#   before proceeding.  This eliminates partial transactions.
-#######################################################################
-sub doDelete {
-
-  my ($status1,$status2);
-  $status1 = &checkOut($mFile,$useRC);
- 
-  my ($existed,$qMachines,@lines);
-  if ($queueflag eq "true") {
-    ($existed,$qMachines,@lines) = &readQueues($machine);
-    $status2 = 0;
-    if ($existed eq true) {
-      $status2 = &checkOut("$path/$qsFile",$useRC);
-    }
-  }
-
-  # A name holding '/' (hand-written, or older versions) has no files here.
-  removeFile("$path/$cFile",$useRC) if ($machine !~ m{/});
-
-  if ($queueflag eq "true") {
-    removeFile("$path/$QFile",$useRC) if ($machine !~ m{/});
-
-    #
-    # Strip out machine stuff from Queues file if necessary.
-    # This could be written nicer - don't leave blank lines...
-    #
-    if ($existed eq true) {
-      open(QUEUES,">$path/$qsFile") || die("Unable to open $path/$qsFile for write");
-      print QUEUES "Queues: $qMachines";
-      print QUEUES "\n";
-      print QUEUES @lines;
-      close(QUEUES);
-      &checkIn("$path/$qsFile",$useRC,
-    "\"Register Compute Servers application deleting of queues for $machine\"");
-    }
-  }
-
-  #
-  # Remove the single line from Machines
-  #
-  open(MACHINES,"<$mFile") || die "Unable to open $mFile";
-  @lines = <MACHINES>;
-  close(MACHINES);
-  open(MACHINES,">$mFile") || die("Unable to open $mFile for write");
-  foreach $line (@lines) {
-    if ($line !~ /^\Q$machine\E\t/) { 
-      print MACHINES "$line";
-    }
-  }
-  close(MACHINES);
-  &checkIn($mFile,$useRC,
-           "\"Register Compute Servers application delete $machine\"");
-}
-
-
-# Description
-#   A little strange but this function strips out lines containing
-#   $machine.
-sub readQueues {
-  ($oldMachine) = @_;
-  my ($wasThere,$qMachines,@lines);
-  $wasThere=false;
-
-  @lines = ();
-  #  A user who has never set up a queue has no ~/.ECCE/Queues, and that
-  #  is the normal state of every new account: it means no queues, not an
-  #  error.  Dying here failed every first-run registration (#188).
-  return ($wasThere,"",@lines) if (! -e "$path/$qsFile");
-  open(QUEUES,"$path/$qsFile") || die("Unable to open $path/$qsFile");
-  $qMachines = "";
-  while (<QUEUES>) {
-    #  Anchored: an unanchored /Queues/ also matches any comment mentioning
-    #  the word, and this file's own header explains ~/.ECCE/Queues -- which
-    #  was being read as the machine list and written back out as one.
-    if (/^Queues:/) {
-      $qMachines = $_;
-      $qMachines =~ s/Queues://;
-      $_ = $qMachines;
-      while ($_ =~ /\\/) {
-        $_ = <QUEUES>;
-        $qMachines = $qMachines . $_;
-      }
-    } else {
-      if (! /^\s*\Q$oldMachine\E\|/) {
-        push(@lines,$_);
-      } else {
-        $wasThere = true;
-        #  Keys of this machine the GUI does not manage are written back.
-        push(@ownLines,$_) if (! /^\s*\Q$oldMachine\E\|(queueMgrName|queueMgrVersion|prefFile)\s*:/);
-      }
-    }
-  }
-  close(QUEUES);
-
-  $qMachines =~ s/\\//g;
-  $qMachines =~ s/\n//g;
-  $qMachines =~ s/ \Q$machine\E / /g;
-  $qMachines =~ s/ \Q$machine\E$//g;
-  $qMachines =~ s/\s+/ /g;
-
-  return ($wasThere,$qMachines,@lines);
-}
-
-sub checkIn {
-  local($file, $doRC, $message) = @_;
-  chomp($message);
-  if ($doRC eq "true") {
-    if (&isControlled($file)) {
-      `$rccmd -q commit -m$message $file`;
-    } else {
-      `$rccmd -q add $file`;
-      `$rccmd -q commit -m$message $file`;
-    }
-  } elsif ($changeperms{$file}) { 
-    my $mode = (stat($file))[2] & 07777;
-    return chmod($mode & ~0222, $file) ? 0 : 1;
-  }
-  return $? >> 8;
-}
-
-# Check out a file which really means make it available for modification
-# if it exists.  The return value for success is 0 ala a system command.
-# 0 is also returned if the file doesn't exist and thus there is nothing
-# to do.  This is not robust because it doesn't guarantee that the file 
-# can be created.
-sub checkOut {
-  local($ret);
-  local($file, $doRC) = @_;
-  # Users edit their ~/.ECCE files by hand, so those are left writable
-  # (older versions locked them); a read-only site file is locked again.
-  $changeperms{$file} = 0;
-  $ret = 0;  # success as with a system call
-  if ($doRC eq "true") {
-    if (&isControlled($file)) {
-      `$rccmd -q update $file`;
-      $ret = $? >> 8;
-    } else { 
-      $newfile{$file} = 1; 
-    }
-  } elsif (-e $file) {
-    if (-w $file) {
-      $changeperms{$file} = 0; 
-    } else {
-      $changeperms{$file} = ($siteflag eq "true") ? 1 : 0;
-      my $mode = (stat($file))[2] & 07777;
-      $ret = chmod($mode | 0200, $file) ? 0 : 1;
-    }
-  }
-  return $ret;
-}
-
-# Removes the revision control system information about a file.
-sub removeFile {
-  local($file,$doRC) = @_;
-  if (-e $file) {
-    unlink($file);
-    if ($doRC eq "true") {
-      `$rccmd -q remove $file`;
-      `$rccmd -q commit -m"deleted with Register Compute Servers application" $file`;
-    }
-  }
-}
-
-# Returns true if the file is under revision control.  This is different
-# than whether or not we are using revision control in that new files may
-# need to be created or existing files removed.  Previously this was
-# accomplished by looking for a ,v file.  Now we need to use CVS
-# commands.  Note that the RCS file will exist for a file for a file that
-# was added and then removed.
-sub isControlled {
-  local($file) = @_;
-  local($ret);
-  `$rccmd -q log $file `;
-  $ret = ($? >> 8);
-  if ( $ret == 0) {
-    `$rccmd status $file | grep "no file" `;
-    $ret = ($? >> 8);
-    if ($ret == 1) { 
-      $ret = 0;
-    } else {
-      $ret = 1;
-    }
-  }
-  return  ! ($ret);
-}
-
-exit(0);
-
+# All text is handled as latin-1 so every byte of a name or value reaches
+# the files unchanged, whatever its encoding.
+import math
+import os
+import re
+import sys
+
+RE_FLAGS = re.ASCII
+# Files are written as the platform's text mode would.
+NL = None if os.name == "nt" else "\n"
+
+
+class Die(Exception):
+    def __init__(self, msg, code=255):
+        Exception.__init__(self, msg)
+        self.msg = msg
+        self.code = code or 255
+
+
+def perl_num(s):
+    m = re.match(r"\s*[+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?", s or "", RE_FLAGS)
+    return float(m.group(0)) if m else 0.0
+
+
+def split(sep, s, limit=0):
+    # Trailing empty fields are dropped unless a limit is given, and ""
+    # gives no fields at all.
+    if s == "":
+        return []
+    parts = re.split(sep, s, maxsplit=limit - 1 if limit > 0 else 0)
+    if limit <= 0:
+        while parts and parts[-1] == "":
+            parts.pop()
+    return parts
+
+
+def key_value(pair, limit=0):
+    f = split(r"\|", pair, limit)
+    return (f[0] if f else ""), (f[1] if len(f) > 1 else None)
+
+
+def form_decode(text):
+    text = text.replace("+", " ")
+    return re.sub(r"%([a-fA-F0-9]{2})", lambda m: chr(int(m.group(1), 16)), text)
+
+
+def read_lines(path):
+    try:
+        with open(path, "r", encoding="latin-1", newline=NL) as f:
+            return f.readlines()
+    except OSError:
+        return []
+
+
+def open_write(path, msg):
+    try:
+        return open(path, "w", encoding="latin-1", newline=NL)
+    except OSError as e:
+        raise Die(msg, e.errno)
+
+
+def emit(stream, text):
+    if NL is None:
+        text = text.replace("\n", "\r\n")
+    stream.buffer.write(text.encode("latin-1", "replace"))
+    stream.flush()
+
+
+class Handler(object):
+    def __init__(self, contents):
+        self.c = contents
+        self.registered = split(",", self.get("registeredcodes"))
+        self.siteflag = self.get("siteconfig")
+        if self.siteflag == "true":
+            self.path = os.environ.get("ECCE_HOME", "") + "/siteconfig"
+        else:
+            self.path = os.environ.get("ECCE_REALUSERHOME", "") + "/.ECCE"
+        self.changeperms = {}
+        self.machine = self.get("name")
+        self.mfile = self.path + ("/Machines" if self.siteflag == "true"
+                                  else "/MyMachines")
+        self.cfile = "CONFIG." + self.machine
+        self.qsfile = "Queues"
+        self.qfile = self.machine + ".Q"
+        self.qmgr = self.get("qmgr") or "None"
+
+        # No GUI paths means CONFIG is still stripped of the keys the GUI
+        # owns, but never deleted if anything else is in it.
+        self.configflag = any(self.get(code) not in ("", "EMSL")
+                              for code in self.registered)
+        if self.get("perlPath") not in ("", "EMSL"):
+            self.configflag = True
+        if self.get("qmgrPath") != "":
+            self.configflag = True
+
+    def get(self, key):
+        return self.c.get(key, "")
+
+    def nqueues(self):
+        return perl_num(self.get("numQueues"))
+
+    def queue_indexes(self):
+        return range(int(math.ceil(self.nqueues())))
+
+    def queue_pairs(self, idx):
+        return split(",", self.get("q" + str(idx)))
+
+    def run(self):
+        if "\t" in self.machine:
+            raise Die("machine name may not contain a tab - bailing...")
+        if self.get("type") == "delete":
+            self.do_delete()
+            return
+        if "/" in self.machine:
+            raise Die("machine name may not contain '/' - bailing...")
+        for var in ("machine", "vendor", "model", "processor"):
+            if "\t" in self.get(var):
+                raise Die(var + " may not contain a tab - bailing...")
+        # <machine>.Q separates queue names with spaces and keys with '|'.
+        for idx in self.queue_indexes():
+            for pair in self.queue_pairs(idx):
+                key, value = key_value(pair, 2)
+                if key == "name" and not (
+                        value is not None and
+                        re.fullmatch(r"[A-Za-z0-9_.-]+", value)):
+                    raise Die("queue name '%s' is not valid - bailing..."
+                              % (value or ""))
+        self.do_accept()
+
+    # -- files ---------------------------------------------------------
+
+    def check_out(self, path):
+        # User files stay writable; a read-only site file is made writable
+        # and locked again by check_in.
+        self.changeperms[path] = False
+        if os.path.exists(path) and not os.access(path, os.W_OK):
+            self.changeperms[path] = self.siteflag == "true"
+            try:
+                os.chmod(path, (os.stat(path).st_mode & 0o7777) | 0o200)
+            except OSError:
+                pass
+
+    def check_in(self, path):
+        if self.changeperms.get(path):
+            try:
+                os.chmod(path, (os.stat(path).st_mode & 0o7777) & ~0o222)
+            except OSError:
+                pass
+
+    def remove_file(self, path):
+        if os.path.exists(path):
+            try:
+                os.unlink(path)
+            except OSError:
+                pass
+
+    def drop_machine(self, lines):
+        prefix = self.machine + "\t"
+        return [ln for ln in lines if not ln.startswith(prefix)]
+
+    # -- Queues file ---------------------------------------------------
+
+    def read_queues(self):
+        """Returns (was_there, machines on the Queues: line, other lines,
+        this machine's own lines the GUI does not manage)."""
+        was_there, other, own = False, [], []
+        path = self.path + "/" + self.qsfile
+        if not os.path.exists(path):
+            return was_there, "", other, own
+        try:
+            f = open(path, "r", encoding="latin-1", newline=NL)
+        except OSError as e:
+            raise Die("Unable to open " + path, e.errno)
+        with f:
+            it = iter(f.readlines())
+        machines = ""
+        mine = re.compile(r"^\s*" + re.escape(self.machine) + r"\|", RE_FLAGS)
+        managed = re.compile(r"^\s*" + re.escape(self.machine) +
+                             r"\|(queueMgrName|queueMgrVersion|prefFile)\s*:",
+                             RE_FLAGS)
+        for line in it:
+            if line.startswith("Queues:"):
+                # the machine list continues over lines ending in a backslash
+                machines = line.replace("Queues:", "", 1)
+                cur = machines
+                while "\\" in cur:
+                    cur = next(it, "")
+                    machines += cur
+            elif not mine.match(line):
+                other.append(line)
+            else:
+                was_there = True
+                if not managed.match(line):
+                    own.append(line)
+        machines = machines.replace("\\", "").replace("\n", "")
+        m = re.escape(self.machine)
+        machines = re.sub(" " + m + " ", " ", machines)
+        machines = re.sub(" " + m + "$", "", machines)
+        machines = re.sub(r"\s+", " ", machines, flags=RE_FLAGS)
+        return was_there, machines, other, own
+
+    # -- add / modify --------------------------------------------------
+
+    def do_accept(self):
+        machine, path = self.machine, self.path
+        qpath = path + "/" + self.qsfile
+        self.check_out(self.mfile)
+        was_there = self.read_queues()[0]
+        if was_there or self.qmgr != "None":
+            self.check_out(qpath)
+        self.check_out(path + "/" + self.qfile)
+        if self.get("config") != "external":
+            self.check_out(path + "/" + self.cfile)
+
+        lines = read_lines(self.mfile)
+        out = open_write(self.mfile, "Unable to open %s for write" % self.mfile)
+        with out:
+            for ln in self.drop_machine(lines):
+                out.write(ln)
+            line = machine + "\t" + self.get("machine") + "\t"
+            line += self.get("vendor") + "\t" + self.get("model") + "\t"
+            line += self.get("processor") + "\t"
+            line += self.get("procs")
+            if perl_num(self.get("nodes")) > 0:
+                line += ":" + self.get("nodes")
+            line += "\t"
+            # ssh is the only remote shell.
+            line += "ssh\t"
+            codes = "".join(":" + code for code in self.registered
+                            if self.get(code) != "")
+            line += (codes or ":") + "\t"
+
+            keys = "MN:RD:SD:UN:PW"
+            if self.get("AA") == "true":
+                keys += ":AA"
+            nq = self.nqueues()
+            if nq > 0:
+                keys += ":Q"
+            # A capability is on if any queue sets its limit non-zero.  Each
+            # scan stops after the first queue whose value is non-empty, and
+            # the value carries over from one scan to the next.
+            value = ""
+            for token, cap in (("maxCPU", ":TL"), ("maxMemory", ":MM"),
+                               ("minScratch", ":SS")):
+                for idx in self.queue_indexes():
+                    for pair in self.queue_pairs(idx):
+                        if token in pair:
+                            value = key_value(pair)[1]
+                            if value is None:
+                                value = ""
+                            if value != "" and perl_num(value) != 0:
+                                keys += cap
+                                break
+                    if value != "":
+                        break
+            line += keys
+
+            if self.qmgr.lower() == "slurm" and not re.search(r":TL\b", keys):
+                emit(sys.stdout,
+                     "note: machine '%s' does not pass a time limit: the "
+                     "stored wall time will not be passed to Slurm (#SBATCH "
+                     "--time) unless the time-limit capability is enabled.\n"
+                     % machine)
+            out.write(line + "\n")
+        self.check_in(self.mfile)
+
+        was_there, qline, other, own = self.read_queues()
+        # Rewritten whenever the machine has an entry, so a changed queue
+        # manager reaches <m>|queueMgrName.
+        if was_there or self.qmgr != "None":
+            while other and not other[-1].strip(" \t\n\r\f\v"):
+                other.pop()
+            with open_write(qpath, "Unable to open %s for write" % qpath) as q:
+                q.write("Queues: " + qline)
+                if self.qmgr != "None":
+                    q.write(" " + machine)
+                q.write("\n")
+                q.writelines(other)
+                if self.qmgr != "None":
+                    q.write("\n")
+                    q.write("%s|queueMgrName:    %s\n" % (machine, self.qmgr))
+                    q.write("%s|queueMgrVersion: 2.0~\n" % machine)
+                    q.write("%s|prefFile:        %s.Q\n" % (machine, machine))
+                    q.writelines(own)
+            self.check_in(qpath)
+
+        if nq == 0:
+            self.remove_file(path + "/" + self.qfile)
+        else:
+            qnames, qdetail, sent = "", {}, {}
+            for idx in self.queue_indexes():
+                name = ""
+                for pair in self.queue_pairs(idx):
+                    key, value = key_value(pair)
+                    if "name|" in pair:
+                        value = value or ""
+                        qnames += value + " "
+                        name = re.sub(r"^\s*", "", value, flags=RE_FLAGS)
+                        continue
+                    if value is None:
+                        value = ""
+                    # A key the GUI sent, even empty, replaces the file's line.
+                    sent.setdefault(name, set()).add(key.lower())
+                    if key.lower() == "requestlines":
+                        # %-escaped on the wire; a .Q value is one line, so
+                        # the lines are joined by a literal \n.
+                        value = re.sub(r"%([0-9A-Fa-f]{2})",
+                                       lambda m: chr(int(m.group(1), 16)),
+                                       value)
+                        value = value.replace("\n", "\\n")
+                        if value != "":
+                            qdetail[name] = qdetail.get(name, "") + \
+                                name + "|requestLines:       " + value + "\n"
+                    elif value != "":
+                        for pat, new in (("minNodes", "minProcessors"),
+                                         ("maxNodes", "maxProcessors"),
+                                         ("maxCPU", "runLimit"),
+                                         ("maxMemory", "memLimit"),
+                                         ("minScratch", "scratchLimit")):
+                            if pat in key:
+                                key = new
+                        qdetail[name] = qdetail.get(name, "") + \
+                            name + "|" + key + ":       " + value + "\n"
+            self.write_qfile(qnames, qdetail, sent)
+            self.check_in(path + "/" + self.qfile)
+
+        if self.get("config") != "external":
+            self.write_config()
+
+    def write_config(self):
+        cpath = self.path + "/" + self.cfile
+        existed = os.path.exists(cpath)
+        if not self.configflag and not existed:
+            return
+        lines = read_lines(cpath)
+
+        managed = list(self.registered) + ["perlPath", "qmgrPath"]
+        opens = [re.compile(r"^\s*" + re.escape(code) + r"(?:\s*:|\s)",
+                            RE_FLAGS | re.I) for code in managed]
+        blocks = [re.compile(r"^\s*" + re.escape(code) + r"\s*:?\s*\{",
+                             RE_FLAGS | re.I) for code in managed]
+        kept, inblock = [], False
+        for line in lines:
+            if inblock:
+                if line.startswith("}"):
+                    inblock = False
+                kept.append(line)
+                continue
+            if any(o.match(line) and not b.match(line)
+                   for o, b in zip(opens, blocks)):
+                continue
+            if re.search(r"\{\s*$", line, RE_FLAGS) and \
+                    not re.match(r"^\s*#", line, RE_FLAGS):
+                inblock = True
+            kept.append(line)
+
+        # GUI lines go after the leading comment block.
+        first = 0
+        while first < len(kept) and re.match(r"^\s*#", kept[first], RE_FLAGS):
+            first += 1
+        done = kept[:first]
+        for code in self.registered:
+            if self.get(code) not in ("", "EMSL"):
+                done.append("%s: %s\n" % (code, self.get(code)))
+        if self.get("perlPath") not in ("", "EMSL"):
+            done.append("perlPath: %s\n" % self.get("perlPath"))
+        if self.get("qmgrPath") != "":
+            done.append("qmgrPath: %s\n" % self.get("qmgrPath"))
+        done.extend(kept[first:])
+
+        if not any(not re.match(r"^\s*(#.*)?$", ln, RE_FLAGS) for ln in done):
+            self.remove_file(cpath)
+            return
+        with open_write(cpath, "Unable to open Config File " + cpath) as f:
+            f.writelines(done)
+        self.check_in(cpath)
+
+    def write_qfile(self, qnames, qdetail, sent):
+        """The GUI's queues replace the file's lines for the keys it owns;
+        other keys of those queues and lines not tied to a queue are kept,
+        and queues the GUI dropped lose their lines."""
+        qpath = self.path + "/" + self.qfile
+        guikeys = ["minprocessors", "maxprocessors", "runlimit", "memlimit",
+                   "scratchlimit", "defprocessors", "defrun", "defmemory",
+                   "defscratch", "requestlines"]
+        names = qnames.split()
+        wanted = set(names)
+        header, loose, own = [], [], {}
+        seen_queues, skip = False, False
+        for line in read_lines(qpath):
+            if skip:
+                skip = bool(re.search(r"\\\s*$", line, RE_FLAGS))
+                continue
+            if re.match(r"^\s*Queues\s*:", line, RE_FLAGS):
+                seen_queues = True
+                skip = bool(re.search(r"\\\s*$", line, RE_FLAGS))
+                continue
+            m = re.match(r"^\s*(\S+?)\|(\w+)\s*:", line, RE_FLAGS)
+            if m:
+                queue, key = m.group(1), m.group(2).lower()
+                if key in guikeys[:5]:
+                    continue
+                if key in sent.get(queue, ()) and key in guikeys[5:]:
+                    continue
+                if queue not in wanted:
+                    continue
+                own[queue] = own.get(queue, "") + line
+            elif re.match(r"^\s*#", line, RE_FLAGS) or \
+                    re.match(r"^\s*$", line, RE_FLAGS):
+                if not seen_queues:
+                    header.append(line)
+                elif not re.match(r"^\s*$", line, RE_FLAGS):
+                    loose.append(line)
+            else:
+                loose.append(line)
+        if not header:
+            header = ["# Queue details for %s \n" % self.machine, "\n"]
+        with open_write(qpath, "Unable to open " + qpath) as f:
+            f.writelines(header)
+            f.write("Queues:    %s\n\n" % qnames)
+            for queue in names:
+                f.write(own.get(queue, ""))
+                f.write(qdetail.get(queue, ""))
+            f.writelines(loose)
+
+    # -- delete --------------------------------------------------------
+
+    def do_delete(self):
+        machine, path = self.machine, self.path
+        qpath = path + "/" + self.qsfile
+        self.check_out(self.mfile)
+        existed, qmachines, lines, _ = self.read_queues()
+        if existed:
+            self.check_out(qpath)
+        # A name holding '/' (hand-written) has no files here.
+        if "/" not in machine:
+            self.remove_file(path + "/" + self.cfile)
+            self.remove_file(path + "/" + self.qfile)
+        if existed:
+            with open_write(qpath, "Unable to open %s for write" % qpath) as q:
+                q.write("Queues: " + qmachines)
+                q.write("\n")
+                q.writelines(lines)
+            self.check_in(qpath)
+        try:
+            f = open(self.mfile, "r", encoding="latin-1", newline=NL)
+        except OSError as e:
+            raise Die("Unable to open " + self.mfile, e.errno)
+        with f:
+            lines = f.readlines()
+        with open_write(self.mfile,
+                        "Unable to open %s for write" % self.mfile) as out:
+            out.writelines(self.drop_machine(lines))
+        self.check_in(self.mfile)
+
+
+def main():
+    n = int(perl_num(os.environ.get("CONTENT_LENGTH", "")))
+    buf = sys.stdin.buffer.read(n).decode("latin-1") if n > 0 else ""
+    contents = {}
+    for pair in split("&", buf):
+        name, _, value = pair.partition("=")
+        value = form_decode(value)
+        # Every value lands on one line of a file.
+        if re.search(r"[\r\n]", value):
+            raise Die("line break in %s - bailing..." % name)
+        contents[form_decode(name)] = value
+    Handler(contents).run()
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except Die as e:
+        emit(sys.stderr, e.msg + "\n")
+        sys.exit(e.code)

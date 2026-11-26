@@ -42,8 +42,9 @@ std::string ProcessMachine::field(const std::string& name,
 
 
 #ifdef _WIN32
-// No fork on Windows, and a perl script is not executable by itself: perl
-// (the bundled Strawberry one, on PATH) runs it with the form on stdin.
+// No fork on Windows, and a script is not executable by itself: the bundled
+// Python (<install>\python, as SiExport finds it; else python.exe on PATH)
+// runs it with the form on stdin.
 int ProcessMachine::run(const std::string& form)
 {
   std::string script = std::string(Ecce::ecceHome()) + "/scripts/processmachine";
@@ -64,7 +65,10 @@ int ProcessMachine::run(const std::string& form)
   si.hStdOutput = GetStdHandle(STD_OUTPUT_HANDLE);
   si.hStdError = GetStdHandle(STD_ERROR_HANDLE);
   PROCESS_INFORMATION pi;
-  std::string cmd = "perl \"" + script + "\"";
+  std::string py = std::string(Ecce::ecceHome()) + "/python/python.exe";
+  if (access(py.c_str(), 0) != 0)
+    py = "python.exe";
+  std::string cmd = "\"" + py + "\" \"" + script + "\"";
   _putenv_s("CONTENT_LENGTH", std::to_string(form.size()).c_str());
   BOOL ok = CreateProcessA(nullptr, &cmd[0], nullptr, nullptr, TRUE,
                            CREATE_NO_WINDOW, nullptr, nullptr, &si, &pi);
