@@ -2196,7 +2196,13 @@ def runSetupLaunch(display):
                            for i in info),
               "the code bar has no '+N hidden' button, or one of the right form",
               str(info))
-        check(info and all("clipped=0" in i for i in info[:-1]),
+        # Three reports: the default width once and 1024 px twice. The count
+        # is checked because every assertion here is an all() over this list,
+        # and an all() over a short list passes without measuring what is
+        # missing.
+        check(len(info) == 3, "the panel reported itself at both widths",
+              str(info))
+        check(info and all("clipped=0" in i for i in info),
               "no control of the panel is clipped at the default width or at "
               "1024 px", str(info))
         machines = pb.answers(log, "setup launch get machines")
