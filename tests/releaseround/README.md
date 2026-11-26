@@ -28,8 +28,8 @@ mode with the Normal layout and quits it. Output: one line per step,
 the host, platform and commit under test. `--keep` keeps the work folder
 (Organizer logs per workflow, `organizer.log`).
 
-Exit status: 0 only when every numbered step of each workflow run (W1.1-W1.7,
-W2.1-W2.6, W3.1-W3.4, W4.1-W4.5, W5.1-W5.5, W6.1-W6.5) was reported and none
+Exit status: 0 only when every numbered step of each workflow run (W1.1-W1.8,
+W2.1-W2.8, W3.1-W3.4, W4.1-W4.5, W5.1-W5.5, W6.1-W6.5) was reported and none
 failed. Silence is a failure:
 
 - A numbered step the runner never reported is `FAIL not reached`, so a
@@ -51,6 +51,8 @@ out.
 | W1.1 | `examples` (Getting Started), `newproject`, `server paste copy` (Copy and Paste), `duplicate URL` (New from This > Duplicate) |
 | W1.2, W2.2-4, W3.1-2 | Builder script: `info`, `select_hetero`, `delkey`, `undo`, `redo`, `menu Build\|Add Hydrogen`, `ligands`, `ligand 1`, `pbc ...`, `save` |
 | W1.3-5, W2.5-6, W3.3 | `start CalculationEditor`, `setup info\|runtype\|save\|launch\|launch go`, `state URL` polled |
+| W1.8 | `setup results`, `output`, `input`, `results output`, `rerun cancel`, `duplicate`, `results viewer` (the Results box and Input/Output switch after a launch, #1290); `state URL` |
+| W2.7-8 | `setup launch get info` (button label "Launch anyway" = a launch warning is pending), `duplicate URL`, `setup set ES.Runtype.Vina.Box*` (#1296) |
 | W1.6, W2.6, W3.4, W4.3-4 | `start CalculationViewer`, one Builder script `plist`, `list Calculation Summary`, `list Energies`, `overlay`, `selectoverlay 1`; `tabclose` once, checked |
 | W1.7 | `menu exit`, a new Organizer, `state URL` |
 | W2.1 | `$ECCE_HOME/libexec/ecce-one-instance FILE` (what `ecce FILE` and Open With do) |
@@ -72,6 +74,9 @@ out.
 - W3.2: the Periodic Builder's Centre lattice box has no hook.
 - W4.2: the structure picture on the Builder button is timed, not judged.
 - W5.2: dragging a tab out needs a real mouse (`towindow`/`totabs` is used).
+- W2.4c: the Builder's edits are unsaved, so closing must ask (#1307/#1308) and
+  the step fails if it did not, or if there was no Builder tab. W1.2 and W5.4
+  close a Builder that was only opened, and must NOT ask.
 - W5.3: the pointer moving over the Window menu's items (#1239) has no hook.
 - W6.2: a Slurm submit needs a real cluster; W6 uses a copy of a finished
   calculation in an SSH folder reached through the fake ssh.
@@ -90,3 +95,14 @@ macOS; there is no Xvfb, so tests/apps' display handling must run on the
 logged-in desktop session; there is no `/proc`, so W5.5's process check
 reports SKIP; `killpg` does not exist on Windows; the fake ssh is a
 `/bin/sh` script (Windows needs Git's sh or a real sshd).
+- W1.8 (#1290): Terminate while running is not asserted (the water run can
+  finish before it is sampled); `terminate`, `rerun yes` and `duplicate
+  orbitals|geometry` exist in the hook but are destructive or need a state
+  the round does not hold. The tab's run-state mark and the Input/Output
+  switch's *opening on* the output after a launch have no hook (`output`
+  switches, it does not report which view was open).
+- W2.7-8 (#1296): the warning is inline in the editor (no dialog), so the
+  round cannot hang on it. Its text is not readable from a script; only
+  that one is pending (the Launch button reads "Launch anyway"). A warned
+  Launch that is acknowledged is not exercised on the hand-set-box copy,
+  which is never launched.

@@ -412,6 +412,34 @@ class Round(object):
             passfail("W1.5", completed(states[-1]),
                      "states seen: %s" % " -> ".join(states))
 
+            # The editor after a launch (#1290): Results box, output view, the
+            # run state. Rerun is only cancelled and the Viewer button is
+            # pressed once and closed, so W1.6 and W1.7 still see this run.
+            res = org.send("setup results", 30) or ""
+            outp = org.send("setup output", 30) or ""
+            inp = org.send("setup input", 30) or ""
+            outp2 = org.send("setup results output", 30) or ""
+            rr = org.send("setup rerun cancel", 30) or ""
+            st2 = (org.send("state " + url) or "").strip()
+            before = len(calcsUnder(urlPath(self.project)))
+            dup = org.send("setup duplicate", 60) or ""
+            time.sleep(3)
+            after = len(calcsUnder(urlPath(self.project)))
+            rv = org.send("setup results viewer", 30) or ""
+            time.sleep(4)
+            vtabs = org.send("tabs") or ""
+            opened = tabIndex(vtabs, "Viewer") is not None
+            if opened:
+                org.closeTab("Viewer")
+            passfail("W1.8", "results=shown" in res and "actions=duplicate,rerun" in res
+                     and "editlaunch=disabled" in res and outp == "output"
+                     and not inp.startswith(("unknown", "no ")) and "output" in outp2
+                     and completed(st2) and after == before + 1 and opened,
+                     "results=[%s] output=[%s] input=[%s] results-output=[%s] "
+                     "rerun-cancel=[%s] state after=%s duplicate=[%s] calcs %d->%d "
+                     "viewer=[%s] opened=%s" % (res, outp, inp[:60], outp2, rr, st2,
+                                                dup[:60], before, after, rv, opened))
+
             self.viewerCheck(org, url, "W1.6",
                              (("geometry", r"geom|coord|atoms"),
                               ("energy", r"energ"),
@@ -517,8 +545,11 @@ class Round(object):
                      all(": ok" in o or "BNZ" in o for o in ligs),
                      "ligands=%s; %s; %s" % (cands[:2], ligs, lig_lines[-1:]))
             asked, tabs = org.closeTab("Builder")
-            step("W2.4c", "PASS" if tabIndex(tabs, "Builder") is None else "FAIL",
-                 "closing the edited Builder tab: asked=%s tabs=%s" % (asked, tabs))
+            # The edits above are unsaved, so closing MUST ask (#1307, #1308);
+            # asked is None when there was no Builder tab, which is not a pass.
+            step("W2.4c", "PASS" if asked is True and tabIndex(tabs, "Builder") is None
+                 else "FAIL", "closing the edited, unsaved Builder tab must ask and "
+                 "then close: asked=%s tabs=%s" % (asked, tabs))
 
             # Save As's calculation dialog has no hook: the same structure
             # goes into a Vina calculation made with File > New, whose
@@ -527,7 +558,8 @@ class Round(object):
             url = ans.split()[1] if ans.startswith("ok ") else None
             if not url:
                 step("W2.5", "FAIL", "newcalc Vina: %s" % ans)
-                step("W2.6", "SKIP", "no calculation")
+                for n in ("W2.6", "W2.7", "W2.8"):
+                    step(n, "SKIP", "no calculation")
                 return
             b = org.builderScript(["wait 4000", "import " + pdb, "wait 4000",
                                    "select_hetero", "wait 1000", "delkey", "wait 1500",
@@ -566,12 +598,24 @@ class Round(object):
                      % ([o for o in outs if o.startswith(("save", "import"))],
                         lig and lig.group(1), save, stored[:1]))
             if not which("vina"):
-                step("W2.6", "SKIP", "vina is not installed on this host; W2 "
-                     "stopped at the saved deck")
+                for n in ("W2.6", "W2.7", "W2.8"):
+                    step(n, "SKIP", "vina is not installed on this host; W2 "
+                         "stopped at the saved deck")
                 return
             launch = org.send("setup launch", 60) or ""
             go = org.send("setup launch go", 120) or ""
+            # The warning is inline in the editor (no dialog to answer), so a
+            # warned Launch just stays Ready with the button "Launch anyway".
+            # The hook cannot read the warning's text, only that it is pending.
+            warned = "label=Launch anyway" in (
+                org.send("setup launch get info", 30) or "")
+            passfail("W2.7", not warned, "the box is automatic around the receptor's "
+                     "own ligand, so the first Launch must not warn (#1296): "
+                     "launch=[%s] go=[%s]" % (launch, go))
+            if warned:
+                org.send("setup launch go", 120)   # warn, never block
             states = waitState(org, url, DONE, 1800)
+            self.dockWarning(org, url)
             if completed(states[-1]):
                 self.viewerCheck(org, url, "W2.6", (("poses", r"pose|dock"),))
             else:
@@ -580,6 +624,34 @@ class Round(object):
         finally:
             org.quit()
             org.kill()
+
+    def dockWarning(self, org, url):
+        """W2.8: a hand-set box far from the receptor warns on Launch, and
+        Launch anyway stays on offer (warn, never block). The copy is never
+        launched. Presence is read from the button label; the text is not
+        readable from a script."""
+        dup = org.send("duplicate " + url, 120) or ""
+        copies = [c[0] for c in calcsUnder(urlPath(self.project))
+                  if c[1] == "Vina" and "file://" + c[0] != url]
+        if not copies:
+            return step("W2.8", "FAIL", "no copy to set a box on: %s" % dup[:80])
+        cu = "file://" + copies[-1]
+        org.send("start CalculationEditor " + cu)
+        org.waitTool()
+        time.sleep(5)
+        org.send("setup runtype", 60)
+        sets = [org.send("setup set %s %s" % kv, 30) or "" for kv in (
+            ("ES.Runtype.Vina.BoxAuto", "0"), ("ES.Runtype.Vina.BoxCenterX", "9999"),
+            ("ES.Runtype.Vina.BoxCenterY", "9999"), ("ES.Runtype.Vina.BoxCenterZ", "9999"))]
+        org.send("setup save", 60)
+        time.sleep(3)
+        org.send("setup launch", 60)
+        go = org.send("setup launch go", 120) or ""
+        info = org.send("setup launch get info", 30) or ""
+        st = (org.send("state " + cu) or "").strip().lower()
+        passfail("W2.8", "label=Launch anyway" in info and st == "ready",
+                 "box set by hand at 9999: go=[%s] info=[%s] state=%s fields=%s"
+                 % (go, info[:120], st, [x[:30] for x in sets]))
 
     # ---------------------------------------------------------------- W3
     def w3(self):
@@ -783,7 +855,9 @@ class Round(object):
                 picks.append(org.send("windowmenu %d" % n) or "")
                 time.sleep(1)
             alive = org.alive()
-            passfail("W5.3", alive and items and all(p for p in picks),
+            # all([]) is True: an empty tab list must not pass.
+            passfail("W5.3", alive and items and picks
+                     and len(picks) == len(tabPages(t2)) and all(p for p in picks),
                      "windowitems=%s; windowmenu each=%s" % (items, picks))
             step("W5.3h", "MANUAL", "moving the pointer over the Window menu's items "
                  "(the #1239 highlight path) has no hook")
@@ -803,7 +877,9 @@ class Round(object):
                     asked.append("%s: %s" % (pages[n], org.send("answer no", 10)))
                     time.sleep(2)
             tabs = org.send("tabs") or ""
-            passfail("W5.4", len(tabPages(tabs)) == 1 and not asked,
+            # This Builder was only opened, never edited: closing asks nothing.
+            # Nothing closed means W5.1 left one tab and there was nothing to test.
+            passfail("W5.4", len(tabPages(tabs)) == 1 and closed and not asked,
                      "closed %s; needed an answer: %s; left %s" % (closed, asked, tabs))
             secs = org.quit(30)
             time.sleep(3)
@@ -899,7 +975,7 @@ WORKFLOWS = ("W1", "W2", "W3", "W4", "W5", "W6")
 # reported as PASS, FAIL, MANUAL or SKIP; silence is a FAIL, so a workflow
 # that returns early cannot pass by leaving its later steps out. Lettered
 # sub-steps (W3.2c, W5.2d, ...) are extras and not required.
-EXPECTED = {"W1": 7, "W2": 6, "W3": 4, "W4": 5, "W5": 5, "W6": 5}
+EXPECTED = {"W1": 8, "W2": 8, "W3": 4, "W4": 5, "W5": 5, "W6": 5}
 
 # Codes the round launches, with the workflow that needs each. A step whose
 # code is absent reports SKIP, which satisfies EXPECTED just as PASS does, so
@@ -956,6 +1032,14 @@ def main():
             if not keep:
                 shutil.rmtree(root, ignore_errors=True)
         reported = set(s[0] for s in STEPS)
+        # EXPECTED is hand-kept: a numbered step in the source beyond it
+        # would never be required to report.
+        src = open(__file__).read()
+        for w in only:
+            top = max([int(n) for n in re.findall(r'"%s\.(\d+)"' % w, src)] or [0])
+            if top > EXPECTED.get(w, 0):
+                step(w + ".x", "FAIL", "the source has %s.%d but EXPECTED says %d: "
+                     "update EXPECTED" % (w, top, EXPECTED.get(w, 0)))
         for w in only:
             for n in range(1, EXPECTED.get(w, 0) + 1):
                 sid = "%s.%d" % (w, n)
