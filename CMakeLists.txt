@@ -4223,6 +4223,15 @@ if(PYTHON3_EXECUTABLE)
   set_tests_properties(apps_si_export PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
 
+  # The counted-check helper itself: a script that checks nothing fails
+  # (#1309).  Needs no install, no display and no services.
+  add_test(NAME apps_checks_helper
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/checks_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_checks_helper PROPERTIES TIMEOUT 120
+                       SKIP_RETURN_CODE 77)
+
   # Exclude a calculation with a reason (#617).
   add_test(NAME apps_exclude
            COMMAND ${PYTHON3_EXECUTABLE}

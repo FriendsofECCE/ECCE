@@ -21,17 +21,14 @@ sys.path.insert(0, HERE)
 
 import apps       # noqa: E402
 import run_tests  # noqa: E402
+import checks     # noqa: E402
 
 DELAY = 5
-failures = []
 
-
-def check(ok, what, detail=""):
-    print("%s %s%s" % ("ok   " if ok else "FAIL ", what,
-                       ("\n      " + str(detail)) if (detail and not ok) else ""))
-    if not ok:
-        failures.append(what)
-    return ok
+#  Every check in run(); a run that records fewer skipped its body (#1309).
+CHECKS = checks.Checks(12, "ssh listing async")
+check = CHECKS
+failures = CHECKS.failures
 
 
 def run(display):
@@ -147,8 +144,7 @@ def run(display):
 def main():
     def check_app(display, name, results, verbose=False):
         run(display)
-        if failures:
-            results.fail("ssh listing async", ", ".join(failures))
+        CHECKS.recordOn(results)
     run_tests.checkApp = check_app
     sys.argv = [sys.argv[0], "--app", "organizer"] + sys.argv[1:]
     return run_tests.main()

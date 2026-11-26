@@ -2008,3 +2008,32 @@ wx modal dialogs. Commands run in order, including while a dialog is open.
 warning. The Organizer's batch submission already proceeds without this
 question, including when the option is omitted. `ecce-launch --help` lists
 the option. This does not change the calculation's resource settings.
+
+## Writing a GUI test script: counted checks
+
+A test script states how many checks it runs, so a run that skipped its
+body cannot report PASS (#1309):
+
+```python
+import checks                        # tests/apps/checks.py
+CHECKS = checks.Checks(12, "ssh listing async")
+check = CHECKS                       # check(ok, what, detail="") -> bool
+failures = CHECKS.failures           # for scripts that append their own
+...
+return CHECKS.report()               # 0 pass, 1 fail, 77 skip
+```
+
+- `CHECKS.expect(n)` raises the count once the work is known (one case per
+  example folder, say). The declared count can never be zero.
+- `CHECKS.skip(reason)` states a skip; without it, a run that recorded no
+  check fails with "only 0 of N checks ran".
+- A script that drives `run_tests.main()` with its own `checkApp` ends with
+  `CHECKS.recordOn(results)` instead of its own `results.fail(...)`.
+- `run_tests.py` itself fails a run that swept no app and ran no check
+  module, and a `--check MODULE` that recorded nothing.
+- `ctest -R apps_checks_helper` (`tests/apps/checks_test.py`) covers the
+  helper; it needs no install, display or services.
+
+`ECCE_AUFBAU_ONLY=<atom>` in `tests/apps/modiagram_aufbau_test.py` now
+selects the cases before the count is declared, so a name that matches
+nothing fails the run instead of passing it.

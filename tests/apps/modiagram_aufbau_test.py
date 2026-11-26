@@ -27,6 +27,7 @@ sys.path.insert(0, HERE)
 import apps                   # noqa: E402
 import isolate                # noqa: E402
 import orca_mo_test as base   # noqa: E402
+import checks                # noqa: E402
 import xdisplay               # noqa: E402
 from ecceqm_builder_test import installLocal   # noqa: E402
 
@@ -74,13 +75,12 @@ def main():
     data = os.path.join(work, "data")
     os.environ["ECCE_LOCAL_DATA"] = data
     xdisplay.SCREEN = "1366x768x24"
-    failures = []
     keep = os.environ.get("ECCE_AUFBAU_PNG")
-
-    def check(ok, what):
-        print("%s %s" % ("ok   " if ok else "FAIL ", what))
-        if not ok:
-            failures.append(what)
+    #  Raised to two per case below, once the cases are known: a run that
+    #  skipped every case must not report PASS (#1309).
+    CHECKS = checks.Checks(2, "modiagram aufbau")
+    check = CHECKS
+    failures = CHECKS.failures
 
     cases_present = {}
     for name, case in CASES.items():
@@ -98,11 +98,13 @@ def main():
                        env=display.env(), timeout=180)
         try:
             cases = [(name, size) for name in cases_present
-                     for size in ("900x600", "500x400", "400x300")]
+                     for size in ("900x600", "500x400", "400x300")
+                     if os.environ.get("ECCE_AUFBAU_ONLY") in (None, name)]
+            #  Every case checks at least that the Builder lived and the
+            #  scene ran; a case that produced neither was not run.
+            CHECKS.expect(2 * len(cases))
             for name, size in cases:
                 config, arrows = CASES[name]
-                if os.environ.get("ECCE_AUFBAU_ONLY") not in (None, name):
-                    continue
                 os.environ["ECCE_AUFBAU_PNG_SIZE"] = size
                 out = os.path.join(work, "run-" + name + "-" + size)
                 scene = "hold 3\nmodiagram B aufbaupng 0\nmodiagram A aufbaupng 1\nmodiagram listing aufbau 0\n"
@@ -239,10 +241,7 @@ def main():
                 shutil.rmtree(work, ignore_errors=True)
             else:
                 print("kept " + work)
-    if failures:
-        print("%d failed" % len(failures))
-        return 1
-    return 0
+    return CHECKS.report()
 
 
 if __name__ == "__main__":
