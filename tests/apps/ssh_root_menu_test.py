@@ -82,6 +82,9 @@ def run(display):
             mark = os.path.getsize(sshlog) if os.path.exists(sshlog) else 0
             t0 = time.monotonic()
             out["select"] = command("select %s/" % address)
+            end = time.monotonic() + 60   # the listing runs off the GUI thread (#1220)
+            while time.monotonic() < end and not command("listing").startswith("listing: idle"):
+                time.sleep(0.2)
             out["desk"] = command("desk")
             out["selwall"] = time.monotonic() - t0
             out["selssh"] = open(sshlog).read()[mark:] if os.path.exists(sshlog) else ""
@@ -126,8 +129,11 @@ def run(display):
               "the root is selected and its desk shown", "%s / %s" % (out["select"], out["desk"]))
         nssh = len(out["selssh"].strip().splitlines())
         check(nssh == 1, "selecting the root makes one remote script", "%d scripts" % nssh)
-        check(out["selwall"] < 1.5 * DELAY,
-              "selecting the root and showing its desk takes under %.1f s (one round trip)" % (1.5 * DELAY),
+        # The wall time now includes polling the listing hook until the
+        # worker's result is applied (hooks are answered every 0.5 s); two
+        # round trips would take at least 2 * DELAY.
+        check(out["selwall"] < 1.9 * DELAY,
+              "selecting the root and showing its desk takes under %.1f s (one round trip)" % (1.9 * DELAY),
               "%.1f s" % out["selwall"])
         m = re.search(r"menu select=(\d+) menu=(\d+)", out["menu"])
         if not check(m is not None, "the menu hook answered", out["menu"]):

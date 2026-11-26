@@ -14,6 +14,8 @@
 #include <fstream>
 #include <map>
 #include <mutex>
+#include <thread>
+#include <chrono>
 #include <set>
 #include <sstream>
 
@@ -44,8 +46,10 @@ namespace {
 
 // RCommand is not thread safe and a login is worth keeping between the
 // operations of one process (without ECCE's master each would log in again).
-std::mutex gMutex;
-std::map<string, RCommand*> gLogins;
+// Never destroyed: a listing worker may still be inside runRemote when the
+// process exits, and static destructors would free these under it.
+std::mutex& gMutex = *new std::mutex;
+std::map<string, RCommand*>& gLogins = *new std::map<string, RCommand*>;
 unsigned gCounter = 0;
 std::atomic<unsigned> gGen(0);       // bumped by every operation that may change the server
 std::atomic<unsigned> gScripts(0);
@@ -338,6 +342,29 @@ char lookupKind(const BatchCache& c, const string& path)
   return lookupKind(c, par) == 'x' ? 'x' : 0;
 }
 
+// The script that lists path (its parent when it is not a directory) to
+// depth; with fill, the folder's calculations are read in full as well.
+string mirrorScript(const string& path, int depth, bool fill)
+{
+  const string d = std::to_string(depth);
+  string script = string(MIRROR_FUNCS);
+  if (fill) {
+    string fn = FILL_FUNCS;
+    fn.replace(fn.find("%NS%"), 4, q(VDoc::getEcceNamespace() + ":resourcetype"));
+    script += fn;
+  }
+  const string walkTop = fill ? "fillwalk" : "walk";
+  script += "P=" + q(path) + "\n"
+    "if [ -d \"$P\" ]; then printf 'R\\td\\n'; printf 'E\\td\\t%s\\t%s\\n' \"$(st \"$P\")\" \"$P\"; [ " + d + " -ge 1 ] && " + walkTop + " \"$P\" " + (fill ? "" : d) + "\n"
+    "else\n"
+    "  if [ -e \"$P\" ] || [ -L \"$P\" ]; then printf 'R\\tf\\n'; else printf 'R\\tx\\n'; fi\n"
+    "  if [ -e \"$P\" ] || [ -L \"$P\" ]; then printf 'E\\tf\\t%s\\t%s\\n' \"$(st \"$P\")\" \"$P\"; fi\n"
+    "  par=${P%/*}; [ -z \"$par\" ] && par=/\n"
+    "  if [ -d \"$par\" ]; then printf 'E\\td\\t%s\\t%s\\n' \"$(st \"$par\")\" \"$par\"; [ " + d + " -ge 1 ] && " + walkTop + " \"$par\" " + (fill ? "" : "1") + "; fi\n"
+    "fi\ntrue\n";
+  return script;
+}
+
 BatchCache *liveCache(const string& key)
 {
   if (!gBatchDepth) return 0;
@@ -497,22 +524,7 @@ class SftpOp {
       string out;
       if (!p_noCache && fromCache(key, path, depth, out)) return parseMirror(out, path, kind);
       const bool fill = !p_noCache && gBatchDepth && depth == 1;
-      const string d = std::to_string(depth);
-      string script = string(MIRROR_FUNCS);
-      if (fill) {
-        string fn = FILL_FUNCS;
-        fn.replace(fn.find("%NS%"), 4, q(VDoc::getEcceNamespace() + ":resourcetype"));
-        script += fn;
-      }
-      const string walkTop = fill ? "fillwalk" : "walk";
-      script += "P=" + q(path) + "\n"
-        "if [ -d \"$P\" ]; then printf 'R\\td\\n'; printf 'E\\td\\t%s\\t%s\\n' \"$(st \"$P\")\" \"$P\"; [ " + d + " -ge 1 ] && " + walkTop + " \"$P\" " + (fill ? "" : d) + "\n"
-        "else\n"
-        "  if [ -e \"$P\" ] || [ -L \"$P\" ]; then printf 'R\\tf\\n'; else printf 'R\\tx\\n'; fi\n"
-        "  if [ -e \"$P\" ] || [ -L \"$P\" ]; then printf 'E\\tf\\t%s\\t%s\\n' \"$(st \"$P\")\" \"$P\"; fi\n"
-        "  par=${P%/*}; [ -z \"$par\" ] && par=/\n"
-        "  if [ -d \"$par\" ]; then printf 'E\\td\\t%s\\t%s\\n' \"$(st \"$par\")\" \"$par\"; [ " + d + " -ge 1 ] && " + walkTop + " \"$par\" " + (fill ? "" : "1") + "; fi\n"
-        "fi\ntrue\n";
+      const string script = mirrorScript(path, depth, fill);
       const unsigned gen = gGen;
       if (!run(script, out, 60, false)) return false;
       if (fill && gen == gGen) {
@@ -742,6 +754,39 @@ bool SftpEDSI::parseURL(const string& url, string& user, string& host, string& p
 SftpEDSI::Batch::Batch() { if (!getenv("ECCE_SFTP_NOBATCH")) gBatchDepth++; else p_off = true; }
 SftpEDSI::Batch::~Batch() { if (!p_off && --gBatchDepth == 0) gCache.clear(); }
 unsigned SftpEDSI::scriptCount() { return gScripts; }
+
+namespace { std::atomic<int> gFilling(0); }
+
+bool SftpEDSI::fillListing(const EcceURL& url, string& raw, string& error, unsigned& gen)
+{
+  string user, host, path;
+  if (!parseURL(url.toString(false), user, host, path)) { error = "Not a usable sftp URL"; return false; }
+  const string script = mirrorScript(trimSlash(path), 1, true);
+  gen = gGen;
+  gFilling++;
+  // tInteractive is per thread and 0 here: a login that exists is used, a
+  // missing one fails and never asks.
+  const bool ok = runRemote(user, host, script, raw, error, 60);
+  gFilling--;
+  return ok;
+}
+
+void SftpEDSI::seedListing(const EcceURL& url, const string& raw, unsigned gen)
+{
+  string user, host, path;
+  if (!gBatchDepth || gen != gGen || !parseURL(url.toString(false), user, host, path)) return;
+  BatchCache& c = gCache[user + "@" + host];
+  if (c.gen != gen) { c.e.clear(); c.data.clear(); c.gen = gen; }
+  ingest(c, raw);
+}
+
+unsigned SftpEDSI::generation() { return gGen; }
+int SftpEDSI::listingsInFlight() { return gFilling; }
+bool SftpEDSI::waitListings(int ms)
+{
+  for (int t = 0; gFilling > 0 && t < ms; t += 20) std::this_thread::sleep_for(std::chrono::milliseconds(20));
+  return gFilling == 0;
+}
 
 void SftpEDSI::setInteractive(bool on) { tInteractive += on ? 1 : (tInteractive > 0 ? -1 : 0); }
 

@@ -211,7 +211,23 @@ static string progressKey(const EcceURL & url);
 #include <map>
 #include <mutex>
 #include <thread>
+#include <wx/gauge.h>
 #include <tuple>
+
+// ---- SSH folder listing off the GUI thread (#1220) ----
+// The worker runs only the folder's fill script and hands back its text.  It
+// does not touch the tree or any Resource, and the GUI never pumps events
+// while waiting: a pump would let a reload free Resources held up the stack
+// (#932).  The GUI thread applies the text through a Batch it seeds, so the
+// unchanged selection code reads everything from memory.
+struct CalcMgrListing {
+  std::mutex mu;
+  bool done = false, ok = false;
+  string url, raw, err, markedText;
+  unsigned gen = 0;
+  bool expandWanted = false, shown = false, restarted = false;
+  std::chrono::steady_clock::time_point t0 = std::chrono::steady_clock::now();
+};
 
 // The example set (folder name) the first start imports.
 static const char *const kFirstStartSet = "getting-started";
@@ -2174,6 +2190,15 @@ void CalcMgr::runTestCommand(const string& line)
       CalculationContextPanel *cp = dynamic_cast<CalculationContextPanel*>(p_contextPanel);
       outcome = cp ? CalculationContextPanel::lastRefreshTimings() + " formula=[" + cp->fieldText("empiricalFormula") + "]"
                    : "no calculation pane";
+    } else if (command == "listing") {
+      // "listing": whether an SSH folder listing is running, whether its
+      // progress panel is up, and how many results were applied (#1220)
+      outcome = p_listing ? "loading " + p_listing->url : string("idle");
+      outcome += string(" bar=") + (p_listingBar && p_listingBar->IsShown() ? "1" : "0")
+                 + " applied=" + std::to_string(p_listingsApplied);
+    } else if (command == "listingcancel") {
+      cancelListing("Listing cancelled.");
+      outcome = "ok";
     } else if (command == "selection") {
       WxResourceTreeItemData *n = p_treeCtrl->GetSelection().IsOk() ? dynamic_cast<WxResourceTreeItemData*>(
           p_treeCtrl->GetItemData(p_treeCtrl->GetSelection())) : 0;
@@ -3911,6 +3936,8 @@ CalcMgr::~CalcMgr( )
   p_quitRetry = 0;
   for (wxTimer *t : p_hookTimers) delete t;
   p_hookTimers.clear();
+  p_listing.reset();
+  SftpEDSI::waitListings(2000);   // bounded; no event pump
   delete p_toolStartup;
   p_toolStartup = 0;
   CodeChoice::setListener(nullptr);
@@ -3982,6 +4009,22 @@ void CalcMgr::initializeGUI()
 
   // Feedback area at the botton of the page, no need to delete it since
   // wxFrame destructor will delete it.
+  // Shown only while an SSH folder is being listed (#1220): its own panel,
+  // so the status text and the feedback area are not shared with it.
+  p_listingBar = new wxPanel(this, wxID_ANY);
+  {
+    wxBoxSizer *row = new wxBoxSizer(wxHORIZONTAL);
+    p_listingText = new wxStaticText(p_listingBar, wxID_ANY, wxEmptyString);
+    p_listingGauge = new wxGauge(p_listingBar, wxID_ANY, 100, wxDefaultPosition, wxSize(160, -1));
+    wxButton *cancel = new wxButton(p_listingBar, wxID_ANY, _("Cancel"));
+    cancel->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { cancelListing("Listing cancelled."); });
+    row->Add(p_listingText, 1, wxALIGN_CENTER_VERTICAL | wxALL, 4);
+    row->Add(p_listingGauge, 0, wxALIGN_CENTER_VERTICAL | wxALL, 4);
+    row->Add(cancel, 0, wxALIGN_CENTER_VERTICAL | wxALL, 4);
+    p_listingBar->SetSizer(row);
+    p_listingBar->Hide();
+    p_topSizer->Add(p_listingBar, 0, wxGROW, 0);
+  }
   p_feedback = new WxFeedback(this);
   p_feedback->hideEditState();
   p_feedback->hideStateIcon();
@@ -4379,6 +4422,128 @@ void CalcMgr::connectSshInBackground(const vector<string>& addresses)
     relayoutAfterStart();
   });
   timer->Start(200);
+}
+
+
+
+void CalcMgr::setListingMark(const string& url, bool loading)
+{
+  WxResourceTreeItemData *n = findNode(EcceURL(url), false, false);
+  if (!n) return;
+  const wxString suffix = wxString::FromUTF8(" (loading...)");
+  wxString t = p_treeCtrl->GetItemText(n->GetId());
+  if (loading && !t.EndsWith(suffix)) p_treeCtrl->SetItemText(n->GetId(), t + suffix);
+  else if (!loading && t.EndsWith(suffix)) p_treeCtrl->SetItemText(n->GetId(), t.Left(t.length() - suffix.length()));
+}
+
+bool CalcMgr::startListing()
+{
+  if (!p_asyncOk || p_noAsync) return false;
+  p_asyncOk = false;
+  cancelListing();
+  if (getenv("ECCE_SFTP_NOBATCH")) return false;
+  WxResourceTreeItemData *n = p_treeCtrl->getSelection();
+  if (!n || !n->getResource()) return false;
+  const string url = n->getUrl().toString();
+  if (url.compare(0, 7, "sftp://") != 0) return false;
+  auto job = std::make_shared<CalcMgrListing>();
+  job->url = url;
+  job->restarted = p_restartNext;
+  p_restartNext = false;
+  p_listing = job;
+  // The desk shows nothing of the previous selection and the item menus go
+  // grey until the result is in.
+  if (p_contextPanel && p_contextPanel->getWidget()) p_contextPanel->getWidget()->Hide();
+  setMessage("Listing " + n->getName() + "...", WxFeedback::INFO);
+  updateSelectionMenus();
+  std::thread([job]() {
+    string raw, err;
+    unsigned gen = 0;
+    const bool ok = SftpEDSI::fillListing(EcceURL(job->url), raw, err, gen);
+    std::lock_guard<std::mutex> lock(job->mu);
+    job->ok = ok; job->raw.swap(raw); job->err = err; job->gen = gen; job->done = true;
+  }).detach();
+  setListingMark(url, true);
+  if (!p_listTimer) {
+    p_listTimer = new wxTimer();   // deleted with this window
+    p_hookTimers.push_back(p_listTimer);
+    p_listTimer->Bind(wxEVT_TIMER, [this](wxTimerEvent&) { listingTick(); });
+  }
+  p_listTimer->Start(200);
+  return true;
+}
+
+void CalcMgr::cancelListing(const string& note)
+{
+  if (!p_listing) return;
+  const string url = p_listing->url;
+  p_listing.reset();   // the worker finishes alone and its text is dropped
+  if (p_listTimer) p_listTimer->Stop();
+  if (p_listingBar && p_listingBar->IsShown()) { p_listingBar->Hide(); Layout(); }
+  setListingMark(url, false);
+  if (p_contextPanel && p_contextPanel->getWidget()) p_contextPanel->getWidget()->Show();
+  if (note.empty()) p_feedback->clearMessage(); else setMessage(note, WxFeedback::INFO);
+  updateSelectionMenus();
+}
+
+void CalcMgr::listingTick()
+{
+  std::shared_ptr<CalcMgrListing> job = p_listing;
+  if (!job) { if (p_listTimer) p_listTimer->Stop(); return; }
+  bool done;
+  {
+    std::lock_guard<std::mutex> lock(job->mu);
+    done = job->done;
+  }
+  if (!done) {
+    const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::steady_clock::now() - job->t0).count();
+    if (ms >= 1000) {
+      if (!job->shown) {
+        job->shown = true;
+        p_listingText->SetLabel(wxString::FromUTF8("Listing ") + wxString::FromUTF8(job->url.c_str()) + wxString::FromUTF8("..."));
+        p_listingBar->Show();
+        Layout();
+      }
+      p_listingGauge->Pulse();
+    }
+    return;
+  }
+  p_listing.reset();
+  p_listTimer->Stop();
+  if (p_listingBar->IsShown()) { p_listingBar->Hide(); Layout(); }
+  setListingMark(job->url, false);
+  if (p_contextPanel && p_contextPanel->getWidget()) p_contextPanel->getWidget()->Show();
+  WxResourceTreeItemData *sel = p_treeCtrl->getSelection();
+  if (!sel || sel->getUrl().toString() != job->url) { updateSelectionMenus(); return; }   // the user moved on
+  p_feedback->clearMessage();
+  if (!job->ok) {
+    updateSelectionMenus();
+    setMessage(job->err.empty() ? string("The folder could not be listed.") : job->err, WxFeedback::WARNING);
+    return;
+  }
+  if (job->gen != SftpEDSI::generation() && !job->restarted) {
+    // Something changed the server meanwhile: list once more.  A second
+    // miss is applied below as the synchronous path would (the seed is
+    // refused, the reads go to the host).
+    p_restartNext = true;
+    p_asyncOk = true;
+    onSelectionChange(true);
+    p_asyncOk = false;
+    return;
+  }
+  p_applyingListing = true;
+  {
+    SftpEDSI::Batch batch;
+    SftpEDSI::seedListing(EcceURL(job->url), job->raw, job->gen);
+    onSelectionChange(true);
+    if (job->expandWanted) {
+      WxResourceTreeItemData *n = findNode(EcceURL(job->url), false, false);
+      if (n) p_treeCtrl->Expand(n->GetId());
+    }
+  }
+  p_applyingListing = false;
+  p_listingsApplied++;
 }
 
 // Lays the frame out once start-up work has returned (#1272): content that
@@ -9978,7 +10143,9 @@ void CalcMgr::OnTreectrlSelChanged( wxTreeEvent& event )
     }
   }
 
+  p_asyncOk = true;
   onSelectionChange(true);
+  p_asyncOk = false;
 
 #ifdef __WXMSW__
   // Rows of the old and new selection were seen left unpainted on
@@ -10221,6 +10388,26 @@ void CalcMgr::OnTreectrlItemExpanded( wxTreeEvent& event )
 void CalcMgr::OnTreectrlItemExpanding( wxTreeEvent& event )
 {
   //  cerr << "\nEnter Expanding event\n";
+  {
+    // Loading children would wait on the login a listing is using (#1220):
+    // the node being listed expands when its result arrives, any other
+    // unloaded SSH folder when the listing is over.
+    WxResourceTreeItemData *n = (WxResourceTreeItemData *)p_treeCtrl->GetItemData(event.GetItem());
+    if (n && !p_applyingListing && n->getResource() &&
+        n->getUrl().toString().compare(0, 7, "sftp://") == 0) {
+      if (p_listing && n->getUrl().toString() == p_listing->url) {
+        p_listing->expandWanted = true;
+        event.Veto();
+        return;
+      }
+      if (SftpEDSI::listingsInFlight() > 0 &&
+          p_treeCtrl->GetChildrenCount(n->GetId(), false) == 0) {
+        event.Veto();
+        setMessage("Wait for the folder listing in progress, then expand again.", WxFeedback::INFO);
+        return;
+      }
+    }
+  }
   startDisabler();
 
   WxResourceTreeItemData * itemData = (WxResourceTreeItemData *)
@@ -16110,6 +16297,8 @@ void CalcMgr::onSelectionChange(bool selectInTree)
   wxMenuBar * menuBar = ownMenuBar();
   WxResourceTreeItemData *itemData = 0;
 
+  if (selectInTree && !p_applyingListing && startListing()) return;
+
   if (selectInTree) {
     // One Batch for the tree's listing, the desk and the auto-refresh stamp:
     // on an SSH folder they share one remote script instead of three (#1273).
@@ -16179,9 +16368,10 @@ void CalcMgr::updateSelectionMenus()
   getFileMenu(*fileMenu, itemData);
 
   
-  if (!getSelection()) {
-    // Several calculations: Run Mgmt offers only the batch launch.
-    bool allCalcs = p_currentSelection.size() > 1;
+  if (p_listing || !getSelection()) {
+    // Several calculations: Run Mgmt offers only the batch launch.  While a
+    // folder is being listed nothing is selected yet that menus could act on.
+    bool allCalcs = !p_listing && p_currentSelection.size() > 1;
     for (size_t i = 0; allCalcs && i < p_currentSelection.size(); i++) {
       WxResourceTreeItemData *n = findNode(p_currentSelection[i], false, true);
       allCalcs = n && dynamic_cast<TaskJob*>(n->getResource());
@@ -16574,8 +16764,10 @@ void CalcMgr::autoRefreshTick()
     topRow = t->firstVisibleRow();
   }
   p_autoReloads++;
+  p_noAsync++;
   p_treeCtrl->refresh(folder);
   onSelectionChange(true);
+  p_noAsync--;
   if (ProjectContextPanel *t = dynamic_cast<ProjectContextPanel*>(p_contextPanel)) {
     if (!rowsSelected.empty()) t->selectResources(rowsSelected);
     t->scrollToRow(topRow);
@@ -16589,8 +16781,10 @@ void CalcMgr::autoRefreshTick()
 void CalcMgr::refresh()
 {
   WxResourceTreeItemData * itemData = p_treeCtrl->getSelection();
+  p_noAsync++;
   p_treeCtrl->refresh(itemData);
   onSelectionChange(true);
+  p_noAsync--;
 }
 
 
