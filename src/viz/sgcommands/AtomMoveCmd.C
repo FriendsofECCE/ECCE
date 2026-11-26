@@ -77,8 +77,10 @@ bool AtomMoveCmd::execute()
       AtomRTDragger * ball  = new AtomRTDragger;
       sep->addChild(ball);
 
+      //  The dispatcher is process-wide: name the scene graph so only the
+      //  Builder whose viewer made this dragger attaches its move callbacks.
       EventDispatcher::getDispatcher().publish(Event("AddDragger", "",
-                                                     "", ball));
+                                                     sg->eventId(), ball));
 
       ball->setFragment(frag);
       ball->setParent(sep);

@@ -3585,12 +3585,16 @@ void Builder::eventMCB(const Event& event)
        menuItem->Check(isChecked);
    }
    else if (name == "AddDragger") {
+     //  Another tab's dragger holds atoms of another fragment: its move
+     //  callbacks would look them up in ours and run off the end (#1306).
+     if (event.getSenderId() != getSceneGraph().eventId()) return;
      SoDragger * dragger = (SoDragger *) event.getObject();
      dragger->addMotionCallback(Builder::moveCB, (void *) this);
      dragger->addStartCallback(Builder::moveStartCB, (void *) this);
      dragger->addFinishCallback(Builder::moveEndCB, (void *) this);
    }
    else if (name == "AddWheel") {
+     if (event.getSenderId() != getSceneGraph().eventId()) return;
      SoDragger * dragger = (SoDragger *) event.getObject();
      dragger->addMotionCallback(Builder::rotateCB, (void *) this);
      dragger->addStartCallback(Builder::rotateStartCB, (void *) this);

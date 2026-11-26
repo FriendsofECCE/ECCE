@@ -85,8 +85,10 @@ bool BondRotateCmd::execute()
         sep->addChild(scal);
         sep->addChild(disc);
 
+        //  The dispatcher is process-wide: name the scene graph so only the
+        //  Builder whose viewer made this wheel attaches its rotate callbacks.
         EventDispatcher::getDispatcher().publish(Event("AddWheel", "",
-                                                       "", disc));
+                                                       sg->eventId(), disc));
 
         disc->setTransform(transf);
 

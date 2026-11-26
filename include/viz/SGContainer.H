@@ -107,6 +107,10 @@ public:
     // ICommandObject virtuals
     virtual string commandObjectType() const;
 
+    //  Names this scene graph in process-wide events so a listener can tell
+    //  whose viewer sent one (#1306).
+    string eventId() const;
+
     // Accessors
     ChemColor        *getColorNode();
     ChemRadii        *getRadiiNode();
