@@ -139,3 +139,4 @@ what the deployment mode needs (GETTING_STARTED, "Deployment modes"):
 - [Tab identity and cycling (#1256)](tab-identity-and-cycling.md) — tooltips/Window menu paths from the poll context; Ctrl+Tab via the key hook
 - [A WxFeedback message with flush greys every window, the whole main frame in one-process mode (#1266)](feedback-flush-greys-the-window.md)
 - [eccesshmaster: one libssh login per route, shared with job stores as separate programs (#1284)](libssh-connection-master-1284.md)
+- [AddDragger/AddWheel reach every Builder tab, and a foreign dragger indexes the wrong fragment (#1306)](dragger-events-are-process-wide-1306.md)
