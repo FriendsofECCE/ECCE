@@ -177,6 +177,7 @@ class Results(object):
         self.xpasses = []
         self.notes = []
         self.checks = 0
+        self.apps = []
         self.seenXfail = set()
         self.usedHelper = set()
 
@@ -660,6 +661,7 @@ def main():
             else:
                 print("  %-16s" % name, end="", flush=True)
             checkApp(display, name, results, verbose=args.verbose)
+            results.apps.append(name)
             swept.append(name)
             print("done", flush=True)
 
@@ -695,7 +697,12 @@ def main():
             restorePrefs = fixture.settleUpgradeNotices()
             try:
                 for module in args.check:
+                    before = (results.checks, len(results.failures))
                     globals()[module].check(display, results)
+                    #  A module that recorded neither a check nor a failure
+                    #  returned before its body (#1309).
+                    if (results.checks, len(results.failures)) == before:
+                        results.fail(module, "its check() recorded nothing")
             finally:
                 restorePrefs()
         elif not args.app and not stalled:
@@ -763,7 +770,16 @@ def report(results, verbose):
         for item in results.failures:
             print("  * " + item + "\n")
 
-    ok = not results.failures and not results.xpasses
+    #  A run that did no work is a failure, not a quiet PASS: an empty app
+    #  list, or a check module that returned before its first check, used to
+    #  exit 0 and be counted as evidence (#1309).  A script with its own
+    #  checkApp counts its own checks and is not judged here.
+    empty = not results.checks and not results.apps and not results.failures
+    if empty:
+        print("\n--- FAILURES " + "-" * 56)
+        print("  * run: nothing was checked -- no app was swept and no "
+              "check module recorded a check\n")
+    ok = not results.failures and not results.xpasses and not empty
     print("\n%s  %d apps checked, %d failures, %d known bugs"
           % ("PASS" if ok else "FAIL", results.checks, len(results.failures),
              len(results.xfails)))

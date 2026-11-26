@@ -25,17 +25,14 @@ sys.path.insert(0, HERE)
 import apps       # noqa: E402
 import fixture    # noqa: E402
 import run_tests  # noqa: E402
+import checks     # noqa: E402
 
 DELAY = 3
-failures = []
 
-
-def check(ok, what, detail=""):
-    print("%s %s%s" % ("ok   " if ok else "FAIL ", what,
-                       ("\n      " + str(detail)) if (detail and not ok) else ""))
-    if not ok:
-        failures.append(what)
-    return ok
+#  Seven checks plus the four menu items; fewer means a skipped body (#1309).
+CHECKS = checks.Checks(11, "ssh root menu")
+check = CHECKS
+failures = CHECKS.failures
 
 
 def run(display):
@@ -152,8 +149,7 @@ def run(display):
 def main():
     def check_app(display, name, results, verbose=False):
         run(display)
-        if failures:
-            results.fail("ssh root menu", ", ".join(failures))
+        CHECKS.recordOn(results)
     run_tests.checkApp = check_app
     sys.argv = [sys.argv[0], "--app", "organizer"] + sys.argv[1:]
     return run_tests.main()
