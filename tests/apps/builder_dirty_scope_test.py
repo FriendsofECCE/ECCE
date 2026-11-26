@@ -36,12 +36,20 @@ import run_tests          # noqa: E402
 failures = []
 
 
+checked = []
+# The scenarios below; a run that reports fewer checks than this skipped some.
+EXPECTED_CHECKS = 5
+
+
 def check(ok, what, detail=""):
+    ok = bool(ok)
+    checked.append(what)
     print("%-5s %s" % ("ok" if ok else "FAIL", what), flush=True)
     if not ok:
         failures.append(what)
         if detail:
             print("      " + detail[-1500:], flush=True)
+    return ok
 
 
 def checkDirty(display):
@@ -151,6 +159,8 @@ def checkDirty(display):
 def main():
     def checkApp(display, name, results, verbose=False):
         checkDirty(display)
+        if len(checked) < EXPECTED_CHECKS and not failures:
+            failures.append("only %d of %d checks ran" % (len(checked), EXPECTED_CHECKS))
         if failures:
             results.fail("builder_dirty_scope", "; ".join(failures))
     run_tests.checkApp = checkApp
