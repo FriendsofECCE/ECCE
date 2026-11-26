@@ -214,6 +214,21 @@ static string progressKey(const EcceURL & url);
 #include <wx/gauge.h>
 #include <tuple>
 
+// ---- SSH folder listing off the GUI thread (#1220) ----
+// The worker runs only the folder's fill script and hands back its text.  It
+// does not touch the tree or any Resource, and the GUI never pumps events
+// while waiting: a pump would let a reload free Resources held up the stack
+// (#932).  The GUI thread applies the text through a Batch it seeds, so the
+// unchanged selection code reads everything from memory.
+struct CalcMgrListing {
+  std::mutex mu;
+  bool done = false, ok = false;
+  string url, raw, err, markedText;
+  unsigned gen = 0;
+  bool expandWanted = false, shown = false, restarted = false;
+  std::chrono::steady_clock::time_point t0 = std::chrono::steady_clock::now();
+};
+
 // The example set (folder name) the first start imports.
 static const char *const kFirstStartSet = "getting-started";
 #include <wx/dirdlg.h>
@@ -4410,20 +4425,6 @@ void CalcMgr::connectSshInBackground(const vector<string>& addresses)
 }
 
 
-// ---- SSH folder listing off the GUI thread (#1220) ----
-// The worker runs only the folder's fill script and hands back its text.  It
-// does not touch the tree or any Resource, and the GUI never pumps events
-// while waiting: a pump would let a reload free Resources held up the stack
-// (#932).  The GUI thread applies the text through a Batch it seeds, so the
-// unchanged selection code reads everything from memory.
-struct CalcMgrListing {
-  std::mutex mu;
-  bool done = false, ok = false;
-  string url, raw, err, markedText;
-  unsigned gen = 0;
-  bool expandWanted = false, shown = false, restarted = false;
-  std::chrono::steady_clock::time_point t0 = std::chrono::steady_clock::now();
-};
 
 void CalcMgr::setListingMark(const string& url, bool loading)
 {
