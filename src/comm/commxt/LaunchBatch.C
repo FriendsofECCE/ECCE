@@ -4,6 +4,7 @@
 
 #include "comm/Launch.H"
 #include "comm/LaunchBatch.H"
+#include "comm/RCommand.H"
 #include "dsm/ActivityLog.H"
 #include "dsm/EDSI.H"
 #include "dsm/JCode.H"
@@ -18,6 +19,7 @@
 #include "dsm/TaskJob.H"
 #include "dsm/AllocationProfiles.H"
 #include "util/EcceMap.H"
+#include "util/Ecce.H"
 #include "util/StringConverter.H"
 #include "util/TempStorage.H"
 #include "util/TypedFile.H"
@@ -284,9 +286,23 @@ LaunchBatch::Plan LaunchBatch::plan(TaskJob *task, const Target& target)
   }
   if (l.machine.empty()) { p.problem = "no machine stored"; return p; }
   MachinePreferences *prefs = MachinePreferences::lookup(l.machine);
-  if (!prefs || !prefs->getRegisteredMachine()) {
+  RefMachine *rgst = prefs ? prefs->getRegisteredMachine() : 0;
+  if (!prefs || !rgst) {
     p.problem = "machine \"" + l.machine + "\" is not registered here";
     return p;
+  }
+  // A run directory nobody set is not a reason to refuse a job on this
+  // computer: the Launch panel fills in this same default and saves it the
+  // first time it is opened, so only a launch that never opens the panel
+  // (ecce-rerun, a script, a test hook) ever saw the empty value.  A remote
+  // machine still refuses: a path on someone else's computer is not ours
+  // to invent.
+  if (l.rundir.empty() && rgst &&
+      !RCommand::isRemote(rgst->fullname(), l.remoteShell, l.user)) {
+    l.rundir = string(Ecce::realUserHome()) + "/ecce-runs";
+    p.data.rundir = l.rundir;
+    p.filled = true;
+    notes.push_back("no run directory stored: using " + l.rundir);
   }
   if (l.rundir.empty()) { p.problem = "no run directory stored"; return p; }
   if (l.totalprocs == 0) { p.problem = "no core count stored"; return p; }
@@ -318,7 +334,7 @@ LaunchBatch::Plan LaunchBatch::plan(TaskJob *task, const Target& target)
 
 bool LaunchBatch::storeTarget(TaskJob *task, const Plan& plan)
 {
-  return !plan.retarget || task->launchdata(plan.data);
+  return (!plan.retarget && !plan.filled) || task->launchdata(plan.data);
 }
 
 bool LaunchBatch::storeRunDirectory(TaskJob *task)

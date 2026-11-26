@@ -26,9 +26,10 @@ public:
     std::string problem;   // why not, or a check that only warns
     Launchdata data;       // what the launch will use (stored when retarget)
     bool retarget;         // another machine than the one stored
+    bool filled;           // a default was filled in and must be stored
     std::string changes;   // what differs from the stored settings
     std::string notes;     // what was filled in or dropped; never blocks
-    Plan() : procs(0), ready(false), retarget(false) {}
+    Plan() : procs(0), ready(false), retarget(false), filled(false) {}
   };
 
   /** Launch on another machine than the stored one (machine empty: as set up).
