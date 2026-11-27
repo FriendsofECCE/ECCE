@@ -22,7 +22,6 @@ use vars qw($opt_h $opt_help $opt_v $opt_n $opt_p $opt_f $opt_b $opt_c $opt_t
 
 push(@INC,"$ENV{ECCE_HOME}/scripts/parsers");
 require "pertab.pl";
-require "docking.pl";
 &loadPT;
 
 $| = 1;
@@ -423,10 +422,37 @@ sub chemsys {
   $_ = "";
 }
 
+# The receptor/ligand split is ecce-docksplit's (#1335); it reads the same
+# .frag this script does and prints the receptor's, then the ligand's, atom
+# ranges.  $withResidues is 0 where the residue rules must not apply.
+sub dockSplit {
+  my ($dict, $withResidues) = @_;
+  my $spec = $dict->{"ES.Runtype.Docking.LigandAtoms"} // "";
+  my $prog = $0;
+  $prog =~ s{.*/}{};
+  my $exe = $ENV{ECCE_DOCKSPLIT} || "$ENV{ECCE_HOME}/bin/ecce-docksplit";
+  open(my $split, "-|", $exe, "--frag", $FragFILE, "--atoms", $spec,
+       "--print", "both", "--prog", $prog, ($withResidues ? () : ("--no-residues")))
+      || die "$prog error: cannot run $exe\n";
+  my @lines = <$split>;
+  close($split) || die "$prog error: the receptor/ligand split failed (see above)\n";
+  my @lists;
+  foreach my $line (@lines) {
+    chomp($line);
+    my @atoms;
+    foreach my $part (split(/,/, $line)) {
+      my ($lo, $hi) = split(/-/, $part);
+      push(@atoms, map { $_ - 1 } ($lo .. ($hi // $lo)));
+    }
+    push(@lists, \@atoms);
+  }
+  return @lists;
+}
+
 # $order lists the atoms of the receptor and then of the ligand by their
 # number in the calculation, so gensub can put the poses back in that order.
 sub dockChemsys {
-  my ($rec, $lig) = &dockSplit(\%AbiDict, $chemsys_atoms, \%tags, \%coords);
+  my ($rec, $lig) = &dockSplit(\%AbiDict, 0);
   print(NEWFILE join("\n", '$order', join(" ", map { $_ + 1 } (@$rec, @$lig)),
                      '$end') . "\n");
   foreach my $part (["receptor", $rec], ["ligand", $lig]) {

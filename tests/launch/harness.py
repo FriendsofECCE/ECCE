@@ -24,7 +24,7 @@ SKIP = 77
 #  server, and the session must not depend on one.
 SESSION_ID = os.urandom(8).hex()
 FINAL_STATES = ("completed", "loaded", "failed", "killed", "unsuccessful")
-BINARIES = ("eccejobmaster", "eccejobstore", "ecmd", "launchjob")
+BINARIES = ("eccejobmaster", "eccejobstore", "ecmd", "launchjob", "ecce-docksplit")
 
 
 def say(text):

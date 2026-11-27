@@ -4,7 +4,7 @@
  * The receptor/ligand split every docking code uses, in one wx-free place:
  * the Builder dialogs, the deck generators and the scripts all ask this and
  * so cannot choose different ligands for the same structure (#1335).  The
- * rule is the one the retired scripts/parsers/docking.pl implemented.
+ * rule is the one the former scripts/parsers/docking.pl implemented.
  */
 #ifndef DOCKSPLIT_HH
 #define DOCKSPLIT_HH
@@ -42,6 +42,13 @@ class DockSplit
     /** ATOM/HETATM records of the first model. */
     static bool readPdb(const std::string& path,
                         std::vector<DockSplitAtom>& atoms, std::string& err);
+
+    /**
+     * ECCE .frag, as ai.vina read it: atom_list (symbols, or atomic numbers
+     * unless atom_info says "symbol") and, when @p residues, the pdb_list.
+     */
+    static bool readFrag(const std::string& path, bool residues,
+                         std::vector<DockSplitAtom>& atoms, std::string& err);
 
     /** The tab-separated summary the golden corpus is kept in. */
     static std::string report(const std::vector<DockSplitAtom>& atoms,

@@ -3,7 +3,7 @@ type: pitfall
 title: "Vina's automatic ligand was a lone crystal water; the choice now skips water and ions and is reported (#962)"
 area: codereg
 paths:
-  - scripts/parsers/docking.pl
+  - src/dock/DockSplit.C
   - scripts/parsers/ai.vina
   - tests/dock/vina_autoligand_test.py
 issues: [962]

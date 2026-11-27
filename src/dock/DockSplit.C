@@ -1,4 +1,5 @@
 #include "dock/DockSplit.H"
+#include "dock/DockMol.H"
 
 #include <algorithm>
 #include <cctype>
@@ -306,6 +307,54 @@ bool DockSplit::readPdb(const std::string& path,
     a.chain = l.size() > 21 ? l.substr(21, 1) : " ";
     atoms.push_back(a);
   }
+  return true;
+}
+
+bool DockSplit::readFrag(const std::string& path, bool residues,
+                         std::vector<DockSplitAtom>& atoms, std::string& err)
+{
+  std::ifstream in(path.c_str());
+  if (!in) { err = "cannot open " + path; return false; }
+  std::string l;
+  int n = 0;
+  bool symbols = false;
+  std::vector<std::string> name, num, chain;
+  auto sub = [](const std::string& s, size_t p, size_t len) {
+    return p < s.size() ? s.substr(p, len) : std::string();
+  };
+  auto trim = [](std::string f) {
+    size_t b = f.find_first_not_of(" \t\r\n"), e = f.find_last_not_of(" \t\r\n");
+    return b == std::string::npos ? std::string() : f.substr(b, e - b + 1);
+  };
+  std::getline(in, l);  // the title line
+  while (std::getline(in, l)) {
+    if (l.compare(0, 10, "num_atoms:") == 0) n = atoi(l.c_str() + 10);
+    else if (l.compare(0, 10, "atom_info:") == 0) symbols = l.find("symbol") != std::string::npos;
+    else if (l.compare(0, 9, "pdb_list:") == 0) {
+      for (int i = 0; i < n && std::getline(in, l); i++) {
+        name.push_back(trim(sub(l, 7, 4)));
+        std::string nu;
+        for (char c : sub(l, 11, 6)) if (!isspace((unsigned char)c)) nu += c;
+        num.push_back(nu);
+        chain.push_back(l.size() > 25 ? l.substr(25, 1) : " ");
+      }
+    } else if (l.compare(0, 10, "atom_list:") == 0) {
+      for (int i = 0; i < n && std::getline(in, l); i++) {
+        std::istringstream ss(l);
+        DockSplitAtom a;
+        ss >> a.element >> a.x >> a.y >> a.z;
+        if (!symbols) a.element = DockMol::symbolFromElement(atoi(a.element.c_str()));
+        atoms.push_back(a);
+      }
+    }
+  }
+  if (atoms.empty()) { err = "no atoms in " + path; return false; }
+  if (residues)
+    for (size_t i = 0; i < atoms.size() && i < name.size(); i++) {
+      atoms[i].resName = name[i];
+      atoms[i].resNum = num[i];
+      atoms[i].chain = chain[i];
+    }
   return true;
 }
 

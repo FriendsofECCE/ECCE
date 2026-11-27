@@ -1876,7 +1876,7 @@ launcher, without command wrappers for these tools.
 | `ecce-mocomp` | Atomic-orbital composition of one molecular orbital (`CALC --mo N\|homo\|lumo [--beta] [--method mulliken\|c2] [--min PCT] [--by ao,shell,type,atom] [--tsv]`), `--list` the orbitals, `--spin` Mulliken spin populations |
 | `ecce-density-field` | ELF, LOL, reduced density gradient, sign(λ2)ρ or density from a calculation's stored orbitals as a cube file (`CALC --field F [--spacing A] [--margin A] [--threads N] -o out.cube`), or all fields at points (`CALC --at X,Y,Z`); local data |
 | `ecce-pdbqt` | Prepare AutoDock PDBQT files for docking: `--frag FILE --atoms LIST --as ligand\|receptor -o OUT`, `--ligand FILE.sdf`, `--receptor FILE.pdb`, `--info FILE` |
-| `ecce-docksplit` | The docking receptor/ligand split (#1335): `FILE.pdb [--atoms LIST] [--print ligand\|receptor\|report]`. Prints the ligand (or receptor) atoms as 1-based ranges; the automatic-choice notes go to stderr; exit 1 with `docking error: ...` when the system is one molecule or the atoms are bad |
+| `ecce-docksplit` | The docking receptor/ligand split (#1335), which `ai.vina`, `ai.xtb` and the Builder's Vina box use: `(FILE.pdb \| --frag FILE.frag) [--atoms LIST] [--print ligand\|receptor\|both\|report] [--no-residues] [--prog NAME]`; `ECCE_DOCKSPLIT` names the binary for the ai scripts. Prints the ligand (or receptor) atoms as 1-based ranges; the automatic-choice notes go to stderr; exit 1 with `docking error: ...` when the system is one molecule or the atoms are bad |
 | `ecce-site-screen` | Interstitial or vacancy site screening of a periodic host: `make <template> interstitial\|vacancy --element X`, then `results <folder>` for E - E(host) in eV |
 
 See the matching help page for inputs, options and units.

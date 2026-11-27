@@ -52,6 +52,7 @@
 #include "tdat/AtomMap.H"
 #include "tdat/TBond.H"
 #include "tdat/TPerTab.H"
+#include "dock/DockSplit.H"
 #include "tdat/PropTSVecTable.H"
 #include "wxgui/PlotStyle.H"
 #include "wxviz/WxVizToolFW.H"
@@ -1342,7 +1343,7 @@ bool EnsemblePropertyPanel::isVina(IPropCalculation *calc)
 }
 
 // The ligand as the docking split defines it (ES.Runtype.Docking.LigandAtoms,
-// 1-based ranges); empty means the smallest molecule, as docking.pl takes it.
+// 1-based ranges); empty means the smallest molecule, as DockSplit takes it.
 vector<int> EnsemblePropertyPanel::ligandAtoms()
 {
   Timed timed("ligandAtoms");
@@ -1351,31 +1352,18 @@ vector<int> EnsemblePropertyPanel::ligandAtoms()
   GUIValues *g = ic ? ic->guiparams() : 0;
   GUIValue *v = g ? g->get("ES.Runtype.Docking.LigandAtoms") : 0;
   string spec = v ? v->getValueAsString() : "";
-  for (char& c : spec) if (c == ',') c = ' ';
-  std::istringstream in(spec);
-  string part;
-  while (in >> part) {
-    int a = 0, b = 0;
-    if (sscanf(part.c_str(), "%d-%d", &a, &b) == 2) {
-      for (int i = a; i <= b; i++) out.push_back(i - 1);
-    } else if (sscanf(part.c_str(), "%d", &a) == 1) {
-      out.push_back(a - 1);
-    }
-  }
   delete g;
-  if (!out.empty() || p_members.empty()) return out;
+  if (p_members.empty()) return out;
+  // The poses carry no residue names, so the element and size rules only.
   const Geometry& geo = geometry(p_members.front().rank);
   const int n = (int)geo.elements.size();
-  vector<int> root(n);
-  for (int i = 0; i < n; i++) root[i] = i;
-  std::function<int(int)> find = [&](int i) { return root[i] == i ? i : root[i] = find(root[i]); };
-  for (const auto& b : geo.bonds) root[find(b.first)] = find(b.second);
-  std::map<int, vector<int> > parts;
-  for (int i = 0; i < n; i++) parts[find(i)].push_back(i);
-  if (parts.size() < 2) return out;
-  for (const auto& p : parts)
-    if (out.empty() || p.second.size() < out.size()) out = p.second;
-  return out;
+  vector<DockSplitAtom> atoms(n);
+  for (int i = 0; i < n && 3 * i + 2 < (int)geo.xyz.size(); i++) {
+    atoms[i].element = TPerTab().atomicSymbol(geo.elements[i]);
+    atoms[i].x = geo.xyz[3*i]; atoms[i].y = geo.xyz[3*i+1]; atoms[i].z = geo.xyz[3*i+2];
+  }
+  DockSplitResult r = DockSplit::split(atoms, spec);
+  return r.ok ? r.ligand : out;
 }
 
 void EnsemblePropertyPanel::setPocketView(bool on)

@@ -20,7 +20,7 @@ class VinaRunTypePanel(EccePanel):
     def __init__(self, parent, helpURL):
         EccePanel.__init__(self, parent, helpURL)
 
-        # The split keys are the shared docking layer's (docking.pl), so they
+        # The split keys are the shared docking layer's (ecce-docksplit), so they
         # are the same as xtb's.  Empty means the smallest molecule.
         dockSizer = EcceBoxSizer(self, label="Receptor and Ligand", cols=1)
         # The editor lists the structure's ligand candidates in a side file
