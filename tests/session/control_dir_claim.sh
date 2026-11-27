@@ -18,6 +18,12 @@ fail=0
 
 setup_old() {   # a directory left by an earlier session, long unclaimed
   ecce_ssh_control_setup
+  # The library leaves it unset when no candidate root is short enough for
+  # a unix socket path (a long TMPDIR, as under the offload harness).
+  if [ -z "${ECCE_SSH_CONTROL_DIR:-}" ]; then
+    echo "SKIP: no candidate ssh control directory was short enough for a unix socket path"
+    exit 77
+  fi
   dir="$ECCE_SSH_CONTROL_DIR"
   touch -d '-10 minutes' "$dir/.born" "$dir/.claim"
 }

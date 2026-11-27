@@ -35,6 +35,24 @@ def box(a, b):
     return diff.getbbox()
 
 
+def displayUsable():
+    """True when $DISPLAY names a server that answers.  A set but dead
+    DISPLAY (the offload harness sets one on purpose) must fall back to
+    xvfb-run like an empty one; a probe that times out counts as dead."""
+    if not os.environ.get("DISPLAY"):
+        return False
+    probe = shutil.which("xdpyinfo")
+    if not probe:
+        print("note: xdpyinfo not found, cannot probe DISPLAY=%s; "
+              "using xvfb-run" % os.environ["DISPLAY"])
+        return False
+    try:
+        return subprocess.run([probe], capture_output=True,
+                              timeout=10).returncode == 0
+    except subprocess.TimeoutExpired:
+        return False
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("outdir", nargs="?")
@@ -63,9 +81,9 @@ def main():
         return 1
     env = dict(os.environ, HOME=work, ECCE_HOME=ROOT, ECCE_REALUSERHOME=work)
     wrap = []
-    if not os.environ.get("DISPLAY"):
+    if not displayUsable():
         if not shutil.which("xvfb-run"):
-            print("SKIP: no DISPLAY and no xvfb-run")
+            print("SKIP: no usable DISPLAY and no xvfb-run")
             return 77
         wrap = ["xvfb-run", "-a"]
     status = 0

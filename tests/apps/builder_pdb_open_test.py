@@ -52,9 +52,11 @@ def run(display):
         auth = fixture.authFile(os.path.join(work, "auth.pipe"),
                                 user=fixture.realUser())
         #  Quit asks about the unsaved edits; the dialog hook closes it
-        #  without saving.
+        #  without saving.  The script's last step is `quit`, so the process
+        #  exiting is how apps.run sees it finished; settle is only the
+        #  ceiling for a slow or loaded machine, not the normal path.
         result = apps.run(display, "builder", args=("-pipe", auth, pdb),
-                          windowTimeout=60, settle=90,
+                          windowTimeout=60, settle=300,
                           env={"ECCE_BUILDER_SCRIPT": path,
                                "ECCE_FEEDBACK_STDERR": "1",
                                "ECCE_TEST_DIALOG_CLOSE": "1"})

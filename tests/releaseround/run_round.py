@@ -266,19 +266,36 @@ class Organizer(object):
             self.log = None
 
 
-def sessionProcesses(data):
-    """(pid, comm) of processes started for this test's data folder."""
+def sessionProcesses(data, roots=()):
+    """(pid, comm) of ECCE processes started for this test's data folder.
+
+    The environment marker alone also matches daemons that GTK or the
+    desktop fork from an ECCE program (an input-method helper): they inherit
+    the environment and outlive ECCE by design.  A process counts only when
+    its executable or command line lies under one of `roots` (the install
+    prefix and the isolated home), which is what makes it ECCE's.
+    """
     if not os.path.isdir("/proc"):
         return None
     mark = ("ECCE_LOCAL_DATA=%s" % data).encode()
+    roots = [os.path.realpath(r).encode() for r in roots if r]
     me = os.getpid()
     found = []
     for pid in os.listdir("/proc"):
         if not pid.isdigit() or int(pid) == me:
             continue
         try:
-            if mark in open("/proc/%s/environ" % pid, "rb").read().split(b"\0"):
-                found.append((int(pid), open("/proc/%s/comm" % pid).read().strip()))
+            if mark not in open("/proc/%s/environ" % pid, "rb").read().split(b"\0"):
+                continue
+            comm = open("/proc/%s/comm" % pid).read().strip()
+            try:
+                exe = os.path.realpath(os.readlink("/proc/%s/exe" % pid)).encode()
+            except OSError:
+                exe = b""
+            cmd = open("/proc/%s/cmdline" % pid, "rb").read()
+            if roots and not any(r in exe or r in cmd for r in roots):
+                continue
+            found.append((int(pid), comm))
         except OSError:
             pass
     return found
@@ -886,7 +903,9 @@ class Round(object):
                      "closed %s; needed an answer: %s; left %s" % (closed, asked, tabs))
             secs = org.quit(30)
             time.sleep(3)
-            left = sessionProcesses(self.data)
+            left = sessionProcesses(
+                self.data, (apps.INSTALL,
+                            self.display.env().get("ECCE_REALUSERHOME")))
             if left is None:
                 step("W5.5", "SKIP", "no /proc: list processes by hand (pgrep -a ecce)")
             else:
