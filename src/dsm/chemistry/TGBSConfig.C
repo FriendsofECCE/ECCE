@@ -2359,7 +2359,7 @@ const char* TGBSConfig::dump(const char* code_name, bool useNames)
   if (codeName == "std2NWChem" || codeName == "std2ORCA" ||
       codeName == "std2ECCEQM" || codeName == "std2Gaussian-16" ||
       codeName == "std2Gaussian-09" || codeName == "std2Gaussian-03" ||
-      codeName == "std2Gaussian-98") {
+      codeName == "std2Gaussian-98" || codeName == "std2molcas") {
     fs::path py = fs::path(Ecce::ecceHome()) / "python" / "python.exe";
     string pyExe = fs::exists(py) ? py.string() : string("python.exe");
     interpreter = "\"" + pyExe + "\"";
