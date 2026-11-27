@@ -12,7 +12,10 @@ results are read back with gensub's GENSUB_EXPLAIN, which neither side of
 the transfer uses.  The window's side (the same steps driven through
 Register Machines) is in tests/machregister/gui_test.py.
 
-Exit status 77 (CTest SKIP) without perl, curl or the ecce-site-admin binary.
+Exit status 77 (CTest SKIP) without curl, the ecce-site-admin binary or the
+interpreter processmachine names (every save runs it).  Without gensub's
+interpreter its read-back checks are skipped, each with a SKIP line, and the
+file exits 77 unless another check failed (then 1).
 """
 
 import argparse
@@ -30,6 +33,17 @@ from central_server import (CentralServer, digest, form, make_client,  # noqa
                             request, write, REPO)
 
 failures = []
+skipped = []
+
+
+def interpreter(script):
+    """The program a script's #! line runs, resolved on PATH, or None: the
+    scripts move from perl to python (#868), so the test follows the file."""
+    with open(script) as h:
+        words = h.readline()[2:].split() if h.read(2) == "#!" else []
+    if words and os.path.basename(words[0]) == "env":
+        words = words[1:]
+    return shutil.which(words[0]) if words else None
 
 
 def check(ok, what):
@@ -92,8 +106,8 @@ def explain(server, name):
                   % (name, server.root, server.root))
     nobody = os.path.join(server.root, "nouser")
     os.makedirs(nobody, exist_ok=True)
-    r = subprocess.run(["perl", os.path.join(REPO, "scripts", "gensub"), "-p",
-                        params], env=dict(os.environ, GENSUB_EXPLAIN="1",
+    gensub = os.path.join(REPO, "scripts", "gensub")
+    r = subprocess.run([interpreter(gensub), gensub, "-p", params], env=dict(os.environ, GENSUB_EXPLAIN="1",
                                           ECCE_HOME=server.home,
                                           ECCE_REALUSERHOME=nobody),
                        cwd=server.root, stdout=subprocess.PIPE, text=True)
@@ -109,9 +123,14 @@ def main():
     if not os.access(os.path.join(build, "ecce-site-admin"), os.X_OK):
         print("SKIP  no ecce-site-admin in " + build)
         return 77
-    if not shutil.which("perl") or not shutil.which("curl"):
-        print("SKIP  needs perl and curl")
+    if not shutil.which("curl"):
+        print("SKIP  needs curl")
         return 77
+    pm = os.path.join(REPO, "scripts", "processmachine")
+    if not interpreter(pm):
+        print("SKIP  no interpreter for processmachine (its #! line)")
+        return 77
+    canExplain = interpreter(os.path.join(REPO, "scripts", "gensub")) is not None
     if os.geteuid() == 0:
         print("SKIP  as root every directory is writable")
         return 77
@@ -157,12 +176,18 @@ def main():
         check(r.returncode == 0 and r.stdout.rstrip().endswith(
               "ecce-site-admin: ok"), "an admin's save is applied: " + r.stdout)
         check(not os.path.exists(canary), "no value was run by a shell")
-        got = explain(s, "cluster")
-        bad = {k: (v, got.get(k.lower())) for k, v in values.items()
-               if got.get(k.lower()) != v}
-        check(not bad, "every hostile value reads back unchanged: %r" % bad)
-        check(got.get("shell") is None and "frontendbypass" not in got,
-              "clear and remove reach the server's file")
+        if canExplain:
+            got = explain(s, "cluster")
+            bad = {k: (v, got.get(k.lower())) for k, v in values.items()
+                   if got.get(k.lower()) != v}
+            check(not bad, "every hostile value reads back unchanged: %r" % bad)
+            check(got.get("shell") is None and "frontendbypass" not in got,
+                  "clear and remove reach the server's file")
+        else:
+            for what in ("every hostile value reads back unchanged",
+                         "clear and remove reach the server's file"):
+                print("SKIP  %s (no interpreter for gensub)" % what)
+                skipped.append(what)
         cfg = read(os.path.join(s.sc, "CONFIG.cluster")) or ""
         check(cfg.startswith("# the site's cluster\n") and "shell: -" in cfg,
               "the comment is kept and the cleared key reads '-'")
@@ -274,8 +299,15 @@ def main():
                     pass
         shutil.rmtree(tmp, ignore_errors=True)
     print("")
-    print("FAILED: %d" % len(failures) if failures else "PASSED")
-    return 1 if failures else 0
+    print("FAILED: %d" % len(failures) if failures else
+          "PASSED, %d checks skipped" % len(skipped) if skipped else "PASSED")
+    # A failure beats a skip; a partial skip is 77 so ctest shows Skipped,
+    # not Passed, for a run that left part of its checks out.
+    if failures:
+        return 1
+    if skipped:
+        return 77
+    return 0
 
 
 if __name__ == "__main__":
