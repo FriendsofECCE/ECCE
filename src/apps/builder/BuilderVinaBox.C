@@ -89,7 +89,8 @@ TaskJob *Builder::vinaJob() const
 }
 
 
-Builder::VinaBox Builder::vinaBoxFromDetails(const std::map<string, string>& d)
+Builder::VinaBox Builder::vinaBoxFromDetails(const std::map<string, string>& d,
+                                             string *error)
 {
   auto get = [&](const string& k, const string& dflt) {
     auto it = d.find(k);
@@ -130,6 +131,7 @@ Builder::VinaBox Builder::vinaBoxFromDetails(const std::map<string, string>& d)
     }
     DockSplitResult r = DockSplit::split(atoms, get("ES.Runtype.Docking.LigandAtoms", ""));
     if (r.ok) lig = r.ligand;
+    else if (error) *error = r.error;
   }
   double lo[3] = {1e30, 1e30, 1e30}, hi[3] = {-1e30, -1e30, -1e30};
   int used = 0;
@@ -246,7 +248,8 @@ void Builder::updateVinaBox()
     for (const auto& kv : *g) d[kv.first] = kv.second->getValueAsString();
     delete g;
   }
-  VinaBox box = vinaBoxFromDetails(d);
+  string why;
+  VinaBox box = vinaBoxFromDetails(d, &why);
   VinaBox used;
   if (job->getState() > ResourceDescriptor::STATE_READY &&
       vinaBoxFromDeck(ic, used)) {
@@ -255,6 +258,8 @@ void Builder::updateVinaBox()
     box = used;
   }
   drawVinaBox(box);
+  // Without a box the user needs the reason, or the box just vanishes.
+  if (!box.valid && !why.empty()) showMessage(why, true);
 }
 
 
@@ -262,7 +267,10 @@ void Builder::vinaDetailsChanged(const string& url, const std::map<string, strin
 {
   if (!vinaJob() || p_calculation->getURL().toString() != url) return;
   if (live) {
-    drawVinaBox(vinaBoxFromDetails(*live));
+    string why;
+    VinaBox box = vinaBoxFromDetails(*live, &why);
+    drawVinaBox(box);
+    if (!box.valid && !why.empty()) showMessage(why, true);
   } else {
     EDSIFactory::changePoolResource(url);
     updateVinaBox();

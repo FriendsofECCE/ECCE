@@ -431,11 +431,16 @@ sub dockSplit {
   my $prog = $0;
   $prog =~ s{.*/}{};
   my $exe = $ENV{ECCE_DOCKSPLIT} || "$ENV{ECCE_HOME}/bin/ecce-docksplit";
+  # Checked before the open so the message names the binary; Windows
+  # installs it with an .exe the configured path leaves off.
+  $exe .= ".exe" if $^O eq "MSWin32" && !-e $exe;
+  die "$prog error: $exe is missing or not executable\n" unless -x $exe;
   open(my $split, "-|", $exe, "--frag", $FragFILE, "--atoms", $spec,
        "--print", "both", "--prog", $prog, ($withResidues ? () : ("--no-residues")))
       || die "$prog error: cannot run $exe\n";
   my @lines = <$split>;
-  close($split) || die "$prog error: the receptor/ligand split failed (see above)\n";
+  my $where = @lines ? " (see above)" : "";
+  close($split) || die "$prog error: the receptor/ligand split failed$where\n";
   my @lists;
   foreach my $line (@lines) {
     chomp($line);
