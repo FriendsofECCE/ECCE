@@ -101,7 +101,7 @@ case $cmd in
   apptest)  inner='install_tree; cd $SRC && export ECCE_TEST_HOME=$BLD/install ECCE_TEST_WRAPPERS=$BLD/install-bin ECCE_TEST_BUILD=$BLD/bi && apptests "$@"' ;;
   # run builds and installs first, so a GUI test never runs an old install;
   # runraw skips that for commands that need no ECCE binaries.
-  run)      inner='install_tree; cd $SRC && "$@"' ;;
+  run)      inner='install_tree; cd $SRC && ECCE_TEST_HOME=$BLD/install ECCE_TEST_WRAPPERS=$BLD/install-bin "$@"' ;;
   runraw)   inner='configure; cd $SRC && "$@"' ;;
   *) fail "unknown command '$cmd' (build|ctest|ctesti|teaching|apps|apptest|clip|run|runraw)" ;;
 esac
