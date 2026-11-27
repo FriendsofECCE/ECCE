@@ -16,3 +16,5 @@ optionally an `ECP` block.
 The numbers are real (6-31G*/O, 6-31G/H, LANL2DZ/Pt) but trimmed to a few
 shells: these fixtures exercise the writers' DECISIONS, not the chemistry,
 and a full basis would bury the thing being checked.
+* `water_mixed_nbsp.gbs` `water_mixed.gbs` plus one H row led by a no-break
+  space, which Perl's byte-wise `\s` never read as data (#1331)

@@ -92,6 +92,15 @@ CASES = [
                 ("H explicit", lambda t: "18.73113700" in t)],
     ),
     dict(
+        name="g16-mixed-nbsp-decoy",
+        fixture="water_mixed_nbsp.gbs",
+        exporter="std2Gaussian-16",
+        #  water_mixed.gbs plus one H row led by a no-break space: Perl's
+        #  byte-wise \s never read it as data, so the deck is the clean one's
+        #  (#1331); the golden is a copy of g16-mixed-per-element.txt.
+        expect=[("decoy row dropped", lambda t: "9.99" not in t)],
+    ),
+    dict(
         name="orca-mixed-per-element",
         fixture="water_mixed_orca.gbs",
         exporter="std2ORCA",
