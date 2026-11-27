@@ -7,7 +7,7 @@ from rdStandardGBS import perl_number
 
 def wrNWChem(bs):
     write = sys.stdout.write
-    explicit = any(re.search(pattern, name, re.I)
+    explicit = any(re.search(pattern, name, re.I | re.ASCII)
                    for atom, name in bs.get('name_gbs', {}).items()
                    if 'coordinants' not in atom
                    for pattern in (r'^\s*"\s*aug-cc-pwCV',

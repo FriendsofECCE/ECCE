@@ -65,6 +65,23 @@ CASES = [
                 ("ends the block", lambda t: t.rstrip().endswith("end"))],
     ),
     dict(
+        name="ecceqm-ascii-whitespace",
+        fixture="water_nbsp.gbs",
+        exporter="std2ECCEQM",
+        #  The Perl reader matched bytes: a row or shell header joined by a
+        #  no-break space, or led by a non-ASCII digit, is not data (#1331).
+        expect=[("drops the NBSP-joined row",
+                 lambda t: "5484.6717" not in t),
+                ("drops the NBSP-separated H shell", lambda t: "shell H" not in t)],
+    ),
+    dict(
+        name="nwchem-ascii-whitespace",
+        fixture="water_nbsp.gbs",
+        exporter="std2NWChem",
+        #  "\u00a0aug-cc-pwCVDZ" is not "aug-cc-pwCV..." to Perl's ASCII \s.
+        expect=[("keeps the library names", lambda t: "library" in t)],
+    ),
+    dict(
         name="g16-single-named",
         fixture="water_same.gbs",
         exporter="std2Gaussian-16",
