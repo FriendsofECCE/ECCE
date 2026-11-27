@@ -20,13 +20,29 @@ def configure_streams():
                                                errors="replace"))
 
 
+# Perl matched bytes: \s is ASCII whitespace there, and a field that is not
+# a number reads as its numeric prefix or 0 instead of raising (#1331).
+_WS = " \t\n\r\f\v"
+_NUM = re.compile(r"[ \t\n\r\f\v]*([+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?)", re.ASCII)
+
+
+def _num(text):
+    m = _NUM.match(text)
+    return float(m.group(1)) if m else 0.0
+
+
+def _fields(text):
+    # Perl's split(" ", ...): ASCII whitespace runs, leading ones ignored.
+    return [x for x in re.split(r"[ \t\n\r\f\v]+", text) if x]
+
+
 def read_block():
     rows, labels = [], []
     for line in sys.stdin:
-        if not re.match(r"^\s+\d+", line):
+        if not re.match(r"^\s+\d+", line, re.ASCII):
             break
-        fields = re.split(r" +", line[:-1].lstrip().replace("D", "e"))
-        z = int(fields[1])
+        fields = re.split(r" +", line[:-1].lstrip(_WS).replace("D", "e"))
+        z = int(_num(fields[1])) if len(fields) > 1 else 0
         if z < 0:
             continue
         rows.append(" ".join((fields + [""] * 6)[3:6]))
@@ -36,8 +52,8 @@ def read_block():
 
 
 def same_frame(a, b):
-    a, b = a.split(), b.split()
-    return len(a) == len(b) and all(float(x) == float(y) for x, y in zip(a, b))
+    a, b = _fields(a), _fields(b)
+    return len(a) == len(b) and all(_num(x) == _num(y) for x, y in zip(a, b))
 
 
 def read_lines(path):
