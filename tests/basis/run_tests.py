@@ -38,6 +38,8 @@ import os
 import subprocess
 import sys
 
+import python_port_test
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(os.path.dirname(HERE))
 PARSERS = os.path.join(REPO, "scripts", "parsers")
@@ -425,12 +427,16 @@ def name_tables():
     without needing either code.  ECCE name -> keyword, exactly.
     """
     def table(path):
+        if path.endswith(".py"):
+            sys.path.insert(0, PARSERS)
+            from wrORCAGBS import NameToBasis
+            return NameToBasis
         text = open(os.path.join(PARSERS, path)).read()
         return dict(re.findall(r'\$NameToBasis\{"([^"]+)"\}\s*=\s*"([^"]+)"',
                                text))
 
     must = {
-        "wrORCAGBS.pm": {
+        "wrORCAGBS.py": {
             "6-31g*": "6-31G*", "cc-pvdz": "cc-pVDZ",
             "aug-cc-pvtz": "aug-cc-pVTZ", "cc-pvtz-dk": "cc-pVTZ-DK",
             "cc-pwcvtz": "cc-pwCVTZ", "aug-cc-pcvdz": "aug-cc-pCVDZ",
@@ -452,7 +458,7 @@ def name_tables():
     #  Rejected by the code or a different basis from ECCE's under the
     #  same name: naming any of these must stay impossible.
     never = {
-        "wrORCAGBS.pm": ["pcseg-0", "3-21g*", "4-31g", "6-31++g",
+        "wrORCAGBS.py": ["pcseg-0", "3-21g*", "4-31g", "6-31++g",
                          "6-31++g*", "d-aug-cc-pvdz", "cc-pv(d+d)z",
                          "dz (dunning)"],
         "wrGaussian16GBS.pm": ["6-31g(3df,3pd)", "cc-pvdz-dk", "cc-pcvdz",
@@ -480,7 +486,9 @@ def name_tables():
 def run(case):
     path = os.path.join(PARSERS, case["exporter"])
     with open(os.path.join(FIXTURES, case["fixture"])) as handle:
-        proc = subprocess.run(["perl", path], stdin=handle,
+        interpreter = sys.executable if case["exporter"] in (
+            "std2NWChem", "std2ORCA", "std2ECCEQM") else "perl"
+        proc = subprocess.run([interpreter, path], stdin=handle,
                               capture_output=True, text=True, timeout=60,
                               env=dict(os.environ, ECCE_HOME=REPO))
     return proc.stdout, proc.returncode, proc.stderr
@@ -531,6 +539,11 @@ def main():
 
     os.makedirs(EXPECTED, exist_ok=True)
     failures, checks = [], 0
+
+    checks += 1
+    port_failures, _ = python_port_test.compare_references()
+    reader_failures, _ = python_port_test.reader_agreement()
+    failures.extend(port_failures + reader_failures)
 
     checks += 1
     for finding in fortran_d_notation():

@@ -1,0 +1,557 @@
+[
+  {
+    "code": "NWChem",
+    "fixture": "ch3i_def2.gbs",
+    "args": [],
+    "status": 0,
+    "stdout_sha256": "4f7a273d27fac865c34724b9a85fe2672045fdcea974554e5016d0bd957464d8",
+    "stderr": ""
+  },
+  {
+    "code": "NWChem",
+    "fixture": "pth_ecp.gbs",
+    "args": [],
+    "status": 0,
+    "stdout_sha256": "a7744d03c5485d56dcad30ae5d5854e059093499ab57c57f55e4600794ecbfe2",
+    "stderr": ""
+  },
+  {
+    "code": "NWChem",
+    "fixture": "water_aug_ccpvdz.gbs",
+    "args": [],
+    "status": 0,
+    "stdout_sha256": "8a5b087f2be31827e69582a8057f32cee9332e8a4ad9c96f0c5a57873b1cc2ef",
+    "stderr": ""
+  },
+  {
+    "code": "NWChem",
+    "fixture": "water_aug_pwcvdz.gbs",
+    "args": [],
+    "status": 0,
+    "stdout_sha256": "c5e9351a0dae343a7a34d9a3eda77a81cb7837f983c024a659bb501237cd60ed",
+    "stderr": ""
+  },
+  {
+    "code": "NWChem",
+    "fixture": "water_ccpvdz_explicit.gbs",
+    "args": [],
+    "status": 0,
+    "stdout_sha256": "2552bec9466a2ad3e4cbfdc4da37bd85336e52669e3e8a584f496e46ba78bc92",
+    "stderr": ""
+  },
+  {
+    "code": "NWChem",
+    "fixture": "water_gencontr.gbs",
+    "args": [],
+    "status": 0,
+    "stdout_sha256": "af92d383f29c5f1b053d0d57c288a24554ed58c0b2322539fcff59f744bef657",
+    "stderr": ""
+  },
+  {
+    "code": "NWChem",
+    "fixture": "water_mixed.gbs",
+    "args": [],
+    "status": 0,
+    "stdout_sha256": "9be4c8dce09ffbb7f8249ec6e0a6d62b01cba52ec9221286022e40bc905fd133",
+    "stderr": ""
+  },
+  {
+    "code": "NWChem",
+    "fixture": "water_mixed_orca.gbs",
+    "args": [],
+    "status": 0,
+    "stdout_sha256": "0904849be9d53504d267de4c0c96cfcf8f8bb10e83e4183250889f9df32a091d",
+    "stderr": ""
+  },
+  {
+    "code": "NWChem",
+    "fixture": "water_numonly.gbs",
+    "args": [],
+    "status": 0,
+    "stdout_sha256": "c5e9351a0dae343a7a34d9a3eda77a81cb7837f983c024a659bb501237cd60ed",
+    "stderr": ""
+  },
+  {
+    "code": "NWChem",
+    "fixture": "water_same.gbs",
+    "args": [],
+    "status": 0,
+    "stdout_sha256": "b08bbb05bf81c0b9f5460d9c5438e8eb922f5834374bc4a0d29a719c90ad7e6c",
+    "stderr": ""
+  },
+  {
+    "code": "NWChem",
+    "fixture": null,
+    "args": [],
+    "status": 0,
+    "stdout_sha256": "0e2361279c958c29a9e90643729c38690e1c67effb4b8fe1f892623788b67f0f",
+    "stderr": ""
+  },
+  {
+    "code": "NWChem",
+    "fixture": null,
+    "args": [
+      "-h"
+    ],
+    "status": 0,
+    "stdout_sha256": "f026ff8c0806385a3ab84e9b10a6299687aaf4e35e011ef352cee2dcf03570df",
+    "stderr": ""
+  },
+  {
+    "code": "NWChem",
+    "fixture": null,
+    "args": [
+      "-v"
+    ],
+    "status": 0,
+    "stdout_sha256": "79fa1e96f23e504b904dd11ea0e5c3f9e597ae926128d7764fac2fb65cb99665",
+    "stderr": ""
+  },
+  {
+    "code": "NWChem",
+    "fixture": null,
+    "args": [
+      "-hv"
+    ],
+    "status": 0,
+    "stdout_sha256": "f026ff8c0806385a3ab84e9b10a6299687aaf4e35e011ef352cee2dcf03570df",
+    "stderr": ""
+  },
+  {
+    "code": "NWChem",
+    "fixture": null,
+    "args": [
+      "-x"
+    ],
+    "status": 0,
+    "stdout_sha256": "0e2361279c958c29a9e90643729c38690e1c67effb4b8fe1f892623788b67f0f",
+    "stderr": "Unknown option: x\n"
+  },
+  {
+    "code": "NWChem",
+    "fixture": null,
+    "args": [
+      "--help"
+    ],
+    "status": 0,
+    "stdout_sha256": "0e2361279c958c29a9e90643729c38690e1c67effb4b8fe1f892623788b67f0f",
+    "stderr": "{parsers}/std2NWChem version [unknown] calling Getopt::Std::getopts (version 1.14 [paranoid]),\nrunning under Perl version 5.40.1.\n\nUsage: std2NWChem [-OPTIONS [-MORE_OPTIONS]] [--] [PROGRAM_ARG1 ...]\n\nThe following single-character options are accepted:\n\tBoolean (without arguments): -h -v\n\nOptions may be merged together.  -- stops processing of options.\n  [Now continuing due to backward compatibility and excessive paranoia.\n   See 'perldoc Getopt::Std' about $Getopt::Std::STANDARD_HELP_VERSION.]\n"
+  },
+  {
+    "code": "NWChem",
+    "fixture": null,
+    "args": [
+      "ignored",
+      "-h"
+    ],
+    "status": 0,
+    "stdout_sha256": "0e2361279c958c29a9e90643729c38690e1c67effb4b8fe1f892623788b67f0f",
+    "stderr": ""
+  },
+  {
+    "code": "ORCA",
+    "fixture": "ch3i_def2.gbs",
+    "args": [],
+    "status": 0,
+    "stdout_sha256": "de026d81f122ba044c022e004687551acab490a906daf0f755fcfbd2183e8463",
+    "stderr": ""
+  },
+  {
+    "code": "ORCA",
+    "fixture": "pth_ecp.gbs",
+    "args": [],
+    "status": 0,
+    "stdout_sha256": "8c1bee31b168e21dc123fc02e50646e89988efe2d5c8398288bbc1c220e89298",
+    "stderr": ""
+  },
+  {
+    "code": "ORCA",
+    "fixture": "water_aug_ccpvdz.gbs",
+    "args": [],
+    "status": 0,
+    "stdout_sha256": "befb49701c3ec5befaf691000d6e2976e74dbebd94cd1cf84ca902c2026fae5c",
+    "stderr": ""
+  },
+  {
+    "code": "ORCA",
+    "fixture": "water_aug_pwcvdz.gbs",
+    "args": [],
+    "status": 0,
+    "stdout_sha256": "ee98788a9ee6ac9f089929a0474705c1182734a62ec89d620990b5a4882363df",
+    "stderr": ""
+  },
+  {
+    "code": "ORCA",
+    "fixture": "water_ccpvdz_explicit.gbs",
+    "args": [],
+    "status": 0,
+    "stdout_sha256": "86893c84bbf449136f7e59f8d6a60575a2f81c4fdff44f151902477f02dcb7e3",
+    "stderr": ""
+  },
+  {
+    "code": "ORCA",
+    "fixture": "water_gencontr.gbs",
+    "args": [],
+    "status": 0,
+    "stdout_sha256": "028eb7e19e9ddfaabe244d2c05e5c16e11ecfaa6d6077a73394340f43ee7ea48",
+    "stderr": ""
+  },
+  {
+    "code": "ORCA",
+    "fixture": "water_mixed.gbs",
+    "args": [],
+    "status": 0,
+    "stdout_sha256": "5a927001405d2725b216bbea98ee594122b23989a57f8b33b1219cdc931068b2",
+    "stderr": ""
+  },
+  {
+    "code": "ORCA",
+    "fixture": "water_mixed_orca.gbs",
+    "args": [],
+    "status": 0,
+    "stdout_sha256": "549e5d2923608d83dcea19946e0377879c2de3e1dac46b40b25af6c5357ae814",
+    "stderr": ""
+  },
+  {
+    "code": "ORCA",
+    "fixture": "water_numonly.gbs",
+    "args": [],
+    "status": 0,
+    "stdout_sha256": "0f893464ac477aa6e12c4aa1add5757e35fd7ba97d7215121a0baf3aa70e6ff0",
+    "stderr": ""
+  },
+  {
+    "code": "ORCA",
+    "fixture": "water_same.gbs",
+    "args": [],
+    "status": 0,
+    "stdout_sha256": "91d1e7bd9520df54f4022666fb476f6d72b6871ce6b11648c00e42fc1edcc2f7",
+    "stderr": ""
+  },
+  {
+    "code": "ORCA",
+    "fixture": null,
+    "args": [],
+    "status": 0,
+    "stdout_sha256": "dfe205cfb08f105d97975524cc28f277fd14a731170ebec607caeb53e49e0430",
+    "stderr": ""
+  },
+  {
+    "code": "ORCA",
+    "fixture": null,
+    "args": [
+      "-h"
+    ],
+    "status": 0,
+    "stdout_sha256": "9666f25292ca2edb26f87bc4b1132831ed60a719fc2bda20e18a426b07f004dd",
+    "stderr": ""
+  },
+  {
+    "code": "ORCA",
+    "fixture": null,
+    "args": [
+      "-v"
+    ],
+    "status": 0,
+    "stdout_sha256": "55af75669db1bce0363e744a26214079050e75889c8834a5a91e5132258f1ca0",
+    "stderr": ""
+  },
+  {
+    "code": "ORCA",
+    "fixture": null,
+    "args": [
+      "-hv"
+    ],
+    "status": 0,
+    "stdout_sha256": "9666f25292ca2edb26f87bc4b1132831ed60a719fc2bda20e18a426b07f004dd",
+    "stderr": ""
+  },
+  {
+    "code": "ORCA",
+    "fixture": null,
+    "args": [
+      "-x"
+    ],
+    "status": 0,
+    "stdout_sha256": "dfe205cfb08f105d97975524cc28f277fd14a731170ebec607caeb53e49e0430",
+    "stderr": "Unknown option: x\n"
+  },
+  {
+    "code": "ORCA",
+    "fixture": null,
+    "args": [
+      "--help"
+    ],
+    "status": 0,
+    "stdout_sha256": "dfe205cfb08f105d97975524cc28f277fd14a731170ebec607caeb53e49e0430",
+    "stderr": "{parsers}/std2ORCA version [unknown] calling Getopt::Std::getopts (version 1.14 [paranoid]),\nrunning under Perl version 5.40.1.\n\nUsage: std2ORCA [-OPTIONS [-MORE_OPTIONS]] [--] [PROGRAM_ARG1 ...]\n\nThe following single-character options are accepted:\n\tBoolean (without arguments): -h -v\n\nOptions may be merged together.  -- stops processing of options.\n  [Now continuing due to backward compatibility and excessive paranoia.\n   See 'perldoc Getopt::Std' about $Getopt::Std::STANDARD_HELP_VERSION.]\n"
+  },
+  {
+    "code": "ORCA",
+    "fixture": null,
+    "args": [
+      "ignored",
+      "-h"
+    ],
+    "status": 0,
+    "stdout_sha256": "dfe205cfb08f105d97975524cc28f277fd14a731170ebec607caeb53e49e0430",
+    "stderr": ""
+  },
+  {
+    "code": "ECCEQM",
+    "fixture": "ch3i_def2.gbs",
+    "args": [],
+    "status": 255,
+    "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stderr": "ECCE-QM has no effective core potentials; the basis set needs one for: I. Choose a basis set that covers every element without one.\n"
+  },
+  {
+    "code": "ECCEQM",
+    "fixture": "pth_ecp.gbs",
+    "args": [],
+    "status": 255,
+    "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stderr": "ECCE-QM has no effective core potentials; the basis set needs one for: Pt. Choose a basis set that covers every element without one.\n"
+  },
+  {
+    "code": "ECCEQM",
+    "fixture": "water_aug_ccpvdz.gbs",
+    "args": [],
+    "status": 0,
+    "stdout_sha256": "cae7f9c4c6f38ba8fae0cd8d0c98e5bb68e0d601cf99259808d4f33432b672c1",
+    "stderr": ""
+  },
+  {
+    "code": "ECCEQM",
+    "fixture": "water_aug_pwcvdz.gbs",
+    "args": [],
+    "status": 0,
+    "stdout_sha256": "5b53446288c03cc80c4661ff17dde78e111f1f2ba81883fe4519349cc5bb3c11",
+    "stderr": ""
+  },
+  {
+    "code": "ECCEQM",
+    "fixture": "water_ccpvdz_explicit.gbs",
+    "args": [],
+    "status": 0,
+    "stdout_sha256": "760b12489c3bc819298614342fb47c37f2cf3cd22ac213e5eebb614238155e3b",
+    "stderr": ""
+  },
+  {
+    "code": "ECCEQM",
+    "fixture": "water_gencontr.gbs",
+    "args": [],
+    "status": 0,
+    "stdout_sha256": "41c2ad7d51fafe40908f0b34156c22bd5cdac7732942418aff6bded14543e79a",
+    "stderr": ""
+  },
+  {
+    "code": "ECCEQM",
+    "fixture": "water_mixed.gbs",
+    "args": [],
+    "status": 0,
+    "stdout_sha256": "63be41efbf2d7436ba72079464a5749f19f36c19d1fd8f91df1415a7c3776fcc",
+    "stderr": ""
+  },
+  {
+    "code": "ECCEQM",
+    "fixture": "water_mixed_orca.gbs",
+    "args": [],
+    "status": 0,
+    "stdout_sha256": "63be41efbf2d7436ba72079464a5749f19f36c19d1fd8f91df1415a7c3776fcc",
+    "stderr": ""
+  },
+  {
+    "code": "ECCEQM",
+    "fixture": "water_numonly.gbs",
+    "args": [],
+    "status": 0,
+    "stdout_sha256": "63be41efbf2d7436ba72079464a5749f19f36c19d1fd8f91df1415a7c3776fcc",
+    "stderr": ""
+  },
+  {
+    "code": "ECCEQM",
+    "fixture": "water_same.gbs",
+    "args": [],
+    "status": 0,
+    "stdout_sha256": "8e4f8275d6a2e133054c2e1418ad8e570ef572a6aab982992ebd161657e96a91",
+    "stderr": ""
+  },
+  {
+    "code": "ECCEQM",
+    "fixture": null,
+    "args": [],
+    "status": 0,
+    "stdout_sha256": "4e9d1b3292b9849ffa5282ee22e041eb7ea31e077eb8b5ba8b3ef406869c1e9c",
+    "stderr": ""
+  },
+  {
+    "code": "ECCEQM",
+    "fixture": null,
+    "args": [
+      "-h"
+    ],
+    "status": 0,
+    "stdout_sha256": "d192e1a09b2e7d586eb8a6c881fe4090f32a94d66ad227894d051cfb76b9dbcc",
+    "stderr": ""
+  },
+  {
+    "code": "ECCEQM",
+    "fixture": null,
+    "args": [
+      "-v"
+    ],
+    "status": 0,
+    "stdout_sha256": "55af75669db1bce0363e744a26214079050e75889c8834a5a91e5132258f1ca0",
+    "stderr": ""
+  },
+  {
+    "code": "ECCEQM",
+    "fixture": null,
+    "args": [
+      "-hv"
+    ],
+    "status": 0,
+    "stdout_sha256": "d192e1a09b2e7d586eb8a6c881fe4090f32a94d66ad227894d051cfb76b9dbcc",
+    "stderr": ""
+  },
+  {
+    "code": "ECCEQM",
+    "fixture": null,
+    "args": [
+      "-x"
+    ],
+    "status": 0,
+    "stdout_sha256": "4e9d1b3292b9849ffa5282ee22e041eb7ea31e077eb8b5ba8b3ef406869c1e9c",
+    "stderr": "Unknown option: x\n"
+  },
+  {
+    "code": "ECCEQM",
+    "fixture": null,
+    "args": [
+      "--help"
+    ],
+    "status": 0,
+    "stdout_sha256": "4e9d1b3292b9849ffa5282ee22e041eb7ea31e077eb8b5ba8b3ef406869c1e9c",
+    "stderr": "{parsers}/std2ECCEQM version [unknown] calling Getopt::Std::getopts (version 1.14 [paranoid]),\nrunning under Perl version 5.40.1.\n\nUsage: std2ECCEQM [-OPTIONS [-MORE_OPTIONS]] [--] [PROGRAM_ARG1 ...]\n\nThe following single-character options are accepted:\n\tBoolean (without arguments): -h -v\n\nOptions may be merged together.  -- stops processing of options.\n  [Now continuing due to backward compatibility and excessive paranoia.\n   See 'perldoc Getopt::Std' about $Getopt::Std::STANDARD_HELP_VERSION.]\n"
+  },
+  {
+    "code": "ECCEQM",
+    "fixture": null,
+    "args": [
+      "ignored",
+      "-h"
+    ],
+    "status": 0,
+    "stdout_sha256": "4e9d1b3292b9849ffa5282ee22e041eb7ea31e077eb8b5ba8b3ef406869c1e9c",
+    "stderr": ""
+  },
+  {
+    "code": "NWChem",
+    "fixture": null,
+    "input": "NumericalBasis\nbasis \"ao basis\" cartesian print\nH S\n 1.0 0.2E-3 0.3D-3 0\n 1.5E-3 0.25\nH SP\n 0.5 0.0 -0.25\n 0.4 1 0.5\nEND\nbasis \"xc basis\" spherical\nH S\n 2.0 1.0\nEND\nbasis \"cd basis\" cartesian print\nH P\n 3.0 0.0\nEND\nEndNumericalBasis\n",
+    "args": [],
+    "status": 0,
+    "stdout_sha256": "e2a3c4d1a8e8a489abdb5b16b2ca0763868091ab63fd0acd925c29a3e1d087a8",
+    "stderr": ""
+  },
+  {
+    "code": "NWChem",
+    "fixture": null,
+    "input": "NameBasis\n  basis \"ao basis\" spherical\n  H library \"6-31G*\" ! comment\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.0 1.0\nEND\nECP\nH nelec 2\nH ul\n 2 1.0 2.0\nEND\nEndNumericalBasis\n",
+    "args": [],
+    "status": 0,
+    "stdout_sha256": "e3aae667d90b5ff9036dcaae80fa6b0e16360ce8fa66abb8d545ac175fd8008c",
+    "stderr": ""
+  },
+  {
+    "code": "NWChem",
+    "fixture": null,
+    "input": "NumericalBasis\nbasis \"ao basis\" spherical print\nH1 S\n 1.0 1.0\nEND\nEndNumericalBasis",
+    "args": [],
+    "status": 0,
+    "stdout_sha256": "75170a960ee8de2113393cdecbd51a053eaa47c774b7eec47e53dd727d38447e",
+    "stderr": ""
+  },
+  {
+    "code": "NWChem",
+    "fixture": null,
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"custom\"\nEND\nbasis \"xc basis\" spherical\n H library \"fit xc\"\nEND\nbasis \"cd basis\" cartesian\n H library \"fit cd\"\nEND\nECP\n H library \"potential\"\nEND\nEndNameBasis\n",
+    "args": [],
+    "status": 0,
+    "stdout_sha256": "320715ec36f32dc36f5bac7012c474e6d3104dd92c7daf3add252cbd86bad997",
+    "stderr": ""
+  },
+  {
+    "code": "ORCA",
+    "fixture": null,
+    "input": "NumericalBasis\nbasis \"ao basis\" cartesian print\nH S\n 1.0 0.2E-3 0.3D-3 0\n 1.5E-3 0.25\nH SP\n 0.5 0.0 -0.25\n 0.4 1 0.5\nEND\nbasis \"xc basis\" spherical\nH S\n 2.0 1.0\nEND\nbasis \"cd basis\" cartesian print\nH P\n 3.0 0.0\nEND\nEndNumericalBasis\n",
+    "args": [],
+    "status": 0,
+    "stdout_sha256": "2ef2e922cccdc5e4869b8cf66d1688a5b9dc3f2dff6e3aebe324a005e33b26e2",
+    "stderr": ""
+  },
+  {
+    "code": "ORCA",
+    "fixture": null,
+    "input": "NameBasis\n  basis \"ao basis\" spherical\n  H library \"6-31G*\" ! comment\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.0 1.0\nEND\nECP\nH nelec 2\nH ul\n 2 1.0 2.0\nEND\nEndNumericalBasis\n",
+    "args": [],
+    "status": 0,
+    "stdout_sha256": "91d1e7bd9520df54f4022666fb476f6d72b6871ce6b11648c00e42fc1edcc2f7",
+    "stderr": ""
+  },
+  {
+    "code": "ORCA",
+    "fixture": null,
+    "input": "NumericalBasis\nbasis \"ao basis\" spherical print\nH1 S\n 1.0 1.0\nEND\nEndNumericalBasis",
+    "args": [],
+    "status": 0,
+    "stdout_sha256": "96f720d1c30a393875a66e63c8750da959a7739c519a5fcc8e46136978046f91",
+    "stderr": ""
+  },
+  {
+    "code": "ORCA",
+    "fixture": null,
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"custom\"\nEND\nbasis \"xc basis\" spherical\n H library \"fit xc\"\nEND\nbasis \"cd basis\" cartesian\n H library \"fit cd\"\nEND\nECP\n H library \"potential\"\nEND\nEndNameBasis\n",
+    "args": [],
+    "status": 0,
+    "stdout_sha256": "dfe205cfb08f105d97975524cc28f277fd14a731170ebec607caeb53e49e0430",
+    "stderr": ""
+  },
+  {
+    "code": "ECCEQM",
+    "fixture": null,
+    "input": "NumericalBasis\nbasis \"ao basis\" cartesian print\nH S\n 1.0 0.2E-3 0.3D-3 0\n 1.5E-3 0.25\nH SP\n 0.5 0.0 -0.25\n 0.4 1 0.5\nEND\nbasis \"xc basis\" spherical\nH S\n 2.0 1.0\nEND\nbasis \"cd basis\" cartesian print\nH P\n 3.0 0.0\nEND\nEndNumericalBasis\n",
+    "args": [],
+    "status": 0,
+    "stdout_sha256": "bd4aac9b45b4644ba8ebfb580b8336344fcdc39701d5bf25ba18c8278ac28e59",
+    "stderr": ""
+  },
+  {
+    "code": "ECCEQM",
+    "fixture": null,
+    "input": "NameBasis\n  basis \"ao basis\" spherical\n  H library \"6-31G*\" ! comment\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.0 1.0\nEND\nECP\nH nelec 2\nH ul\n 2 1.0 2.0\nEND\nEndNumericalBasis\n",
+    "args": [],
+    "status": 0,
+    "stdout_sha256": "ccb6c07f9f4b6d48675b9da535a50cf648308e15fdaa39e42ebd97fc1339124f",
+    "stderr": ""
+  },
+  {
+    "code": "ECCEQM",
+    "fixture": null,
+    "input": "NumericalBasis\nbasis \"ao basis\" spherical print\nH1 S\n 1.0 1.0\nEND\nEndNumericalBasis",
+    "args": [],
+    "status": 255,
+    "stdout_sha256": "db35729c40f3c37a3774dc7f9bdde956bb1c247f1ab017809d36a5368d6bdb0b",
+    "stderr": "ECCE-QM takes one basis set per element; 'H1' is a per-atom basis set.\n"
+  },
+  {
+    "code": "ECCEQM",
+    "fixture": null,
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"custom\"\nEND\nbasis \"xc basis\" spherical\n H library \"fit xc\"\nEND\nbasis \"cd basis\" cartesian\n H library \"fit cd\"\nEND\nECP\n H library \"potential\"\nEND\nEndNameBasis\n",
+    "args": [],
+    "status": 0,
+    "stdout_sha256": "4e9d1b3292b9849ffa5282ee22e041eb7ea31e077eb8b5ba8b3ef406869c1e9c",
+    "stderr": ""
+  }
+]
