@@ -10,6 +10,8 @@ import sys
 
 def charge_rows():
     values = []
+    # The Perl read job output as bytes; a stray byte must not crash the parse.
+    sys.stdin.reconfigure(encoding="utf-8", errors="replace")
     for line in sys.stdin:
         match = re.match(r"^\s*\d+\s+[A-Za-z]{1,2}\w*\s*:?\s+(-?\d+\.\d+)", line)
         if not match:

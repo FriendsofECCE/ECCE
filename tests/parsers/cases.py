@@ -2416,6 +2416,19 @@ CASES = [
         },
     ),
     dict(
+        #  The UHF case with one undecodable byte in a non-matching line:
+        #  the Perl parser tolerated it, so the property must still come out.
+        name='orca-oh-uhf-loewdin-stray-byte',
+        desc='orca.desc',
+        fixture='orca/oh_uhf_stray_byte.out',
+        parse_args=('.', 'Energy', 'SCF', 'UHF', '1'),
+        silent_ok={'ORBSYM][ORBSYMBETA': 'no UseSym, so no Irrep column'},
+        expect={
+            'LOEWDIN': dict(keys={'LOEWDIN': {
+                'size': '2', 'values': '-0.109515 0.109515', 'sum': 0.0}}),
+        },
+    ),
+    dict(
         #  HF/STO-3G Freq Pop=(Full,NPA,Hirshfeld,CM5,MK): APT, the
         #  Merz-Kollman ESP fit and NPA.  (Hirshfeld/CM5 print nothing
         #  here -- Gaussian wants Pop=Hirshfeld or Pop=CM5 on its own;

@@ -8,6 +8,8 @@ from atomcharges import emit_charges
 
 charges = {}
 order = []
+# The Perl read job output as bytes; a stray byte must not crash the parse.
+sys.stdin.reconfigure(encoding="utf-8", errors="replace")
 for line in sys.stdin:
     nucleus = re.match(r"^\s*(\d+)\s+-?\d+\.\d+\s+-?\d+\.\d+\s+-?\d+\.\d+\s+[A-Za-z]{1,2}\s+\(", line)
     if nucleus:
