@@ -1,0 +1,126 @@
+{
+  "h2o_ohess": [
+    {
+      "rc": 0,
+      "script": "xtb.energy",
+      "stderr": "",
+      "stdout": "key: TE\nsize:\n1\nvalues:\n-5.070544374390\nunits:\nHartree\nEND\n"
+    },
+    {
+      "rc": 0,
+      "script": "xtb.hlgap",
+      "stderr": "",
+      "stdout": "key: HLGAP\nsize:\n1\nvalues:\n14.384586466755\nunits:\neV\nEND\n"
+    },
+    {
+      "rc": 0,
+      "script": "xtb.dipole",
+      "stderr": "",
+      "stdout": "key: DIPOLE\nsize:\n3\nrowlabels:\nX Y Z\nvalues:\n-0.000 -0.000 -0.872\nunits:\nDebye\nEND\n"
+    },
+    {
+      "rc": 0,
+      "script": "xtb.geomtrace",
+      "stderr": "",
+      "stdout": "key: GEOMTRACE\nsize:\n1 3 3\nrowlabels:\n 1-O 2-H 3-H\ncolumnlabels:\nX Y Z\nvalues:\n 0.00000000000000 0.00000000000000 0.11730000000000\n 0.00000000000000 0.75720000000000 -0.46920000000000\n 0.00000000000000 -0.75720000000000 -0.46920000000000\nunits:\nAngstrom\nEND\nkey: TEVEC\nsize:\n1\nvalues:\n-5.070370761845\nunits:\nHartree\nEND\n"
+    },
+    {
+      "rc": 0,
+      "script": "xtb.geomtrace",
+      "stderr": "",
+      "stdout": "key: GEOMTRACE\nsize:\n1 3 3\nrowlabels:\n 1-O 2-H 3-H\ncolumnlabels:\nX Y Z\nvalues:\n 0.00000000000000 -0.00000000073486 0.11269675444600\n 0.00000000000000 0.76525471972017 -0.46689837750768\n -0.00000000000000 -0.76525471898531 -0.46689837693832\nunits:\nAngstrom\nEND\nkey: TEVEC\nsize:\n1\nvalues:\n-5.070496702936\nunits:\nHartree\nEND\n"
+    },
+    {
+      "rc": 0,
+      "script": "xtb.geomtrace",
+      "stderr": "",
+      "stdout": "key: GEOMTRACE\nsize:\n1 3 3\nrowlabels:\n 1-O 2-H 3-H\ncolumnlabels:\nX Y Z\nvalues:\n 0.00000000000000 -0.00000000073486 0.10695233460901\n 0.00000000000000 0.77209174284287 -0.46402616758919\n -0.00000000000000 -0.77209174210802 -0.46402616701983\nunits:\nAngstrom\nEND\nkey: TEVEC\nsize:\n1\nvalues:\n-5.070542023566\nunits:\nHartree\nEND\n"
+    },
+    {
+      "rc": 0,
+      "script": "xtb.geomtrace",
+      "stderr": "",
+      "stdout": "key: GEOMTRACE\nsize:\n1 3 3\nrowlabels:\n 1-O 2-H 3-H\ncolumnlabels:\nX Y Z\nvalues:\n 0.00000000000000 0.00000000002275 0.10542063752336\n 0.00000000000000 0.77249613290371 -0.46326031875287\n -0.00000000000000 -0.77249613292646 -0.46326031877049\nunits:\nAngstrom\nEND\nkey: TEVEC\nsize:\n1\nvalues:\n-5.070544374390\nunits:\nHartree\nEND\n"
+    },
+    {
+      "rc": 0,
+      "script": "xtb.mo",
+      "stderr": "",
+      "stdout": "key: ORBENG\nsize:\n6\nvalues:\n-0.68004995 -0.56834160 -0.51078914 -0.44636136 0.08226246 0.25161533\nunits:\nHartree\nEND\nkey: ORBOCC\nsize:\n6\nvalues:\n2.000000 2.000000 2.000000 2.000000 0.000000 0.000000\nunits:\nelectrons\nEND\nkey: MO\nsize:\n6 6\nrowlabels:\nMO-1 MO-2 MO-3 MO-4 MO-5 MO-6 \ncolumnlabels:\nBasFun-1 BasFun-2 BasFun-3 BasFun-4 BasFun-5 BasFun-6 \n\nvalues:\n-0.7974329624 0.0000002921 0.0000001667 0.0811248152 -0.1832155347 -0.1832155552\n0.0000000322 0.0000036292 0.6930019575 -0.0000012042 0.3552377635 -0.3552377576\n-0.4425509350 -0.0000028297 -0.0000014091 -0.8127011478 0.2372794016 0.2372793975\n-0.0000000094 -1.0000000000 0.0000052367 0.0000034847 -0.0000000008 -0.0000000008\n0.8411187739 -0.0000024643 -0.0000012391 -0.7062868049 -0.7712963389 -0.7712963491\n0.0000000075 0.0000050778 0.9697340083 -0.0000016953 -0.9025987025 0.9025986930\nEND\nkey: MOAOORDER\nsize:\n1\nvalues:\nangular-momentum\nEND\nkey: GTOBASIS\nsize:\n11 5\nrowlabels:\nPrimitive-1 Primitive-2 Primitive-3 Primitive-4 Primitive-5 Primitive-6 Primitive-7 Primitive-8 \nPrimitive-9 Primitive-10 Primitive-11 \ncolumnlabels:\nZ l Exponent Coefficient Shell\nvalues:\n8 0 69.1379619062 -0.204787563701 1\n8 0 11.9061291327 -0.249970231368 1\n8 0 0.956708277443 0.400258802406 1\n8 0 0.364625204961 0.159522066677 1\n8 1 8.21241932578 1.13215567992 2\n8 1 2.12935769971 1.04768407823 2\n8 1 0.750664482024 0.549565082172 2\n8 1 0.298852465433 0.0829084865928 2\n1 0 3.37022769753 0.273591105889 1\n1 0 0.613891182215 0.264605406539 1\n1 0 0.166142911484 0.0824659475341 1\nEND\n"
+    },
+    {
+      "rc": 0,
+      "script": "xtb.charges",
+      "stderr": "",
+      "stdout": "key: MULLIKEN\nsize:\n3\nvalues:\n-0.56474259 0.28237129 0.28237129\nunits:\ne\nEND\n"
+    },
+    {
+      "rc": 0,
+      "script": "xtb.vibspec",
+      "stderr": "",
+      "stdout": "key: VIBFREQ\nsize:\n9\nrowlabels:\n 1 2 3 4 5 6 7 8 9\nvalues:\n -0.00 -0.00 -0.00 0.00 0.00 0.00 1539.10 3642.25 3650.69\nunits:\ncm-1\nEND\nkey: VIBIR\nsize:\n9\nrowlabels:\n 1 2 3 4 5 6 7 8 9\nvalues:\n 0.00000 0.00000 0.00000 0.00000 0.00000 0.00000 133.26444 6.77580 16.67722\nunits:\nKM/Mole\nEND\n"
+    },
+    {
+      "rc": 0,
+      "script": "xtb.vib",
+      "stderr": "",
+      "stdout": "key: VIB\nsize:\n9 3 3\nvectorlabels:\n NA  NA  NA  NA  NA  NA  NA  NA  NA \nrowlabels:\n 1  2  3 \ncolumnlabels:\nX Y Z\nvalues:\n0.0 0.0 0.0\n0.0 0.0 0.0\n0.0 0.0 0.0\n0.0 0.0 0.0\n0.0 0.0 0.0\n0.0 0.0 0.0\n0.0 0.0 0.0\n0.0 0.0 0.0\n0.0 0.0 0.0\n0.0 0.0 0.0\n0.0 0.0 0.0\n0.0 0.0 0.0\n0.0 0.0 0.0\n0.0 0.0 0.0\n0.0 0.0 0.0\n0.0 0.0 0.0\n0.0 0.0 0.0\n0.0 0.0 0.0\n0.000000000000000e+00 0.000000000000000e+00 7.288103450745304e-02\n-0.000000000000000e+00 -4.147941681279155e-01 -5.703419811758837e-01\n0.000000000000000e+00 4.147941681279155e-01 -5.703419811758837e-01\n-0.000000000000000e+00 -0.000000000000000e+00 -4.857661132603790e-02\n-0.000000000000000e+00 -5.907690858253863e-01 3.870556079545635e-01\n0.000000000000000e+00 5.907690858253863e-01 3.870556079545635e-01\n-0.000000000000000e+00 -7.029123788581620e-02 0.000000000000000e+00\n0.000000000000000e+00 5.704482736269169e-01 -4.148714717286668e-01\n0.000000000000000e+00 5.704482736269169e-01 4.148714717286668e-01\nunits:\nAngstrom\nEND\n"
+    },
+    {
+      "rc": 0,
+      "script": "xtb.thermo",
+      "stderr": "",
+      "stdout": "key: EZEROPT\nsize:\n1\nvalues:\n0.020120859945\nunits:\nHartree\nEND\n"
+    },
+    {
+      "rc": 0,
+      "script": "xtb.thermo",
+      "stderr": "",
+      "stdout": "key: ENTHALPY\nsize:\n1\nvalues:\n-5.046642494166\nunits:\nHartree\nEND\n"
+    },
+    {
+      "rc": 0,
+      "script": "xtb.thermo",
+      "stderr": "",
+      "stdout": "key: EGIBBS\nsize:\n1\nvalues:\n-5.068041464462\nunits:\nHartree\nEND\n"
+    },
+    {
+      "rc": 0,
+      "script": "xtb.thermo",
+      "stderr": "",
+      "stdout": "key: ENTROPY\nsize:\n1\nvalues:\n0.021399000000\nunits:\nHartree\nEND\nkey: THERMOTEMP\nsize:\n1\nvalues:\n298.15\nunits:\nKelvin\nEND\n"
+    }
+  ],
+  "h2o_sp_molden": [
+    {
+      "rc": 0,
+      "script": "xtb.energy",
+      "stderr": "",
+      "stdout": "key: TE\nsize:\n1\nvalues:\n-5.070370761845\nunits:\nHartree\nEND\n"
+    },
+    {
+      "rc": 0,
+      "script": "xtb.hlgap",
+      "stderr": "",
+      "stdout": "key: HLGAP\nsize:\n1\nvalues:\n14.629673576893\nunits:\neV\nEND\n"
+    },
+    {
+      "rc": 0,
+      "script": "xtb.dipole",
+      "stderr": "",
+      "stdout": "key: DIPOLE\nsize:\n3\nrowlabels:\nX Y Z\nvalues:\n0.000 0.000 -0.894\nunits:\nDebye\nEND\n"
+    },
+    {
+      "rc": 0,
+      "script": "xtb.geomtrace",
+      "stderr": "",
+      "stdout": "key: GEOMTRACE\nsize:\n1 3 3\nrowlabels:\n 1-O 2-H 3-H\ncolumnlabels:\nX Y Z\nvalues:\n 0.000000000 0.000000000 0.117300000\n 0.000000000 0.757200000 -0.469200000\n 0.000000000 -0.757200000 -0.469200000\nunits:\nAngstrom\nEND\n"
+    },
+    {
+      "rc": 0,
+      "script": "xtb.mo",
+      "stderr": "",
+      "stdout": "key: ORBENG\nsize:\n6\nvalues:\n-0.68166420 -0.56646744 -0.51470628 -0.44749270 0.09013791 0.24560958\nunits:\nHartree\nEND\nkey: ORBOCC\nsize:\n6\nvalues:\n2.000000 2.000000 2.000000 2.000000 0.000000 0.000000\nunits:\nelectrons\nEND\nkey: MO\nsize:\n6 6\nrowlabels:\nMO-1 MO-2 MO-3 MO-4 MO-5 MO-6 \ncolumnlabels:\nBasFun-1 BasFun-2 BasFun-3 BasFun-4 BasFun-5 BasFun-6 \n\nvalues:\n-0.7922423131 0.0000000000 -0.0000000000 0.0886964629 -0.1854643476 -0.1854643476\n-0.0000000000 -0.0000000000 0.6987848130 -0.0000000000 0.3540488625 -0.3540488625\n-0.4567905040 -0.0000000000 -0.0000000000 -0.8042957486 0.2385390881 0.2385390881\n0.0000000000 -1.0000000000 -0.0000000000 0.0000000000 -0.0000000000 -0.0000000000\n0.8394214299 0.0000000000 0.0000000000 -0.7228174612 -0.7698643315 -0.7698643315\n-0.0000000000 0.0000000000 0.9594847767 0.0000000000 -0.9063537612 0.9063537612\nEND\nkey: MOAOORDER\nsize:\n1\nvalues:\nangular-momentum\nEND\nkey: GTOBASIS\nsize:\n11 5\nrowlabels:\nPrimitive-1 Primitive-2 Primitive-3 Primitive-4 Primitive-5 Primitive-6 Primitive-7 Primitive-8 \nPrimitive-9 Primitive-10 Primitive-11 \ncolumnlabels:\nZ l Exponent Coefficient Shell\nvalues:\n8 0 69.1379619062 -0.204787563701 1\n8 0 11.9061291327 -0.249970231368 1\n8 0 0.956708277443 0.400258802406 1\n8 0 0.364625204961 0.159522066677 1\n8 1 8.21241932578 1.13215567992 2\n8 1 2.12935769971 1.04768407823 2\n8 1 0.750664482024 0.549565082172 2\n8 1 0.298852465433 0.0829084865928 2\n1 0 3.37022769753 0.273591105889 1\n1 0 0.613891182215 0.264605406539 1\n1 0 0.166142911484 0.0824659475341 1\nEND\n"
+    }
+  ]
+}

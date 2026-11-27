@@ -1,16 +1,9 @@
-#!/usr/bin/env perl
-###############################################################################
-# xtb has nothing in its input that depends on the launch (gensub sets the
-# thread count from the launcher's processor count), but
-# Launch::postProcessInput() shells out to the code's launch preprocessor
-# unconditionally, so there has to be one.
-###############################################################################
-use Getopt::Std;
+#!/usr/bin/env python3
+# Launch always invokes a preprocessor, even when no input depends on it.
+import sys
+from xtb_parse import configure_streams, options
 
-&getopts('p:v');
-
-if ($opt_v) {
-  print "Revision: 1.0\n";
-  exit 0;
-}
-exit 0;
+configure_streams()
+opts, args = options("p:v", sys.argv[1:])
+if "v" in opts:
+    print("Revision: 1.0")

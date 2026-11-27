@@ -124,7 +124,7 @@ def main():
     for name, nel in CASES:
         path = os.path.join(FIX, name)
         text = subprocess.run(
-            ['perl', PARSER, '.', 'Energy', 'SE', 'GFN2-xTB'],
+            [sys.executable, PARSER, '.', 'Energy', 'SE', 'GFN2-xTB'],
             input='ECCE-XTB-MOLDEN\n' + open(path, encoding="utf-8").read(),
             capture_output=True, text=True, check=True).stdout
         o = parse_out(text)

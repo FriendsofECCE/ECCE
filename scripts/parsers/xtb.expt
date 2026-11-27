@@ -1,255 +1,207 @@
-#!/usr/bin/env perl
-###############################################################################
-# FILENAME:  xtb.expt
-#
-# SYNTAX: xtb.expt <outfile> [<sourcedir>]
-#
-# PURPOSE:
-#       Reads the output of an xtb run and writes the ECCE .frag/.param pair,
-#       so it can be imported as a completed calculation.
-#
-#       xtb prints no coordinates and keeps orbitals, charges and normal
-#       modes in files beside the output.  A run made by ECCE already has
-#       them appended (ECCE-XTB-* blocks).  For an output from a run made
-#       elsewhere they are read from the source directory -- passed as the
-#       second argument where the caller knows it, else the output's own
-#       directory (xtbopt.log, the coordinate file the run names,
-#       molden.input, charges, vibspectrum, g98.out) -- and appended here, to
-#       a copy that replaces the import's link, so the parse is the same for
-#       both.
-###############################################################################
+#!/usr/bin/env python3
+# Import through a replacement copy: the original output and its companions
+# belong to the user, including when the staging file is a symlink.
+import os
+import re
+import sys
+from xtb_parse import configure_streams, number, options
 
-use Getopt::Std;
-use Cwd 'abs_path';
+configure_streams()
 
-$| = 1;
-&getopts(':hv');
-&usage if ($opt_h || $opt_help);
-exit if ($opt_v);
-&usage if ($#ARGV != 0 && $#ARGV != 1);
 
-my $file = $ARGV[0];
-open(INPUT, $file) || die "Can't locate output file $file";
-my @lines = <INPUT>;
-close(INPUT);
-my $text = join("", @lines);
+def search(pattern, text, flags=0):
+    return re.search(pattern, text, re.ASCII | flags)
 
-if ($text !~ /x T B/) {
-  print "$file is not an xtb output\n";
-  exit(1);
-}
 
-my ($call) = $text =~ /^\s*program call\s*:\s*(.*)$/m;
-$call = "" unless (defined($call));
-my ($version) = $text =~ /xtb version (\S+)/;
+def read(path):
+    try:
+        with open(path, encoding="utf-8", errors="replace", newline="") as stream:
+            text = stream.read()
+        with open(path, "rb") as stream:
+            raw = stream.read()
+        return text, raw
+    except OSError:
+        return "", b""
 
-foreach my $bad ("--md", "--omd", "--scan", "--path", "--metadyn", "--modef") {
-  if ($call =~ /(^|\s)\Q$bad\E(\s|$)/) {
-    print "xtb $bad runs cannot be imported (energy, geometry optimization " .
-          "and frequency runs can)\n";
-    exit(1);
-  }
-}
 
-my $theory = "GFN2-xTB";
-$theory = "GFN-FF" if ($call =~ /--gfnff/);
-$theory = "GFN1-xTB" if ($call =~ /--gfn\s*1\b/);
-if ($call =~ /--gfn\s*0\b/) {
-  print "GFN0-xTB runs cannot be imported (GFN2-xTB, GFN1-xTB and GFN-FF " .
-        "can)\n";
-  exit(1);
-}
+def nonempty(path):
+    try:
+        return os.path.getsize(path) > 0
+    except OSError:
+        return False
 
-my $opt = ($call =~ /(^|\s)(--opt|--ohess|-o)(\s|$)/) ? 1 : 0;
-my $hess = ($call =~ /(^|\s)(--hess|--ohess)(\s|$)/) ? 1 : 0;
-my $runType = ($opt && $hess) ? "GeoVib" : $opt ? "Geometry"
-            : $hess ? "Vibration" : "Energy";
-my ($level) = $call =~ /(?:--opt|--ohess|-o)\s+(crude|sloppy|loose|normal|tight|vtight|verytight|extreme)\b/;
-$level = "vtight" if (defined($level) && $level eq "verytight");
 
-my $charge = 0;
-$charge = $1 if ($call =~ /(?:--chrg|--charge|-c)\s+(-?\d+)/);
-my $uhf = 0;
-$uhf = $1 if ($call =~ /(?:--uhf|-u)\s+(\d+)/);
-my $mult = $uhf + 1;
+def usage():
+    print("Usage: xtb.expt <outfile> [<sourcedir>]\nOptions:    -h        this help\n            -v        version")
+    sys.exit(0)
 
-my ($model, $solvent);
-if ($call =~ /--alpb\s+(\S+)/) {
-  ($model, $solvent) = ("ALPB", lc($1));
-} elsif ($call =~ /(?:--gbsa|-g)\s+(\S+)/) {
-  ($model, $solvent) = ("GBSA", lc($1));
-  $solvent = "water" if ($solvent eq "h2o");
-  $solvent = "hexane" if ($solvent eq "n-hexane");
-}
 
-# --- the run's files -------------------------------------------------------
-my $combined = $text;
-my $haveFrames = ($text =~ /^ECCE-XTB-FRAME\s/m);
-
-# The side files are next to the original output.  Resolve the link where
-# Perl sees one (Unix, chasing any link chain to the real file); where it
-# does not (Windows copies the file), the caller passes the source directory.
-my $dir = ".";
-if (-l $file) {
-  my $real = abs_path($file);
-  ($dir = $real) =~ s{/[^/]*$}{} if (defined($real));
-} elsif (defined($ARGV[1]) && $ARGV[1] ne "") {
-  $dir = $ARGV[1];
-  $dir =~ s{/+$}{};
-}
-
-if (!$haveFrames) {
-  my $coord = "";
-  $coord = $1 if ($text =~ /^\s*coordinate file\s*:\s*(\S+)/m);
-  my $natoms;
-  my @geom;
-  my @cands;
-  push(@cands, "$dir/xtbopt.log", "$dir/xtbopt.xyz") if ($opt);
-  # The coordinate file is only the starting structure of an optimization,
-  # so it comes after xtbopt.log; for an energy or frequency run it is it.
-  push(@cands, "$dir/$coord") if ($coord ne "");
-  my $xyz = "";
-  foreach my $c (@cands) {
-    next unless (-s $c);
-    open(X, $c) || next;
-    my $first = <X>;
-    close(X);
-    next unless (defined($first) && $first =~ /^\s*(\d+)\s*$/);
-    $xyz = $c;
-    last;
-  }
-  if ($xyz eq "") {
-    print "No molecular geometry found for $file: xtb prints none; put " .
-          "xtbopt.log (or the coordinate file " .
-          ($coord ne "" ? $coord : "of the run") . ") in the same directory\n";
-    exit(1);
-  }
-  open(X, $xyz);
-  my @x = <X>;
-  close(X);
-  my $n = 0;
-  my $f = 0;
-  my $left = 0;
-  my $frameText = "";
-  foreach (@x) {
-    next if ($left == 0 && /^\s*$/);
-    if ($left == 0) {
-      /^\s*(\d+)/ || next;
-      $n = $1;
-      $left = $n + 1;
-      $f++;
-      $frameText .= "ECCE-XTB-FRAME $f $n\n";
-      next;
-    }
-    $frameText .= $_;
-    $left--;
-    $frameText .= "ECCE-XTB-ENDFRAME\n" if ($left == 0);
-  }
-  $combined .= "\n" unless ($combined =~ /\n$/);
-  $combined .= $frameText;
-
-  # Orbitals only with --molden and never for GFN-FF; a file left by an
-  # earlier run in the directory must have this molecule's atom count.
-  my $molden = "$dir/molden.input";
-  if ($call =~ /--molden/ && $theory ne "GFN-FF" && -s $molden) {
-    my $s = &slurp($molden);
-    my $count = 0;
-    if ($s =~ /\[Atoms\][^\n]*\n((?:\s*\S+\s+\d+\s+\d+\s+\S+\s+\S+\s+\S+\n)+)/) {
-      $count = () = $1 =~ /\n/g;
-    }
-    $combined .= "ECCE-XTB-MOLDEN\n$s" . ($s =~ /\n$/ ? "" : "\n") .
-                 "ECCE-XTB-ENDMOLDEN\n" if ($count == $n);
-  }
-  my $cs = "$dir/charges";
-  if (-s $cs) {
-    my $s = &slurp($cs);
-    my $count = () = $s =~ /\n/g;
-    $combined .= "ECCE-XTB-CHARGES\n$s" . "ECCE-XTB-ENDCHARGES\n"
-      if ($count == $n);
-  }
-  if ($hess) {
-    my $vs = "$dir/vibspectrum";
-    if (-s $vs) {
-      my $s = &slurp($vs);
-      my $modes = () = $s =~ /^\s+\d+\s+\S*\s+-?\d+\.\d+\s+\d+\.\d+/mg;
-      $combined .= "ECCE-XTB-VIBSPECTRUM\n$s" . "ECCE-XTB-ENDVIBSPECTRUM\n"
-        if ($modes == 3 * $n);
-    }
-    my $g = "$dir/g98.out";
-    if (-s $g) {
-      my $s = &slurp($g);
-      $combined .= "ECCE-XTB-G98\n$s" . "ECCE-XTB-ENDG98\n"
-        if ($s =~ /Atom AN/ || $s =~ /Frequencies/);
-    }
-  }
-
-  # Replace the link (never write through it to the user's file).
-  unlink($file);
-  open(OUT, ">$file") || die "Can't write $file";
-  print(OUT $combined);
-  close(OUT);
-}
-
-# --- structure: the last frame ---------------------------------------------
-my @atoms;
-{
-  my $inFrame = 0;
-  my @cur;
-  foreach (split(/\n/, $combined)) {
-    if (/^ECCE-XTB-FRAME\s/) { $inFrame = 1; @cur = (); $skip = 1; next; }
-    if (/^ECCE-XTB-ENDFRAME/) { @atoms = @cur; $inFrame = 0; next; }
-    next unless ($inFrame);
-    if ($skip) { $skip = 0; next; }
-    push(@cur, [$1, $2, $3, $4])
-      if (/^\s*([A-Za-z]{1,2})\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s*$/);
-  }
-}
-if (!@atoms) {
-  print "No molecular geometry found in $file\n";
-  exit(1);
-}
-
-(my $root = $file) =~ s/\.[^.]*$//;
-(my $title = $root) =~ s{.*/}{};
-
-open(PARAMS, ">$root.param");
-print(PARAMS "title:\t$title\n");
-print(PARAMS "version:\t$version\n") if (defined($version));
-print(PARAMS "Category:\tSE\n");
-print(PARAMS "Theory:\t$theory\n");
-print(PARAMS "RunType:\t$runType\n");
-print(PARAMS "Charge:\t$charge\n");
-print(PARAMS "ES.ChemSys.Multiplicity:\t$mult\n");
-print(PARAMS "ES.Runtype.GeomOpt.Level:\t$level\n") if (defined($level));
-if (defined($model)) {
-  print(PARAMS "ES.Theory.Solvent.Model:\t$model\n");
-  print(PARAMS "ES.Theory.Solvent.Name:\t$solvent\n");
-}
-close(PARAMS);
-
-open(MOL, ">$root.frag");
-print(MOL "title:\t$title\ntype:\tmolecule\n");
-print(MOL "charge:\t$charge\n");
-print(MOL "num_atoms:\t" . scalar(@atoms) . "\n");
-print(MOL "atom_info:\tsymbol cart\natom_list:\n");
-foreach my $a (@atoms) {
-  print(MOL " $a->[0] $a->[1] $a->[2] $a->[3]\n");
-}
-close(MOL);
-exit(0);
-
-sub slurp {
-  my ($f) = @_;
-  open(S, $f) || return "";
-  local $/;
-  my $s = <S>;
-  close(S);
-  return $s;
-}
-
-sub usage {
-  print "Usage: xtb.expt <outfile> [<sourcedir>]\n";
-  print "Options:    -h        this help\n";
-  print "            -v        version\n";
-  exit;
-}
+opts, args = options(":hv", sys.argv[1:])
+if "h" in opts:
+    usage()
+if "v" in opts:
+    sys.exit(0)
+if len(args) not in (1, 2):
+    usage()
+file = args[0]
+text, combined = read(file)
+if not os.path.isfile(file):
+    # Match the importer's failure status; normal import failures use stdout.
+    sys.stderr.write("Can't locate output file {} at {} line 32.\n".format(file, sys.argv[0]))
+    sys.exit(2)
+if not search(r"x T B", text):
+    print(file + " is not an xtb output")
+    sys.exit(1)
+m = search(r"^\s*program call\s*:\s*(.*)$", text, re.M)
+call = m.group(1) if m else ""
+m = search(rb"xtb version (\S+)", combined)
+version = m.group(1) if m else None
+for bad in ("--md", "--omd", "--scan", "--path", "--metadyn", "--modef"):
+    if search(r"(^|\s)" + re.escape(bad) + r"(\s|$)", call):
+        print("xtb " + bad + " runs cannot be imported (energy, geometry optimization and frequency runs can)")
+        sys.exit(1)
+theory = "GFN2-xTB"
+if search(r"--gfnff", call):
+    theory = "GFN-FF"
+if search(r"--gfn\s*1\b", call):
+    theory = "GFN1-xTB"
+if search(r"--gfn\s*0\b", call):
+    print("GFN0-xTB runs cannot be imported (GFN2-xTB, GFN1-xTB and GFN-FF can)")
+    sys.exit(1)
+opt = bool(search(r"(^|\s)(--opt|--ohess|-o)(\s|$)", call))
+hess = bool(search(r"(^|\s)(--hess|--ohess)(\s|$)", call))
+runtype = "GeoVib" if opt and hess else "Geometry" if opt else "Vibration" if hess else "Energy"
+m = search(r"(?:--opt|--ohess|-o)\s+(crude|sloppy|loose|normal|tight|vtight|verytight|extreme)\b", call)
+level = m.group(1) if m else None
+if level == "verytight":
+    level = "vtight"
+m = search(r"(?:--chrg|--charge|-c)\s+(-?\d+)", call)
+charge = m.group(1) if m else "0"
+m = search(r"(?:--uhf|-u)\s+(\d+)", call)
+mult = number(m.group(1) if m else "0") + 1
+model, solvent = None, None
+raw_call = search(rb"^\s*program call\s*:\s*(.*)$", combined, re.M)
+raw_call = raw_call.group(1) if raw_call else b""
+m = search(rb"--alpb\s+(\S+)", raw_call)
+g = search(rb"(?:--gbsa|-g)\s+(\S+)", raw_call)
+# Perl's byte-oriented lc only changes ASCII letters.
+if m:
+    model, solvent = "ALPB", m.group(1).lower()
+elif g:
+    model, solvent = "GBSA", g.group(1).lower()
+    solvent = {b"h2o": b"water", b"n-hexane": b"hexane"}.get(solvent, solvent)
+dirname = "."
+if os.path.islink(file):
+    dirname = os.path.dirname(os.path.realpath(file))
+elif len(args) > 1 and args[1]:
+    dirname = args[1].rstrip("/")
+if not search(r"^ECCE-XTB-FRAME\s", text, re.M):
+    m = search(rb"^\s*coordinate file\s*:\s*(\S+)", combined, re.M)
+    raw_coord = m.group(1) if m else b""
+    coord = raw_coord.decode("utf-8", "replace")
+    candidates = [dirname + "/xtbopt.log", dirname + "/xtbopt.xyz"] if opt else []
+    if coord:
+        candidates.append(dirname + "/" + coord)
+    xyz = ""
+    for candidate in candidates:
+        if not nonempty(candidate):
+            continue
+        first = read(candidate)[0].split("\n")[0] + "\n"
+        if search(r"^\s*(\d+)\s*$", first):
+            xyz = candidate
+            break
+    if not xyz:
+        # Keep the reported filename's original bytes in the diagnostic.
+        message = ("No molecular geometry found for " + file + ": xtb prints none; put xtbopt.log (or the coordinate file ").encode("utf-8", "replace")
+        sys.stdout.buffer.write(message + (raw_coord or b"of the run") + b") in the same directory\n")
+        sys.exit(1)
+    n, frame, left = 0, 0, 0
+    frame_text = b""
+    raw_lines = read(xyz)[1].split(b"\n")
+    raw_lines = [line + b"\n" for line in raw_lines[:-1]] + ([raw_lines[-1]] if raw_lines[-1] else [])
+    for raw_line in raw_lines:
+        line = raw_line.decode("utf-8", "replace")
+        if left == 0:
+            if search(r"^\s*$", line):
+                continue
+            m = search(r"^\s*(\d+)", line)
+            if not m:
+                continue
+            n = m.group(1)
+            left = number(n) + 1
+            frame += 1
+            frame_text += "ECCE-XTB-FRAME {} {}\n".format(frame, n).encode("utf-8")
+            continue
+        frame_text += raw_line
+        left -= 1
+        if left == 0:
+            frame_text += b"ECCE-XTB-ENDFRAME\n"
+    if not combined.endswith(b"\n"):
+        combined += b"\n"
+    combined += frame_text
+    molden = dirname + "/molden.input"
+    if search(r"--molden", call) and theory != "GFN-FF" and nonempty(molden):
+        s, raw = read(molden)
+        m = search(r"\[Atoms\][^\n]*\n((?:\s*\S+\s+\d+\s+\d+\s+\S+\s+\S+\s+\S+\n)+)", s)
+        count = m.group(1).count("\n") if m else 0
+        if count == number(n):
+            combined += b"ECCE-XTB-MOLDEN\n" + raw + (b"" if raw.endswith(b"\n") else b"\n") + b"ECCE-XTB-ENDMOLDEN\n"
+    charges = dirname + "/charges"
+    if nonempty(charges):
+        s, raw = read(charges)
+        if s.count("\n") == number(n):
+            combined += b"ECCE-XTB-CHARGES\n" + raw + b"ECCE-XTB-ENDCHARGES\n"
+    if hess:
+        vs = dirname + "/vibspectrum"
+        if nonempty(vs):
+            s, raw = read(vs)
+            modes = len(re.findall(r"^\s+\d+\s+\S*\s+-?\d+\.\d+\s+\d+\.\d+", s, re.ASCII | re.M))
+            if modes == 3 * number(n):
+                combined += b"ECCE-XTB-VIBSPECTRUM\n" + raw + b"ECCE-XTB-ENDVIBSPECTRUM\n"
+        g98 = dirname + "/g98.out"
+        if nonempty(g98):
+            s, raw = read(g98)
+            if search(r"Atom AN|Frequencies", s):
+                combined += b"ECCE-XTB-G98\n" + raw + b"ECCE-XTB-ENDG98\n"
+    os.unlink(file)
+    with open(file, "wb") as stream:
+        stream.write(combined)
+text = combined.decode("utf-8", "replace")
+atoms, current, inside, skip = [], [], False, False
+for line in text.split("\n"):
+    if search(r"^ECCE-XTB-FRAME\s", line):
+        inside, current, skip = True, [], True
+        continue
+    if search(r"^ECCE-XTB-ENDFRAME", line):
+        atoms, inside = current, False
+        continue
+    if not inside:
+        continue
+    if skip:
+        skip = False
+        continue
+    m = search(r"^\s*([A-Za-z]{1,2})\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s*$", line)
+    if m:
+        current.append(m.groups())
+if not atoms:
+    print("No molecular geometry found in " + file)
+    sys.exit(1)
+root = re.sub(r"\.[^.]*$", "", file, flags=re.ASCII)
+title = re.sub(r".*/", "", root, flags=re.ASCII)
+params = [("title", title)]
+if version is not None:
+    params.append(("version", version))
+params += [("Category", "SE"), ("Theory", theory), ("RunType", runtype),
+           ("Charge", charge), ("ES.ChemSys.Multiplicity", "%.15g" % mult)]
+if level is not None:
+    params.append(("ES.Runtype.GeomOpt.Level", level))
+if model is not None:
+    params += [("ES.Theory.Solvent.Model", model), ("ES.Theory.Solvent.Name", solvent)]
+with open(root + ".param", "wb") as stream:
+    for key, value in params:
+        raw_value = value if isinstance(value, bytes) else value.encode("utf-8", "replace")
+        stream.write(key.encode("ascii") + b":\t" + raw_value + b"\n")
+with open(root + ".frag", "w", encoding="utf-8", errors="replace", newline="") as stream:
+    stream.write("title:\t{}\ntype:\tmolecule\ncharge:\t{}\nnum_atoms:\t{}\natom_info:\tsymbol cart\natom_list:\n".format(title, charge, len(atoms)))
+    for atom in atoms:
+        stream.write(" " + " ".join(atom) + "\n")

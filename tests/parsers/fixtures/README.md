@@ -721,3 +721,24 @@ The NWChem `.nwout` files are the plain stdout, not an ecce_print trace:
 NWChem's trace carries neither thermochemistry nor solvation, so
 `nwchem.desc` reads them through a `File=nwch.nwout` entry, replayed by
 `MOFILE_CASES`.
+
+
+## xTB untrusted-byte decoys (#868)
+
+`xtb/h2o_ohess_bytes.out` and `xtb/h2o_sp_molden_bytes.out` are copies of
+`h2o_ohess.out` and `h2o_sp_molden.out`, with the startup bibliography
+omitted and the executable name made relative. Synthetic decoys are added
+inside appended property blocks: U+00A0 at the start of otherwise valid rows,
+U+0663, Å, overflow placeholders, numeric prefixes, empty lines and stray
+FF bytes in comments. They must produce the clean siblings' values.
+`expected/xtb-bytes.json` captures stdout, stderr and return codes from the
+original Perl parsers through the descriptor replayer, for both clean
+siblings. `parsers_xtb_bytes` checks both clean and poisoned fixtures against
+that capture without requiring Perl.
+
+The same test feeds a raw charge record containing a bare carriage return.
+The original Perl rejects the whole record with empty stdout/stderr and exit
+status zero. This bypasses the replayer's newline normalization so that a
+stream reader cannot turn the malformed record into two valid charges.
+It also checks the importer's missing-geometry failure with a stray byte in
+the coordinate filename: the diagnostic must preserve that byte, as Perl did.

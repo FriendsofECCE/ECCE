@@ -1,13 +1,10 @@
-#!/usr/bin/env perl
-# The final total energy, from the closing summary box:
-#   "          | TOTAL ENERGY               -5.070370761845 Eh   |"
-# xtb prints Hartree already.
-$| = 1;
-($key, $runtype, $ucCategory, $theory) = @ARGV;
+#!/usr/bin/env python3
+import re
+import sys
+from xtb_parse import configure_streams, scalar
 
-$_ = <STDIN>;
-exit(0) if (!defined($_));
-exit(0) if (!/TOTAL ENERGY\s+(-?\d+\.\d+)\s+Eh/);
-
-print "key: TE\nsize:\n1\nvalues:\n$1\nunits:\nHartree\nEND\n";
-exit(0);
+configure_streams()
+line = sys.stdin.readline()
+m = re.search(r"TOTAL ENERGY\s+(-?\d+\.\d+)\s+Eh", line, re.ASCII)
+if m:
+    scalar("TE", m.group(1), "Hartree")

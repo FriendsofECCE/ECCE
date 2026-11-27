@@ -47,7 +47,7 @@ def main():
     for name, nel in CASES:
         molden = os.path.join(FIX, name + "_gfn2.molden")
         parsed = subprocess.run(
-            ["perl", os.path.join(ROOT, "scripts", "parsers", "xtb.mo"), ".",
+            [sys.executable, os.path.join(ROOT, "scripts", "parsers", "xtb.mo"), ".",
              "Energy", "SE", "GFN2-xTB"],
             input="ECCE-XTB-MOLDEN\n" + open(molden).read(),
             capture_output=True, text=True, check=True).stdout

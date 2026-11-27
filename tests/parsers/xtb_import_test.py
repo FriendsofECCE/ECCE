@@ -49,7 +49,7 @@ def do_import(srcdir, out, work, link=True):
     (Windows) -- and run the importer there, with the source directory given
     in the copy case so the side files are found."""
     dest = os.path.join(work, out)
-    args = ["perl", EXPT, out]
+    args = [sys.executable, EXPT, out]
     if link:
         os.symlink(os.path.join(srcdir, out), dest)
     else:
@@ -145,7 +145,7 @@ finally:
 tmp = scratch()
 try:
     shutil.copy(os.path.join(FIX, "ch4_opt.out"), tmp)
-    r = subprocess.run(["perl", EXPT, "ch4_opt.out"], cwd=tmp,
+    r = subprocess.run([sys.executable, EXPT, "ch4_opt.out"], cwd=tmp,
                        capture_output=True, text=True)
     frag = open(os.path.join(tmp, "ch4_opt.frag"), encoding="utf-8", errors="replace").read()
     check(r.returncode == 0 and "num_atoms:\t5" in frag,
@@ -168,7 +168,7 @@ if LINK:
         os.mkdir(work)
         os.symlink(os.path.join(linkdir, "h2o_sp.out"),
                    os.path.join(work, "h2o_sp.out"))
-        r = subprocess.run(["perl", EXPT, "h2o_sp.out", linkdir],
+        r = subprocess.run([sys.executable, EXPT, "h2o_sp.out", linkdir],
                            cwd=work, capture_output=True, text=True)
         check(r.returncode == 0, "link to a link: importer exit 0 (%s)" %
               (r.stdout.strip() or r.stderr.strip()))

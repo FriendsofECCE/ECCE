@@ -3240,6 +3240,11 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/parsers/run_tests.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/parsers)
 
+  add_test(NAME parsers_xtb_bytes
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/parsers/xtb_bytes_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/parsers)
+
   # An xtb run made outside ECCE imports with its companion files (#362).
   add_test(NAME parsers_xtb_import
            COMMAND ${PYTHON3_EXECUTABLE}
