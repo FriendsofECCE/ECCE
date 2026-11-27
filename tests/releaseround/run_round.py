@@ -274,6 +274,13 @@ def sessionProcesses(data, roots=()):
     the environment and outlive ECCE by design.  A process counts only when
     its executable or command line lies under one of `roots` (the install
     prefix and the isolated home), which is what makes it ECCE's.
+
+    ECCE's own ssh connection master is a system `ssh` whose only ECCE path
+    is its control socket under ECCE_SSH_CONTROL_DIR, so that directory
+    counts as a root too.  It is read from the process's own environment,
+    because the per-session name is chosen inside the wrapper; and with
+    ControlPersist this master is exactly the kind of process that outlives
+    a session.
     """
     if not os.path.isdir("/proc"):
         return None
@@ -285,15 +292,19 @@ def sessionProcesses(data, roots=()):
         if not pid.isdigit() or int(pid) == me:
             continue
         try:
-            if mark not in open("/proc/%s/environ" % pid, "rb").read().split(b"\0"):
+            env = open("/proc/%s/environ" % pid, "rb").read().split(b"\0")
+            if mark not in env:
                 continue
+            own = [v.split(b"=", 1)[1] for v in env
+                   if v.startswith(b"ECCE_SSH_CONTROL_DIR=") and b"=" in v]
             comm = open("/proc/%s/comm" % pid).read().strip()
             try:
                 exe = os.path.realpath(os.readlink("/proc/%s/exe" % pid)).encode()
             except OSError:
                 exe = b""
             cmd = open("/proc/%s/cmdline" % pid, "rb").read()
-            if roots and not any(r in exe or r in cmd for r in roots):
+            if roots and not any(r in exe or r in cmd
+                                 for r in roots + [o for o in own if o]):
                 continue
             found.append((int(pid), comm))
         except OSError:
