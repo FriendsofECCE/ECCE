@@ -14,17 +14,23 @@ import re
 import sys
 
 
+# Perl read the dump as bytes, so \s, \d and \w are ASCII there: a no-break
+# space or a non-ASCII digit or letter must not match here either (#1331).
+_WS = ' \t\n\r\f\v'
+
+
 def perl_number(value):
     # Perl accepts a numeric prefix, including E but not Fortran D exponents.
     match = re.match(r'\s*([+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?)',
-                     value or '')
+                     value or '', re.ASCII)
     return float(match.group(1)) if match else 0.0
 
 
 def readStandardBS(stream=None):
     if stream is None:
-        # The Perl read the basis dump as bytes; a stray byte must not crash the translation.
-        sys.stdin.reconfigure(encoding="utf-8", errors="replace")
+        # Perl handled the dump as bytes: latin-1 keeps one char per byte, so
+        # field widths and stray bytes come out as Perl wrote them (#1331).
+        sys.stdin.reconfigure(encoding="latin-1")
         stream = sys.stdin
     bs = {'gbs': {}}
     numeric = {kind: {} for kind in ('orbital', 'exchange', 'charge', 'ecp')}
@@ -33,24 +39,24 @@ def readStandardBS(stream=None):
     kind = center = orbital = coords = shell = nelec = ''
     contractions, orbitals, primitives, components = [], [], [], []
     for raw in stream:
-        if re.match(r'^\s*NameBasis', raw):
+        if re.match(r'^\s*NameBasis', raw, re.ASCII):
             reading_name = True
-        if re.match(r'^\s*EndNameBasis', raw):
+        if re.match(r'^\s*EndNameBasis', raw, re.ASCII):
             reading_name = False
-        if re.match(r'^\s*NumericalBasis', raw):
+        if re.match(r'^\s*NumericalBasis', raw, re.ASCII):
             reading_numeric = True
-        if re.match(r'^\s*EndNumericalBasis', raw):
+        if re.match(r'^\s*EndNumericalBasis', raw, re.ASCII):
             reading_numeric = False
-        line = re.sub(r'[#\!].*$', '', raw).rstrip()
+        line = re.sub(r'[#\!].*$', '', raw).rstrip(_WS)
         if not line:
             continue
-        header = re.match(r'^\s*basis "(\w\w) basis" (\w+)(\s+print)?', line)
+        header = re.match(r'^\s*basis "(\w\w) basis" (\w+)(\s+print)?', line, re.ASCII)
         if not reading_name and reading_numeric:
             if header:
                 coords = header.group(2)
                 kind = {'ao': 'orbital', 'xc': 'exchange', 'cd': 'charge'}.get(
                     header.group(1), kind)
-            atom = re.match(r'^(\w+)\s+(\w+)$', line)
+            atom = re.match(r'^(\w+)\s+(\w+)$', line, re.ASCII)
             if atom and kind != 'ecp':
                 if contractions:
                     orbitals.append([orbital, contractions])
@@ -60,23 +66,23 @@ def readStandardBS(stream=None):
                             numeric[kind][center] = orbitals
                         orbitals = []
                 center, orbital = atom.groups()
-            if re.match(r'^\s*-?[\d.]+\s+-?[\d.]+', line):
-                row = line.split()
+            if re.match(r'^\s*-?[\d.]+\s+-?[\d.]+', line, re.ASCII):
+                row = [f for f in re.split(r'[ \t\n\r\f\v]+', line) if f]
                 if kind != 'ecp':
                     contractions.append(row)
                 else:
                     primitives.append(dict(zip(
                         ('Rexponent', 'GaussExponent', 'Coefficient'), row[:3])))
-            if re.search('END', line, re.I) and kind != 'ecp':
+            if re.search('END', line, re.I | re.ASCII) and kind != 'ecp':
                 orbitals.append([orbital, contractions])
                 contractions = []
                 if kind in numeric:
                     numeric[kind]['coordinants'] = coords
                     numeric[kind][center] = orbitals
                 orbitals = []
-            if re.match(r'^\s*ECP', line, re.I):
+            if re.match(r'^\s*ECP', line, re.I | re.ASCII):
                 kind = 'ecp'
-            atom = re.match(r'^\s*(\w+)\s+nelec\s+(\d+)$', line)
+            atom = re.match(r'^\s*(\w+)\s+nelec\s+(\d+)$', line, re.ASCII)
             if kind == 'ecp' and atom:
                 if primitives:
                     components.append([shell, primitives])
@@ -85,13 +91,13 @@ def readStandardBS(stream=None):
                     numeric['ecp'][center] = [nelec, components]
                     components = []
                 center, nelec = atom.groups()
-            component = re.match(r'^\s*\w+\s+(\w+)$', line)
+            component = re.match(r'^\s*\w+\s+(\w+)$', line, re.ASCII)
             if kind == 'ecp' and component:
                 if primitives:
                     components.append([shell, primitives])
                     primitives = []
                 shell = component.group(1)
-            if re.search('END', line, re.I) and kind == 'ecp':
+            if re.search('END', line, re.I | re.ASCII) and kind == 'ecp':
                 # A lone ECP component is not flushed by the Perl reader.
                 if components:
                     components.append([shell, primitives])
@@ -106,12 +112,12 @@ def readStandardBS(stream=None):
                 if new_kind:
                     kind = new_kind
                     names[kind]['coordinants'] = coords
-            atom = re.match(r'^\s*(\w+)\s+library\s+(".+")$', line, re.I)
+            atom = re.match(r'^\s*(\w+)\s+library\s+(".+")$', line, re.I | re.ASCII)
             if atom:
                 center, basis_name = atom.groups()
                 if kind in names:
                     names[kind][center] = basis_name
-            if re.match(r'^\s*ECP', line, re.I):
+            if re.match(r'^\s*ECP', line, re.I | re.ASCII):
                 kind = 'ecp'
     for kind, key in (('orbital', 'gbs'), ('exchange', 'dftXCfitting'),
                       ('charge', 'dftCDfitting'), ('ecp', 'ecp')):
@@ -160,6 +166,8 @@ def translator_main(writer, code, revision):
         sys.stdout.write('Revision: %s \n' % revision)
     else:
         try:
+            if hasattr(sys.stdout, 'reconfigure'):  # not a redirect_stdout buffer
+                sys.stdout.reconfigure(encoding="latin-1")
             writer(readStandardBS())
         except ValueError as error:
             sys.stderr.write(str(error) + '\n')
