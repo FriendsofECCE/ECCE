@@ -388,7 +388,8 @@ class Handler(object):
         guikeys = ["minprocessors", "maxprocessors", "runlimit", "memlimit",
                    "scratchlimit", "defprocessors", "defrun", "defmemory",
                    "defscratch", "requestlines"]
-        names = qnames.split()
+        # Perl's split(' '): ASCII whitespace only; a latin-1 NBSP is a name byte (#1331).
+        names = [n for n in re.split(r"[ \t\n\r\f\v]+", qnames) if n]
         wanted = set(names)
         header, loose, own = [], [], {}
         seen_queues, skip = False, False
