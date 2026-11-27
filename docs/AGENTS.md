@@ -983,6 +983,19 @@ ai.vina writes `scoring = vinardo` only for vinardo; on a Vina without
 `--scoring` (before 1.2) the job script drops that line and writes an
 `ECCE warning:` line to the output, so the run scores with vina.
 
+**Binding pockets (#1320).** Builder > Tools > Find Binding Pockets runs the
+LIGSITE-style detector (`src/dock/PocketFinder.C`; the same code as the
+`ecce-pockets <file.pdb>` command) on the structure shown, sets the Vina box
+around the best pocket and says which pocket it used. Waters and bound
+ligands are ignored, so the site of an existing ligand is found. Builder
+script: `findpockets` prints `pockets=N ; #1 score S volume V centre x y z
+extent a x b x c lining R ; #2 ...` (best first, R = lining residues) or
+`FAIL: <why>`; `vinabox pocket=N [margin]` sets the box from pocket N (1 =
+best) exactly as `vinabox` does from a selection (box keys stored, job back
+to CREATED) and answers with the `vinaboxinfo` line, `FAIL: ...` for a pocket
+that does not exist. Test: `tests/apps/pocket_box_test.py` (ctest
+`apps_pocket_box`).
+
 **Vina box warning (#1296).** With `ES.Runtype.Vina.BoxAuto` on, the search
 box is built around the ligand's own coordinates, so a ligand drawn in the
 Builder or added with File > Add Structure from File gets a box away from the
@@ -1876,6 +1889,7 @@ launcher, without command wrappers for these tools.
 | `ecce-mocomp` | Atomic-orbital composition of one molecular orbital (`CALC --mo N\|homo\|lumo [--beta] [--method mulliken\|c2] [--min PCT] [--by ao,shell,type,atom] [--tsv]`), `--list` the orbitals, `--spin` Mulliken spin populations |
 | `ecce-density-field` | ELF, LOL, reduced density gradient, sign(λ2)ρ or density from a calculation's stored orbitals as a cube file (`CALC --field F [--spacing A] [--margin A] [--threads N] -o out.cube`), or all fields at points (`CALC --at X,Y,Z`); local data |
 | `ecce-pdbqt` | Prepare AutoDock PDBQT files for docking: `--frag FILE --atoms LIST --as ligand\|receptor -o OUT`, `--ligand FILE.sdf`, `--receptor FILE.pdb`, `--info FILE` |
+| `ecce-pockets` | Binding-pocket detection on a PDB file (#1320, core only; not yet installed or in a menu): `FILE.pdb [--spacing A] [--margin A] [--probe A] [--max-ray A] [--min-score N] [--min-volume A3] [--lining A] [--top N] [--keep-water] [--keep-ligands]`. Prints each pocket's score, volume, centre, extent and lining residues; waters and residue-name-classified ligands are ignored by default. Warns when an element had no van der Waals radius |
 | `ecce-site-screen` | Interstitial or vacancy site screening of a periodic host: `make <template> interstitial\|vacancy --element X`, then `results <folder>` for E - E(host) in eV |
 
 See the matching help page for inputs, options and units.

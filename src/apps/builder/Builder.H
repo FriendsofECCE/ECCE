@@ -1,6 +1,7 @@
 #ifndef _BUILDER_H_
 #define _BUILDER_H_
 
+namespace PocketFinder { struct Result; }
 #include <map>
   using std::map;
 #include <set>
@@ -46,6 +47,7 @@
 #include "BuilderGUI.H"
 
 class ICalculation;
+class GUIValues;
 class ewxLogTextCtrl;
 class ClipPlanePanel;
 class AtomMeasureAngle;
@@ -186,6 +188,7 @@ class Builder: public BuilderGUI,
       ID_CUT_CLUSTER,
       ID_SOLVATE,
       ID_VINA_BOX,
+      ID_FIND_POCKETS,
       ID_VIEW_TOGGLE_COLUMN,
       ID_VIEW_RESET_LAYOUT,
       ID_VIEW_PANELS_CLASSIC,
@@ -520,6 +523,7 @@ class Builder: public BuilderGUI,
       void OnCutCluster( wxCommandEvent& event );
       void OnSolvate( wxCommandEvent& event );
       void OnVinaBoxFromSelection(wxCommandEvent& event);
+      void OnFindPockets(wxCommandEvent& event);
 
       virtual void OnPaneClose(wxAuiManagerEvent& event);
       void OnPaneButton(wxAuiManagerEvent& event);
@@ -762,6 +766,11 @@ class Builder: public BuilderGUI,
       /// The box from Builder selection; "" or why not.  margin < 0: the
       /// calculation's ES.Runtype.Vina.BoxMargin.
       string vinaBoxFromSelection(double margin);
+      /// The box around pocket n (1 = best) of the detector; "" or why not.
+      /// `what` names the pocket used.
+      string vinaBoxFromPocket(int n, double margin, string *what = 0);
+      string findPocketsReport(PocketFinder::Result& res);
+      string commitVinaBox(TaskJob *job, ICalculation *ic, GUIValues *g, const VinaBox& box);
       /// Redraw for `url`: from the stored details, or from the editor's
       /// unsaved ones when `live` is given.
       void vinaDetailsChanged(const string& url,

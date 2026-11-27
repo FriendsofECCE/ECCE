@@ -709,6 +709,16 @@ ecce_library(eccedock src/dock)
 add_executable(ecce-pdbqt src/apps/pdbqt/ecce-pdbqt.C)
 target_link_libraries(ecce-pdbqt PRIVATE eccedock)
 
+# Binding-pocket detection (#1320): LIGSITE-style grid enclosure, wx-free.
+add_executable(ecce-pockets src/apps/pockets/ecce-pockets.C)
+target_link_libraries(ecce-pockets PRIVATE eccedock eccetdat ecceutil)
+add_executable(pocketfinder_test tests/dock/pocketfinder_test.C)
+target_link_libraries(pocketfinder_test PRIVATE eccedock eccetdat ecceutil)
+add_test(NAME pocketfinder
+  COMMAND pocketfinder_test ${CMAKE_SOURCE_DIR}/tests/dock/fixtures/1iep.pdb)
+set_tests_properties(pocketfinder PROPERTIES SKIP_RETURN_CODE 77
+  ENVIRONMENT "ECCE_HOME=${CMAKE_SOURCE_DIR};ECCE_REALUSER=pocketfinder;ECCE_REALUSERHOME=${CMAKE_BINARY_DIR}/pocketfinder-home")
+
 # Recompute H, S, G from a calculation's stored frequencies with a chosen
 # low-frequency treatment (#692); the thermochemistry lives in tdat/thermo.
 add_executable(ecce-thermo
@@ -860,7 +870,7 @@ target_link_libraries(details_unit_test PRIVATE ecce-details-core)
 install(TARGETS ecce-dialog RUNTIME DESTINATION bin COMPONENT client)
 
 # --- wx + GL apps ---
-set(ECCE_BUILDER_LINK eccewxguicomm eccewxviz eccewxinv eccevizsg eccemoiv ecceinv eccecommxt eccecomm eccercmd
+set(ECCE_BUILDER_LINK eccedock eccewxguicomm eccewxviz eccewxinv eccevizsg eccemoiv ecceinv eccecommxt eccecomm eccercmd
        eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil
        ${ECCE_X11_LIBS} jpeg freetype)
 ecce_tool_objects(builder-objs src/apps/builder EXCLUDE BuilderApp.C
@@ -6263,6 +6273,15 @@ if(PYTHON3_EXECUTABLE)
                    --build ${CMAKE_BINARY_DIR}
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_vina_viewer PROPERTIES TIMEOUT 3600 SKIP_RETURN_CODE 77)
+
+  # #1320: binding pockets to the Vina search box (script hook); needs Xvfb
+  # and the 1IEP fixture, skips (77) otherwise.
+  add_test(NAME apps_pocket_box
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/pocket_box_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_pocket_box PROPERTIES TIMEOUT 600 SKIP_RETURN_CODE 77)
 
   # #1244: the Runtype Details list of ligand candidates.
   add_test(NAME apps_vina_molecules

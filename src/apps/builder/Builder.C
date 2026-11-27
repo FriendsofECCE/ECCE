@@ -1092,6 +1092,10 @@ void Builder::createMenus()
                      _("Set the AutoDock Vina search box of this calculation "
                        "around the selected atoms, plus the margin"));
   Bind(wxEVT_MENU, &Builder::OnVinaBoxFromSelection, this, ID_VINA_BOX);
+  p_toolMenu->Append(ID_FIND_POCKETS, _("Find Binding Pockets"),
+                     _("Find the binding pockets of the receptor and set the "
+                       "Vina search box around the best one"));
+  Bind(wxEVT_MENU, &Builder::OnFindPockets, this, ID_FIND_POCKETS);
 
   p_propertyMenu = GetMenuBar()->GetMenu(
                    GetMenuBar()->FindMenu(_("Properties")));
@@ -6799,6 +6803,7 @@ void Builder::updateMenus()
    // structure default ones to name (OnToolMenuClick).
    GetMenuBar()->Enable(GetMenuBar()->FindMenuItem("Tools", "Residue Table"), true);
    p_toolMenu->Enable(ID_VINA_BOX, vinaJob() != 0);
+   p_toolMenu->Enable(ID_FIND_POCKETS, vinaJob() != 0 && frag->numAtoms() > 0);
 }
 
 /**
