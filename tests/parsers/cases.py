@@ -111,6 +111,30 @@ CASES = [
             }),
         },
     ),
+    # INTENTIONAL DIVERGENCE FROM THE PERL: this golden records the Python
+    # (U+FFFD in the EXCISYM label), not the Perl's raw byte.  Perl passes
+    # the undecodable byte through, which is invalid UTF-8 inside a property
+    # value; EXCISYM is a display label, so a replacement character is the
+    # better result.  Do not regenerate this golden to match the Perl.
+    dict(
+        name='g16-h2co-tddft-stray-in-state',
+        desc='gaussian-16.desc',
+        fixture='gaussian-16/h2co_tddft_stray_in_state.log',
+        silent_ok={'ORBSYM][ORBSYMBETA': 'no Orbital symmetries block in '
+                                         'this fixture'},
+        parse_args=('.', 'GeoVib', 'DFT', 'B3LYP', '0'),
+        expect={
+            'EXCIENERGY][EXCIOSC][EXCISYM][EXCITRANS': dict(blocks=2, keys={
+                'EXCIENERGY': {'values': '3.3832 6.9578 7.6606 7.8721 '
+                               '7.9066 8.2971 8.4586 9.5805 9.5907 10.3687',
+                               'units': 'eV'},
+                'EXCIOSC': {'values': '0.0000 0.0127 0.0296 0.0008 0.0315 '
+                            '0.1738 0.0000 0.0468 0.0000 0.0495'},
+                'EXCISYM': {'values_contain': 'Singlet-A2 Singlet-\ufffdB\ufffd2'},
+                'EXCITRANS': {'values_contain': '8>9:'},
+            }),
+        },
+    ),
     # #921: GFInput makes G16 echo the basis it used; CODEBASIS keeps it
     # (one line, "<centre> <L> exp coef ..." joined by "|").  HCl/cc-pVTZ,
     # Cl is centre 1.
