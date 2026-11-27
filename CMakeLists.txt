@@ -2613,6 +2613,8 @@ add_test(NAME basisflatten COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/basisflatte
 add_test(NAME basislegacy COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/basislegacy/run_tests.py)
 # std2molcas in Python against cases captured from its Perl (#868).
 add_test(NAME basis_molcas_port COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/basis/molpro_molcas_port_test.py)
+# std2GAMESS-UK in Python against cases captured from its Perl (#868).
+add_test(NAME basis_gamessuk_port COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/basis/gamess_python_port_test.py)
 set_tests_properties(basisflatten PROPERTIES ENVIRONMENT ECCE_TEST_BUILD=${CMAKE_BINARY_DIR})
 # ORCA Geometry/GeoVib on one atom: no Opt, Freq kept; runs ORCA when installed (#623).
 add_test(NAME orca_one_atom COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/orca_one_atom/run_tests.py)

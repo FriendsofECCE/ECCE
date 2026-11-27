@@ -8,6 +8,10 @@
 
 #include <unistd.h>
 #include <ctype.h>
+#ifdef _WIN32
+#include "util/Filesystem.H"
+namespace fs = ecce::fs;
+#endif
 
 #include <iostream>
   using std::cout;
@@ -2359,7 +2363,8 @@ const char* TGBSConfig::dump(const char* code_name, bool useNames)
   if (codeName == "std2NWChem" || codeName == "std2ORCA" ||
       codeName == "std2ECCEQM" || codeName == "std2Gaussian-16" ||
       codeName == "std2Gaussian-09" || codeName == "std2Gaussian-03" ||
-      codeName == "std2Gaussian-98" || codeName == "std2molcas") {
+      codeName == "std2Gaussian-98" || codeName == "std2molcas" ||
+      codeName == "std2GAMESS-UK") {
     fs::path py = fs::path(Ecce::ecceHome()) / "python" / "python.exe";
     string pyExe = fs::exists(py) ? py.string() : string("python.exe");
     interpreter = "\"" + pyExe + "\"";
