@@ -32,6 +32,24 @@ def sub(pattern, replacement, text):
     return re.sub(pattern, replacement, text, flags=re.ASCII)
 
 
+_NUM = re.compile(r'[ \t\n\r\f\v]*([+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?)', re.ASCII)
+
+
+def perl_number(text):
+    # Perl reads a non-numeric field as its numeric prefix or 0 (#1331).
+    m = _NUM.match(text)
+    return float(m.group(1)) if m else 0.0
+
+
+def element(atom):
+    # Perl's $periodic[$atom-1]: -1 is the last element, and an index past the
+    # table is empty.
+    index = int(perl_number(atom) - 1)
+    if -len(PERIODIC_TABLE) <= index < len(PERIODIC_TABLE):
+        return PERIODIC_TABLE[index]
+    return ''
+
+
 def out(text):
     sys.stdout.write(text)
     sys.stdout.flush()
@@ -317,9 +335,10 @@ def parse_master(source, dest, names):
                 for atom in basis.get('functions', {}):
                     for supported in atoms:
                         if basis['functions'].get(supported) is None:
-                            out('ERROR: No functions defined for %s\n' % PERIODIC_TABLE[int(supported) - 1])
-                    if atom not in atoms:
-                        out('WARNING: Leaving %s out.\n' % PERIODIC_TABLE[int(atom) - 1])
+                            out('ERROR: No functions defined for %s\n' % element(supported))
+                    # Perl compared these numerically ($fatom == $satom).
+                    if not any(perl_number(atom) == perl_number(other) for other in atoms):
+                        out('WARNING: Leaving %s out.\n' % element(atom))
                         basis['functions'][atom] = None
                 basis.setdefault('ATMN', []).append(atoms)
             secondary = match(r'^ATM(\d)=(.*)', line)
@@ -432,12 +451,12 @@ def parse_dav_data(source, dest, names):
                 mapping.write('name= %s\nfiles=%s\n' %
                               (name, ''.join(' ' + filename for filename in basis.get('basis_names', []))))
                 for atoms in basis.get('ATMN', []):
-                    mapping.write('atoms=' + ''.join(' ' + PERIODIC_TABLE[int(atom) - 1] for atom in atoms) + '\n')
+                    mapping.write('atoms=' + ''.join(' ' + element(atom) for atom in atoms) + '\n')
                 mapping.write('\n')
         mapping.write('type= ecp\n')
         for name, (filename, basis) in ecps.items():
             mapping.write('name= %s\nfiles= %s\natoms=%s\n' %
-                          (name, filename, ''.join(' ' + PERIODIC_TABLE[int(atom) - 1] for atom in basis['ATMN'])))
+                          (name, filename, ''.join(' ' + element(atom) for atom in basis['ATMN'])))
 
 
 def main(args):
@@ -494,6 +513,9 @@ def main(args):
 
 
 if __name__ == '__main__':
+    # Text from the data files is latin-1 (one char per byte); write it back as
+    # the same bytes, as Perl did.
+    sys.stdout.reconfigure(encoding='latin-1', errors='replace')
     try:
         sys.exit(main(sys.argv[1:]))
     except ConversionError as error:
