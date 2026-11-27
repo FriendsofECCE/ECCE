@@ -26,6 +26,10 @@
 
 #include "util/ErrMsg.H"
 #include "util/Ecce.H"
+#ifdef _WIN32
+#include "util/Filesystem.H"
+namespace fs = ecce::fs;
+#endif
 #include "util/CompareOps.H"
 #include "util/SFile.H"
 #include "util/TempStorage.H"
@@ -2347,9 +2351,15 @@ const char* TGBSConfig::dump(const char* code_name, bool useNames)
 
   // Exec the script:
 #ifdef _WIN32
-  // system() is cmd.exe here, which cannot run an extensionless perl script
-  // found on PATH: name perl and the script.
-  string command = "perl \"" + string(Ecce::ecceDataControllersPath()) + "/" +
+  // cmd.exe needs an interpreter for extensionless translators. Keep the
+  // remaining Perl exporters working until their writers are ported too.
+  string interpreter = "perl";
+  if (codeName == "std2molpro" || codeName == "std2molcas") {
+    fs::path py = fs::path(Ecce::ecceHome()) / "python" / "python.exe";
+    string pyExe = fs::exists(py) ? py.string() : string("python.exe");
+    interpreter = "\"" + pyExe + "\"";
+  }
+  string command = interpreter + " \"" + string(Ecce::ecceDataControllersPath()) + "/" +
     codeName + "\" < \"" + sourceFile->path() + "\" > \"" +
     resultsFile->path() + "\"";
   const int status = Ecce::runCommand(command);
