@@ -32,6 +32,7 @@ Exit status is 0 only if every check passed.
 """
 
 import argparse
+import ast
 import difflib
 import re
 import os
@@ -425,6 +426,14 @@ def name_tables():
     without needing either code.  ECCE name -> keyword, exactly.
     """
     def table(path):
+        if path.endswith('.py'):
+            tree = ast.parse(open(os.path.join(PARSERS, path)).read())
+            for node in tree.body:
+                if (isinstance(node, ast.Assign) and
+                        any(isinstance(t, ast.Name) and t.id == 'NameToBasis'
+                            for t in node.targets)):
+                    return ast.literal_eval(node.value)
+            return {}
         text = open(os.path.join(PARSERS, path)).read()
         return dict(re.findall(r'\$NameToBasis\{"([^"]+)"\}\s*=\s*"([^"]+)"',
                                text))
@@ -437,7 +446,7 @@ def name_tables():
             "pc-2": "pc-2", "pcseg-2": "pcseg-2", "iglo-ii": "IGLO-II",
             "def2-svp(p)": "def2-SV(P)", "ahlrichs vdz": "SV",
             "3-21gsp": "3-21GSP", "def2-tzvp": "def2-TZVP"},
-        "wrGaussian16GBS.pm": {
+        "wrGaussian16GBS.py": {
             "6-31g*": "6-31G*", "6-31++g*": "6-31++G*",
             "cc-pvdz": "cc-pvdz", "def2-svp": "def2SVP",
             "def2-svp(p)": "def2SVPP", "midi!": "midix",
@@ -455,7 +464,7 @@ def name_tables():
         "wrORCAGBS.pm": ["pcseg-0", "3-21g*", "4-31g", "6-31++g",
                          "6-31++g*", "d-aug-cc-pvdz", "cc-pv(d+d)z",
                          "dz (dunning)"],
-        "wrGaussian16GBS.pm": ["6-31g(3df,3pd)", "cc-pvdz-dk", "cc-pcvdz",
+        "wrGaussian16GBS.py": ["6-31g(3df,3pd)", "cc-pvdz-dk", "cc-pcvdz",
                                "d-aug-cc-pvdz", "pc-2", "iglo-ii",
                                #  same basis as DGDZVP*, but they carry DFT
                                #  fitting sets a route-card name would drop
@@ -480,7 +489,10 @@ def name_tables():
 def run(case):
     path = os.path.join(PARSERS, case["exporter"])
     with open(os.path.join(FIXTURES, case["fixture"])) as handle:
-        proc = subprocess.run(["perl", path], stdin=handle,
+        interpreter = (sys.executable if case['exporter'] in
+                       ('std2Gaussian-16', 'std2Gaussian-09', 'std2Gaussian-03')
+                       else 'perl')
+        proc = subprocess.run([interpreter, path], stdin=handle,
                               capture_output=True, text=True, timeout=60,
                               env=dict(os.environ, ECCE_HOME=REPO))
     return proc.stdout, proc.returncode, proc.stderr
@@ -551,6 +563,16 @@ def main():
     checks += 1
     for finding in basis_name_rules(args.verbose):
         failures.append("basis name rules: " + finding)
+
+    checks += 1
+    port = subprocess.run([sys.executable,
+                           os.path.join(HERE, 'gaussian_python_port_test.py')],
+                          stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                          universal_newlines=True)
+    if port.returncode:
+        failures.append('Gaussian Python port: ' + port.stdout + port.stderr)
+    elif args.verbose:
+        print(port.stdout, end='')
 
     for case in CASES:
         text, rc, err = run(case)
