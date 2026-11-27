@@ -32,6 +32,8 @@ Exit status is 0 only if every check passed.
 """
 
 import argparse
+import ast
+import importlib
 import difflib
 import re
 import os
@@ -108,6 +110,15 @@ CASES = [
         expect=[("no route card", lambda t: "useRouteCard" not in t),
                 ("O named", lambda t: "6-31G*" in t),
                 ("H explicit", lambda t: "18.73113700" in t)],
+    ),
+    dict(
+        name="g16-mixed-nbsp-decoy",
+        fixture="water_mixed_nbsp.gbs",
+        exporter="std2Gaussian-16",
+        #  water_mixed.gbs plus one H row led by a no-break space: Perl's
+        #  byte-wise \s never read it as data, so the deck is the clean one's
+        #  (#1331); the golden is a copy of g16-mixed-per-element.txt.
+        expect=[("decoy row dropped", lambda t: "9.99" not in t)],
     ),
     dict(
         name="orca-mixed-per-element",
@@ -444,10 +455,19 @@ def name_tables():
     without needing either code.  ECCE name -> keyword, exactly.
     """
     def table(path):
-        if path.endswith(".py"):
+        if path.endswith('.py'):
+            # A literal table is read without importing; otherwise import it.
+            tree = ast.parse(open(os.path.join(PARSERS, path)).read())
+            for node in tree.body:
+                if (isinstance(node, ast.Assign) and
+                        any(isinstance(t, ast.Name) and t.id == 'NameToBasis'
+                            for t in node.targets)):
+                    try:
+                        return ast.literal_eval(node.value)
+                    except ValueError:
+                        break
             sys.path.insert(0, PARSERS)
-            from wrORCAGBS import NameToBasis
-            return NameToBasis
+            return importlib.import_module(path[:-3]).NameToBasis
         text = open(os.path.join(PARSERS, path)).read()
         return dict(re.findall(r'\$NameToBasis\{"([^"]+)"\}\s*=\s*"([^"]+)"',
                                text))
@@ -460,7 +480,7 @@ def name_tables():
             "pc-2": "pc-2", "pcseg-2": "pcseg-2", "iglo-ii": "IGLO-II",
             "def2-svp(p)": "def2-SV(P)", "ahlrichs vdz": "SV",
             "3-21gsp": "3-21GSP", "def2-tzvp": "def2-TZVP"},
-        "wrGaussian16GBS.pm": {
+        "wrGaussian16GBS.py": {
             "6-31g*": "6-31G*", "6-31++g*": "6-31++G*",
             "cc-pvdz": "cc-pvdz", "def2-svp": "def2SVP",
             "def2-svp(p)": "def2SVPP", "midi!": "midix",
@@ -478,7 +498,7 @@ def name_tables():
         "wrORCAGBS.py": ["pcseg-0", "3-21g*", "4-31g", "6-31++g",
                          "6-31++g*", "d-aug-cc-pvdz", "cc-pv(d+d)z",
                          "dz (dunning)"],
-        "wrGaussian16GBS.pm": ["6-31g(3df,3pd)", "cc-pvdz-dk", "cc-pcvdz",
+        "wrGaussian16GBS.py": ["6-31g(3df,3pd)", "cc-pvdz-dk", "cc-pcvdz",
                                "d-aug-cc-pvdz", "pc-2", "iglo-ii",
                                #  same basis as DGDZVP*, but they carry DFT
                                #  fitting sets a route-card name would drop
@@ -504,7 +524,8 @@ def run(case):
     path = os.path.join(PARSERS, case["exporter"])
     with open(os.path.join(FIXTURES, case["fixture"])) as handle:
         interpreter = sys.executable if case["exporter"] in (
-            "std2NWChem", "std2ORCA", "std2ECCEQM") else "perl"
+            "std2NWChem", "std2ORCA", "std2ECCEQM", "std2Gaussian-16",
+            "std2Gaussian-09", "std2Gaussian-03") else "perl"
         proc = subprocess.run([interpreter, path], stdin=handle,
                               capture_output=True, text=True, timeout=60,
                               env=dict(os.environ, ECCE_HOME=REPO))
@@ -581,6 +602,16 @@ def main():
     checks += 1
     for finding in basis_name_rules(args.verbose):
         failures.append("basis name rules: " + finding)
+
+    checks += 1
+    port = subprocess.run([sys.executable,
+                           os.path.join(HERE, 'gaussian_python_port_test.py')],
+                          stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                          universal_newlines=True)
+    if port.returncode:
+        failures.append('Gaussian Python port: ' + port.stdout + port.stderr)
+    elif args.verbose:
+        print(port.stdout, end='')
 
     for case in CASES:
         text, rc, err = run(case)

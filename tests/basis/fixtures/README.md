@@ -18,3 +18,5 @@ shells: these fixtures exercise the writers' DECISIONS, not the chemistry,
 and a full basis would bury the thing being checked.
 * `water_nbsp.gbs`    no-break spaces and a non-ASCII digit where Perl's
   byte-wise `\s`/`\d` do not match them (#1331); goldens come from the Perl
+* `water_mixed_nbsp.gbs` `water_mixed.gbs` plus one H row led by a no-break
+  space, which Perl's byte-wise `\s` never read as data (#1331)

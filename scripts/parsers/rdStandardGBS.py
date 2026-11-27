@@ -28,8 +28,9 @@ def perl_number(value):
 
 def readStandardBS(stream=None):
     if stream is None:
-        # The Perl read the basis dump as bytes; a stray byte must not crash the translation.
-        sys.stdin.reconfigure(encoding="utf-8", errors="replace")
+        # Perl handled the dump as bytes: latin-1 keeps one char per byte, so
+        # field widths and stray bytes come out as Perl wrote them (#1331).
+        sys.stdin.reconfigure(encoding="latin-1")
         stream = sys.stdin
     bs = {'gbs': {}}
     numeric = {kind: {} for kind in ('orbital', 'exchange', 'charge', 'ecp')}
@@ -165,6 +166,8 @@ def translator_main(writer, code, revision):
         sys.stdout.write('Revision: %s \n' % revision)
     else:
         try:
+            if hasattr(sys.stdout, 'reconfigure'):  # not a redirect_stdout buffer
+                sys.stdout.reconfigure(encoding="latin-1")
             writer(readStandardBS())
         except ValueError as error:
             sys.stderr.write(str(error) + '\n')
