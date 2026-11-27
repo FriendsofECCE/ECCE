@@ -8210,7 +8210,7 @@ struct ExampleSet {
   }
 };
 const char *const kExamplesTop = "Examples";
-const char *const kExampleSetVersion = "49";
+const char *const kExampleSetVersion = "50";
 
 string treeName(string s)
 {
@@ -8807,6 +8807,22 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
 
   // What each example is for, in its Annotation field.
   static const struct { const char *name, *text; } kNotes[] = {
+    {"mpro_nirmatrelvir", "AutoDock Vina, rigid receptor, search box around "
+                          "the crystallographic ligand. This calculation "
+                          "shows nirmatrelvir redocked into the SARS-CoV-2 "
+                          "main protease, whose inhibitor is covalently bound "
+                          "to Cys145, so the ligand atoms are named in Runtype "
+                          "Details instead of split off automatically."},
+    {"hiv_protease_xk263", "AutoDock Vina, rigid receptor, search box around "
+                           "the crystallographic ligand. This calculation "
+                           "shows the cyclic urea inhibitor XK-263 redocked "
+                           "into the C2-symmetric active site of HIV-1 "
+                           "protease."},
+    {"ache_huprine", "AutoDock Vina, rigid receptor, search box around the "
+                     "crystallographic ligand. This calculation shows a "
+                     "huprine inhibitor redocked into the narrow gorge of "
+                     "acetylcholinesterase, where the best pose scores well "
+                     "clear of the rest."},
     {"water_forces_hf", "ECCE-QM, HF/6-31G, energy and gradient. This calculation shows the stored forces at a fixed water geometry for Compare Forces."},
     {"water_forces_b3lyp", "ORCA, B3LYP/def2-SVP, energy and gradient. This calculation shows different stored forces at the same water geometry for Compare Forces."},
     {"CREST_topology_check/zinc_aqua_topology", "CREST, GFN2-xTB, conformer search. This calculation shows the warning when the topology check removes all sampled conformers of a zinc aqua complex with loosely bound chloride ions."},

@@ -1,0 +1,17 @@
+receptor = receptor.pdbqt
+ligand = ligand.pdbqt
+center_x = 4.7
+center_y = 67.3
+center_z = 66.1
+size_x = 16.0
+size_y = 17.4
+size_z = 17.7
+exhaustiveness = 8
+num_modes = 3
+energy_range = 3
+seed = 7
+#| ECCE-PREP docking
+#| LIGAND_ATOMS=4273-4293
+#| RECEPTOR_ATOMS=1-4272
+#| FLEXIBLE_AMIDES=0
+#| BOX_AUTO=1
