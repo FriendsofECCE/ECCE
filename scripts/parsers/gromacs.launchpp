@@ -1,322 +1,261 @@
-#!/usr/bin/env perl
-###############################################################################
-#
-# Purpose:
-#   Launch-time check of a GROMACS task's inputs, on the launching machine,
-#   so that a mistake is reported at launch and not found in the job log.
-#
-#   Launch has staged gromacs.mdp (the input file), topol.top, conf.gro and
-#   any .itp/.ndx includes in the current directory.  This checks the three
-#   that grompp needs are there, and, if gmx is on this machine, runs grompp
-#   on them into a scratch .tpr.  grompp's diagnostics are good -- a
-#   topology that does not match the structure is the first thing a new user
-#   hits -- and are passed on as they are, except the common stopping warnings,
-#   which GromppWarn::explain words for the dialog (grompp's text follows the
-#   marker ECCE-ORIGINAL-MESSAGE).  Nothing here blocks the launch:
-#   a rejection or a stopping warning is printed after the line
-#   ECCE-LAUNCH-WARNING and the exit status is 0; Launch hands the text to the
-#   Launcher, which asks whether to launch anyway.  Harmless warnings are not
-#   reported.  Missing files still exit 1.
-#
-#   The job script runs grompp again on the machine that runs the job (that
-#   is where the .tpr that mdrun reads is built, and that machine may be a
-#   different one with its own gmx), so nothing built here is shipped.  When
-#   there is no gmx here the check is skipped and the job script reports a
-#   failure in the output file instead.
-#
-#   Idempotent: it changes nothing in the directory.
-#
-##############################################################################
-use strict;
-use Getopt::Std;
-use File::Temp qw(tempdir);
-use Cwd ();
-use FindBin qw($Bin);
-use lib $FindBin::Bin;
-use GromppWarn;
-use GmxIons;
+#!/usr/bin/env python3
+"""Check staged GROMACS inputs; report advisory failures through the launch marker."""
+import glob
+import math
+import os
+import re
+import shutil
+import subprocess
+import sys
+import tempfile
 
-our($opt_p, $opt_v);
-getopts('p:v');
+import gmx_ions
+import grompp_warn
 
-if ($opt_v) {
-  print "gromacs.launchpp 2.0\n";
-  exit 0;
-}
 
-open(my $pd, "<", $opt_p) || die "gromacs.launchpp: parameter file does not exist!\n";
-my %params;
-while (<$pd>) {
-  s/\s*!.*$//;
-  if (/^\s*([^:\s]+)\s*:\s*(.*?)\s*$/) { $params{$1} = $2; }
-}
-close($pd);
+NL = None if os.name == 'nt' else ''
 
-my $mdp = $params{"inputFile"} || "gromacs.mdp";
+def emit(text, stream=None):
+    if os.name == 'nt':
+        text = text.replace('\n', '\r\n')
+    (stream or sys.stdout).buffer.write(text.encode('utf-8', 'surrogateescape'))
 
-# gmx on this machine?  Not an error if it is not: the job's machine has it.
-my $gmx = "";
-foreach my $dir (split(/:/, $ENV{"PATH"} || "")) {
-  if (-x "$dir/gmx") { $gmx = "$dir/gmx"; last; }
-}
 
-checkPrepare() if ($mdp =~ /\.gmxprep$/);
+def read(path):
+    # These bytes may be copied into a PDB or passed back in a diagnostic.
+    with open(path, encoding='utf-8', errors='surrogateescape', newline=NL) as f:
+        return f.read()
 
-# A run made from a ready .tpr has nothing to check: grompp is skipped in the
-# job script too.
-exit 0 if (-s "run.gmxtpr");
 
-my @missing;
-push(@missing, "the run-control file $mdp") if (! -s $mdp);
-push(@missing, "the topology (topol.top)")  if (! -s "topol.top");
-push(@missing, "the starting structure (conf.gro)") if (! -s "conf.gro");
-if (@missing) {
-  print STDERR "GROMACS needs " . join(", ", @missing) . " and it is not here.\n";
-  print STDERR "Attach the topology and the structure on the Inputs tab of the task editor.\n";
-  exit 1;
-}
+def write(path, text):
+    with open(path, 'w', encoding='utf-8', errors='surrogateescape', newline=NL) as f:
+        f.write(text)
 
-# The index file for -n: one the user attached wins and its group names are
-# theirs; otherwise one is written from the groups the .mdp defines by residue
-# name.  It is written here, before anything is checked, because Launch ships
-# whatever is in this directory and the job script only passes -n.
-my $ndx = indexFile();
 
-if ($gmx eq "") {
-  print "gmx is not on this machine, so the inputs are not checked here; grompp runs on the job's machine.\n";
-  exit 0;
-}
+def nonempty(path):
+    try:
+        return os.path.getsize(path) > 0
+    except OSError:
+        return False
 
-my $tmp = tempdir("gromacs.launchpp.XXXXXX", TMPDIR => 1, CLEANUP => 1);
 
-# Include files in a folder are staged as <folder>__SLASH__<file> (the file
-# transfer is flat).  grompp is run in a scratch directory where they are
-# linked back under their folders, so that nothing staged is moved before
-# Launch ships it.
-my $work = "$tmp/run";
-mkdir($work);
-my $cwd = Cwd::getcwd();
-opendir(my $dh, ".") || die "gromacs.launchpp: cannot read the staging directory\n";
-foreach my $f (readdir($dh)) {
-  next if ($f eq "." || $f eq ".." || ! -f $f);
-  (my $rel = $f) =~ s#__SLASH__#/#g; $rel =~ s#\.gmxff$##;
-  if ($rel =~ m#^/# || $rel =~ m#(^|/)\.\.(/|$)#) { next; }
-  if ($rel =~ m#/#) {
-    (my $dir = $rel) =~ s#/[^/]*$##;
-    system("mkdir", "-p", "$work/$dir");
-  }
-  symlink("$cwd/$f", "$work/$rel");
-}
-closedir($dh);
-chdir($work);
-$mdp = "$cwd/$mdp" if ($mdp !~ m#^/#);
-# -r: a topology with [ position_restraints ] needs a reference structure,
-# and grompp ignores it otherwise; the starting structure is the reference,
-# as in the job script (gensub).
-# grompp is run with a -maxwarn no real run reaches, and the warnings it
-# printed are sorted afterwards (GromppWarn): the harmless ones are allowed,
-# any other would stop the job, so it stops the launch.
-my $maxwarn = 999;
-my @cmd = ($gmx, "grompp", "-f", $mdp, "-c", "conf.gro", "-r", "conf.gro",
-           "-p", "topol.top", ($ndx ne "" ? ("-n", $ndx) : ()),
-           "-o", "$tmp/check.tpr", "-po", "$tmp/mdout.mdp", "-maxwarn", $maxwarn);
-my $out = `@cmd 2>&1`;
-# leave the scratch directory so that its removal at exit can succeed
-chdir($cwd);
-my $status = $? >> 8;
-if ($status != 0) {
-  # the useful part of grompp's output starts at its first ERROR/WARNING
-  my @lines = split(/\n/, $out);
-  my $first = 0;
-  for (my $i = 0; $i < scalar(@lines); $i++) {
-    if ($lines[$i] =~ /^(ERROR|WARNING|Fatal error)/) { $first = $i; last; }
-  }
-  my $msg = join("\n", @lines[$first .. $#lines]);
-  my $named = GromppWarn::translate($msg);
-  warnAndExit("grompp", "command: @cmd\n\n" . $named,
-              $named ne $msg ? $msg : "");
-}
-my $intended = 0;
-if (open(my $tp, "<", "$work/topol.top")) {
-  local $/;
-  $intended = (<$tp> =~ /ECCE-NETCHARGE-INTENDED/) ? 1 : 0;
-  close($tp);
-}
-my @warn = GromppWarn::parse($out, $intended);
-my @stop = grep { !$_->{harmless} } @warn;
-if (@stop) {
-  # ECCE's text where there is one, grompp's own otherwise; grompp's message
-  # in full goes after the marker for the dialog's closed pane.
-  my @own = map { GromppWarn::explain($_) } @stop;
-  my $body = join("\n\n", map { GromppWarn::explain($_) // GromppWarn::translate($_->{text}) } @stop);
-  my $original = ($body ne join("\n\n", map { $_->{text} } @stop))
-               ? join("\n\n", map { "$_->{head}\n  $_->{text}" } @stop) : "";
-  warnAndExit("grompp", $body, $original);
-}
-print "grompp accepted the inputs.\n";
-exit 0;
+def warn_and_exit(tool, detail, original=''):
+    emit('ECCE-LAUNCH-WARNING\nThe job will stop at {} with this error:\n\n{}\n'.format(tool, detail))
+    if original:
+        emit('ECCE-ORIGINAL-MESSAGE\n' + original + '\n')
+    raise SystemExit(0)
 
-# Report a problem the job will meet and leave the decision to the user: the
-# tool the job stops at, the text for the dialog and, when ECCE reworded the
-# tool's message, the original (the dialog shows it in a closed pane).
-sub warnAndExit
-{
-  my ($tool, $detail, $original) = @_;
-  print "ECCE-LAUNCH-WARNING\nThe job will stop at $tool with this error:\n\n$detail\n";
-  print "ECCE-ORIGINAL-MESSAGE\n$original\n" if (defined($original) && $original ne "");
-  exit 0;
-}
 
-# The index file grompp is given, or "" for none.
-sub indexFile
-{
-  my $own = "ecce_groups.ndx";
-  my @user = sort grep { $_ ne $own && ! m#__SLASH__# && -f $_ } glob("*.ndx");
-  if (@user) {
-    unlink($own);
-    return $user[0];
-  }
-  unlink($own);
-  my $script = "$Bin/gromacs.mkndx";
-  my $out = `'$^X' '$script' conf.gro '$mdp' $own topol.top 2>&1`;
-  if ($? != 0) {
-    print STDERR "The index file for the groups of the task could not be made.\n$out";
-    exit 1;
-  }
-  return -s $own ? $own : "";
-}
+def run(cmd, cwd):
+    result = subprocess.run(cmd, cwd=cwd, stdin=subprocess.DEVNULL,
+                            stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    out = result.stdout.decode('utf-8', 'surrogateescape')
+    if os.name == 'nt':
+        out = out.replace('\r\n', '\n')
+    return result.returncode, out
 
-# A Prepare task has no topology or structure of its own to check; the
-# mistakes worth stopping for are pdb2gmx's (a residue it has no entry for,
-# a missing atom), so it is run on its own, here, on the staged structure.
-sub checkPrepare
-{
-  my %r = (FF => "amber99sb-ildn", WATER => "tip3p", IGNH => 1, MERGE => 0);
-  if (open(my $rf, "<", $mdp)) {
-    while (<$rf>) { $r{$1} = $2 if (/^\s*([A-Z]+)=(\S*)\s*$/); }
-    close($rf);
-  }
-  checkMinff() if (($r{SOURCE} || "") eq "minff");
-  my @pdb = glob("*.gmxpdb");
-  @pdb = glob("*.pdb") if (!@pdb);
-  if (!@pdb) {
-    print STDERR "Prepare needs the protein structure (a .pdb file) and it is not here.\n";
-    exit 1;
-  }
-  if ($gmx eq "") {
-    print "gmx is not on this machine, so pdb2gmx is not tried here; it runs on the job's machine.\n";
-    exit 0;
-  }
-  my $tmp = tempdir("gromacs.launchpp.XXXXXX", TMPDIR => 1, CLEANUP => 1);
-  # pdb2gmx goes by the extension, and a staged name may not end in .pdb
-  my $pdb = "$tmp/in.pdb";
-  if (open(my $in, "<", $pdb[0])) {
-    local $/;
-    my $text = <$in>;
-    close($in);
-    my ($new) = GmxIons::rewrite($text, $r{FF});
-    if (open(my $out, ">", $pdb)) {
-      print {$out} $new;
-      close($out);
-    }
-  } else {
-    symlink(Cwd::abs_path($pdb[0]), $pdb);
-  }
-  my @cmd = ($gmx, "pdb2gmx", "-f", $pdb, "-ff", $r{FF}, "-water", $r{WATER},
-             "-o", "$tmp/c.gro", "-p", "$tmp/t.top", "-i", "$tmp/p.itp");
-  push(@cmd, "-ignh") if ($r{IGNH});
-  push(@cmd, "-merge", "all") if ($r{MERGE});
-  my $out = `cd $tmp && @cmd 2>&1 </dev/null`;
-  my $status = $? >> 8;
-  if ($status != 0) {
-    my @lines = split(/\n/, $out);
-    my $first = 0;
-    for (my $i = 0; $i < scalar(@lines); $i++) {
-      if ($lines[$i] =~ /(is missing in residue|not found in|^Fatal error|^Program:)/) { $first = $i; last; }
-    }
-    warnAndExit("pdb2gmx", "command: @cmd\n\n" . join("\n", @lines[$first .. $#lines]));
-  }
-  print "pdb2gmx accepted the structure.\n";
-  exit 0;
-}
 
-# A cut-off grompp accepts for the box on the last line of a .gro: its pair
-# list (5% longer than the cut-off for a minimisation) must stay below half
-# the shortest box vector and the smallest diagonal element.  At most 0.5 nm.
-sub minffCheckCutoff
-{
-  my ($gro) = @_;
-  my $last = "";
-  if (open(my $g, "<", $gro)) {
-    while (my $l = <$g>) { $last = $l if ($l =~ /\S/); }
-    close($g);
-  }
-  my @b = split(' ', $last);
-  return 0.5 if (scalar(@b) != 3 && scalar(@b) != 9);
-  push(@b, (0) x 6) if (scalar(@b) == 3);
-  my @v = ([$b[0], $b[3], $b[4]], [$b[5], $b[1], $b[6]], [$b[7], $b[8], $b[2]]);
-  my $max = 0.5;
-  for my $i (0 .. 2) {
-    my $len = sqrt($v[$i][0]**2 + $v[$i][1]**2 + $v[$i][2]**2);
-    $max = 0.5 * $len if (0.5 * $len < $max);
-    $max = $v[$i][$i] if ($v[$i][$i] < $max);
-  }
-  my $rc = int($max / 1.05 * 0.98 * 1000) / 1000;
-  return $rc > 0 ? $rc : 0.5;
-}
+def diagnostic(out, pattern):
+    lines = out.split('\n')
+    while lines and not lines[-1]:
+        lines.pop()
+    first = next((i for i, line in enumerate(lines) if re.search(pattern, line)), 0)
+    return '\n'.join(lines[first:])
 
-# A MINFF Prepare has no pdb2gmx step: its topology and structure were built
-# by the editor and are staged as topol.gmxmin and conf.gmxmin.  What is
-# worth stopping for is a topology grompp rejects, so grompp is run on them.
-sub checkMinff
-{
-  if (! -s "topol.gmxmin" || ! -s "conf.gmxmin") {
-    print STDERR "This Prepare has no mineral topology yet.\n";
-    print STDERR "Open it in the GROMACS Prepare editor, choose the unit cell and press Build topology.\n";
-    exit 1;
-  }
-  if ($gmx eq "") {
-    print "gmx is not on this machine, so grompp is not tried here; it runs on the job's machine.\n";
-    exit 0;
-  }
-  my $tmp = tempdir("gromacs.launchpp.XXXXXX", TMPDIR => 1, CLEANUP => 1);
-  my $cwd = Cwd::getcwd();
-  opendir(my $dh, ".") || die "gromacs.launchpp: cannot read the staging directory\n";
-  foreach my $f (readdir($dh)) {
-    next if ($f eq "." || $f eq ".." || ! -f $f);
-    (my $rel = $f) =~ s#__SLASH__#/#g; $rel =~ s#\.gmxff$##;
-    next if ($rel =~ m#^/# || $rel =~ m#(^|/)\.\.(/|$)#);
-    if ($rel =~ m#/#) {
-      (my $dir = $rel) =~ s#/[^/]*$##;
-      system("mkdir", "-p", "$tmp/$dir");
-    }
-    symlink("$cwd/$f", "$tmp/$rel");
-  }
-  closedir($dh);
-  # gmx goes by the extension; the Prepare's own files replace any staged
-  # conf.gro/topol.top (symlink does not overwrite)
-  unlink("$tmp/topol.top", "$tmp/conf.gro");
-  symlink("$cwd/topol.gmxmin", "$tmp/topol.top");
-  symlink("$cwd/conf.gmxmin", "$tmp/conf.gro");
-  open(my $mf, ">", "$tmp/check.mdp") || die "gromacs.launchpp: cannot write in $tmp\n";
-  print $mf "integrator = steep\nnsteps = 0\ncutoff-scheme = Verlet\ncoulombtype = cutoff\n";
-  # Only the topology is checked here: a cut-off the bare mineral cell can
-  # hold, since the water layer the job adds is not in it yet.
-  my $rc = minffCheckCutoff("conf.gmxmin");
-  print $mf "rcoulomb = $rc\nrvdw = $rc\npbc = xyz\nperiodic-molecules = yes\n";
-  close($mf);
-  my @cmd = ($gmx, "grompp", "-f", "check.mdp", "-c", "conf.gro", "-p", "topol.top",
-             "-o", "check.tpr", "-po", "mdout.mdp");
-  my $out = `cd $tmp && @cmd 2>&1 </dev/null`;
-  my $status = $? >> 8;
-  if ($status != 0) {
-    my @lines = split(/\n/, $out);
-    my $first = 0;
-    for (my $i = 0; $i < scalar(@lines); $i++) {
-      if ($lines[$i] =~ /^(ERROR|WARNING|Fatal error)/) { $first = $i; last; }
-    }
-    warnAndExit("grompp", "command: @cmd\n\n" . join("\n", @lines[$first .. $#lines]));
-  }
-  print "grompp accepted the mineral topology.\n";
-  exit 0;
-}
+
+def stage(work):
+    for name in os.listdir('.'):
+        if not os.path.isfile(name):
+            continue
+        rel = re.sub(r'\.gmxff$', '', name.replace('__SLASH__', '/'))
+        if rel.startswith('/') or re.search(r'(^|/)\.\.(/|$)', rel):
+            continue
+        target = os.path.join(work, rel)
+        os.makedirs(os.path.dirname(target), exist_ok=True)
+        # Copies also work on Windows accounts without symlink privileges.
+        if not os.path.lexists(target):
+            shutil.copyfile(name, target)
+
+
+def unlink(path):
+    try:
+        os.unlink(path)
+    except OSError:
+        pass
+
+
+def index_file(mdp):
+    own = 'ecce_groups.ndx'
+    user = sorted(f for f in glob.glob('*.ndx')
+                  if f != own and '__SLASH__' not in f and os.path.isfile(f))
+    unlink(own)
+    if user:
+        return user[0]
+    script = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'gromacs.mkndx')
+    status, out = run([sys.executable, script, 'conf.gro', mdp, own, 'topol.top'], os.getcwd())
+    if status:
+        emit('The index file for the groups of the task could not be made.\n' + out, sys.stderr)
+        raise SystemExit(1)
+    return own if nonempty(own) else ''
+
+
+def minff_check_cutoff(gro):
+    try:
+        lines = [l for l in read(gro).split('\n') if l.strip()]
+        b = [float(s) for s in lines[-1].split()] if lines else []
+    except (OSError, ValueError):
+        b = []
+    if len(b) not in (3, 9):
+        return 0.5
+    if len(b) == 3:
+        b += [0] * 6
+    vectors = [[b[0], b[3], b[4]], [b[5], b[1], b[6]], [b[7], b[8], b[2]]]
+    maximum = 0.5
+    for i, v in enumerate(vectors):
+        maximum = min(maximum, 0.5 * math.sqrt(sum(x * x for x in v)), v[i])
+    rc = int(maximum / 1.05 * 0.98 * 1000) / 1000
+    return rc if rc > 0 else 0.5
+
+
+def check_minff(gmx):
+    if not nonempty('topol.gmxmin') or not nonempty('conf.gmxmin'):
+        emit('This Prepare has no mineral topology yet.\n'
+             'Open it in the GROMACS Prepare editor, choose the unit cell and press Build topology.\n', sys.stderr)
+        return 1
+    if not gmx:
+        emit("gmx is not on this machine, so grompp is not tried here; it runs on the job's machine.\n")
+        return 0
+    with tempfile.TemporaryDirectory(prefix='gromacs.launchpp.') as tmp:
+        stage(tmp)
+        for source, dest in [('topol.gmxmin', 'topol.top'), ('conf.gmxmin', 'conf.gro')]:
+            unlink(os.path.join(tmp, dest))
+            shutil.copyfile(source, os.path.join(tmp, dest))
+        rc = minff_check_cutoff('conf.gmxmin')
+        write(os.path.join(tmp, 'check.mdp'),
+              'integrator = steep\nnsteps = 0\ncutoff-scheme = Verlet\ncoulombtype = cutoff\n'
+              'rcoulomb = {0:g}\nrvdw = {0:g}\npbc = xyz\nperiodic-molecules = yes\n'.format(rc))
+        cmd = [gmx, 'grompp', '-f', 'check.mdp', '-c', 'conf.gro', '-p', 'topol.top',
+               '-o', 'check.tpr', '-po', 'mdout.mdp']
+        status, out = run(cmd, tmp)
+        if status:
+            warn_and_exit('grompp', 'command: ' + ' '.join(cmd) + '\n\n' +
+                          diagnostic(out, r'^(ERROR|WARNING|Fatal error)'))
+    emit('grompp accepted the mineral topology.\n')
+    return 0
+
+
+def check_prepare(mdp, gmx):
+    recipe = dict(FF='amber99sb-ildn', WATER='tip3p', IGNH='1', MERGE='0')
+    try:
+        for line in read(mdp).split('\n'):
+            m = re.match(r'^\s*([A-Z]+)=(\S*)\s*$', line, re.ASCII)
+            if m:
+                recipe[m[1]] = m[2]
+    except OSError:
+        pass
+    if recipe.get('SOURCE') == 'minff':
+        return check_minff(gmx)
+    pdbs = sorted(glob.glob('*.gmxpdb')) or sorted(glob.glob('*.pdb'))
+    if not pdbs:
+        emit('Prepare needs the protein structure (a .pdb file) and it is not here.\n', sys.stderr)
+        return 1
+    if not gmx:
+        emit("gmx is not on this machine, so pdb2gmx is not tried here; it runs on the job's machine.\n")
+        return 0
+    with tempfile.TemporaryDirectory(prefix='gromacs.launchpp.') as tmp:
+        pdb = os.path.join(tmp, 'in.pdb')
+        new, notes = gmx_ions.rewrite(read(pdbs[0]), recipe['FF'])
+        write(pdb, new)
+        cmd = [gmx, 'pdb2gmx', '-f', pdb, '-ff', recipe['FF'], '-water', recipe['WATER'],
+               '-o', tmp + '/c.gro', '-p', tmp + '/t.top', '-i', tmp + '/p.itp']
+        if recipe['IGNH'] not in ('', '0'):
+            cmd.append('-ignh')
+        if recipe['MERGE'] not in ('', '0'):
+            cmd += ['-merge', 'all']
+        status, out = run(cmd, tmp)
+        if status:
+            warn_and_exit('pdb2gmx', 'command: ' + ' '.join(cmd) + '\n\n' +
+                          diagnostic(out, r'is missing in residue|not found in|^Fatal error|^Program:'))
+    emit('pdb2gmx accepted the structure.\n')
+    return 0
+
+
+def main(args):
+    params_path, version = None, False
+    # Getopt::Std accepts clustered flags and stops at the first non-option.
+    while args and args[0].startswith('-') and args[0] != '-':
+        arg = args.pop(0)[1:]
+        if arg == '-':
+            break
+        while arg:
+            key, arg = arg[0], arg[1:]
+            if key == 'v':
+                version = True
+            elif key == 'p':
+                params_path = arg or (args.pop(0) if args else None)
+                arg = ''
+            else:
+                emit('Unknown option: ' + key + '\n', sys.stderr)
+    if version:
+        emit('gromacs.launchpp 2.0\n')
+        return 0
+    try:
+        contents = read(params_path) if params_path is not None else ''
+        if params_path is None:
+            raise FileNotFoundError(2, 'No such file or directory')
+    except OSError as e:
+        emit('gromacs.launchpp: parameter file does not exist!\n', sys.stderr)
+        return e.errno or 255
+    params = {}
+    for line in contents.split('\n'):
+        line = re.sub(r'\s*!.*$', '', line, flags=re.ASCII)
+        m = re.match(r'^\s*([^:\s]+)\s*:\s*(.*?)\s*$', line, re.ASCII)
+        if m:
+            params[m[1]] = m[2]
+    mdp = params.get('inputFile') or 'gromacs.mdp'
+    gmx = shutil.which('gmx') or ''
+    if mdp.endswith('.gmxprep'):
+        return check_prepare(mdp, gmx)
+    if nonempty('run.gmxtpr'):
+        return 0
+    missing = []
+    for path, label in [(mdp, 'the run-control file ' + mdp), ('topol.top', 'the topology (topol.top)'),
+                        ('conf.gro', 'the starting structure (conf.gro)')]:
+        if not nonempty(path):
+            missing.append(label)
+    if missing:
+        emit('GROMACS needs ' + ', '.join(missing) + ' and it is not here.\n'
+             'Attach the topology and the structure on the Inputs tab of the task editor.\n', sys.stderr)
+        return 1
+    ndx = index_file(mdp)
+    if not gmx:
+        emit("gmx is not on this machine, so the inputs are not checked here; grompp runs on the job's machine.\n")
+        return 0
+    with tempfile.TemporaryDirectory(prefix='gromacs.launchpp.') as tmp:
+        work = os.path.join(tmp, 'run')
+        os.mkdir(work)
+        stage(work)
+        cmd = [gmx, 'grompp', '-f', os.path.abspath(mdp), '-c', 'conf.gro', '-r', 'conf.gro',
+               '-p', 'topol.top']
+        if ndx:
+            cmd += ['-n', ndx]
+        cmd += ['-o', tmp + '/check.tpr', '-po', tmp + '/mdout.mdp', '-maxwarn', '999']
+        status, out = run(cmd, work)
+        if status:
+            msg = diagnostic(out, r'^(ERROR|WARNING|Fatal error)')
+            named = grompp_warn.translate(msg)
+            warn_and_exit('grompp', 'command: ' + ' '.join(cmd) + '\n\n' + named,
+                          msg if named != msg else '')
+        intended = 'ECCE-NETCHARGE-INTENDED' in read(os.path.join(work, 'topol.top'))
+        stop = [w for w in grompp_warn.parse(out, intended) if not w['harmless']]
+        if stop:
+            body = '\n\n'.join(grompp_warn.explain(w) or grompp_warn.translate(w['text']) for w in stop)
+            original = '\n\n'.join(w['head'] + '\n  ' + w['text'] for w in stop) if body != '\n\n'.join(
+                w['text'] for w in stop) else ''
+            warn_and_exit('grompp', body, original)
+    emit('grompp accepted the inputs.\n')
+    return 0
+
+
+if __name__ == '__main__':
+    sys.exit(main(sys.argv[1:]))

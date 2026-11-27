@@ -365,7 +365,7 @@ def main():
         dumps = dict((k, os.path.join(s.state, "panel-%s.txt" % k)) for k in ("rdf", "energy"))
         text, shots = bo.runScript(
             s, display, benv, wrappers, ["-context", nacl],
-            ["wait 2000", "gmxa wait", "gmxa state",
+            ["wait 2000", "background 1 1 1", "gmxa wait", "gmxa state",
              "gmxa analysis rdf", "gmxa set ref residue:NA",
              "gmxa set sel residue:SOL & element:O", "gmxa set rmax 1.0",
              "gmxa run", "gmxa dump %s" % dumps["rdf"], "gmxa state", "shot rdf",

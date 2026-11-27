@@ -1,214 +1,205 @@
-#!/usr/bin/env perl
-###############################################################################
-#
-# Purpose:
-#   Writes a GROMACS index file (.ndx) of groups defined by residue name.
-#
-#   usage: gromacs.mkndx <conf.gro> <run.mdp> <out.ndx> [<topol.top>]
-#
-#   The groups are the "; ecce-group <name> = <item> <item>" comment lines
-#   that ai.gromacs writes into the .mdp from the task editor.  An item is a
-#   residue name, or mol:<name> for every atom of the molecules the topology's
-#   [ molecules ] lists under that name (a protein chain from pdb2gmx is one:
-#   mol:Protein_chain_A).  The .gro has no chain column, so chains come from
-#   the topology: the atom count of each molecule type, summed in order.  The
-#   file has [ System ] first, because grompp finds only the groups of an
-#   index file when one is given, and then one group per line.  This is the
-#   one place that writes an index file: gromacs.launchpp runs it at launch
-#   and the file is shipped with the job, so the job script has nothing of
-#   its own.
-#
-#   Exit 0 with nothing written when the .mdp defines no group; exit 1 with
-#   the reason on stderr when a residue name is not in the structure.
-#
-###############################################################################
-use strict;
+#!/usr/bin/env python3
+"""Write residue and topology-molecule groups for the staged GROMACS task."""
+import errno
+import os
+import re
+import sys
 
-die "usage: gromacs.mkndx conf.gro run.mdp out.ndx [topol.top]\n" if (@ARGV < 3 || @ARGV > 4);
-my ($gro, $mdp, $out, $top) = @ARGV;
 
-my @defs;      # [name, [residues]]
-my %defined;   # -D flags of the .mdp and #defines of the topology
-open(my $mf, "<", $mdp) || die "gromacs.mkndx: cannot read $mdp: $!\n";
-while (<$mf>) {
-  push(@defs, [$1, [split(/\s+/, $2)]]) if (/^;\s*ecce-group\s+(\S+)\s*=\s*(.+?)\s*$/);
-  if (/^\s*define\s*=\s*([^;]*)/) { $defined{$1} = 1 while ($1 =~ /-D(\w+)/g); }
-}
-close($mf);
-exit 0 if (!@defs);
+# Perl's buffered regular-file reads leave ENOTTY in $!, which die returns.
+def fail(message, code=errno.ENOTTY):
+    ending = '\r\n' if os.name == 'nt' else '\n'
+    sys.stderr.buffer.write((message + ending).encode('utf-8', 'surrogateescape'))
+    raise SystemExit(code)
 
-open(my $gf, "<", $gro) || die "gromacs.mkndx: cannot read $gro: $!\n";
-my $title = <$gf>;
-my $n = <$gf>;
-$n = 0 + ($n // 0);
-my @res;       # residue name of atom i (0-based here)
-my @xyz;       # its coordinates (nm)
-while (@res < $n && defined(my $l = <$gf>)) {
-  push(@xyz, [map { 0 + substr($l, 20 + 8 * $_, 8) } 0 .. 2]);
-  my $r = substr($l, 5, 5);
-  $r =~ s/^\s+//; $r =~ s/\s+$//;
-  push(@res, $r);
-}
-close($gf);
-die "gromacs.mkndx: $gro lists " . scalar(@res) . " atoms, not the $n it declares.\n"
-  if (@res != $n || $n == 0);
 
-my %seen = map { $_ => 1 } @res;
+NL = None if os.name == 'nt' else ''
 
-# ---- molecules of the topology: name -> [atom indices] (1-based) ----
-my %atomsOf;     # molecule type -> atoms in it
-my @order;       # [type, count] as listed under [ molecules ]
-my %visited;
-sub findInclude {
-  my ($name, $from) = @_;
-  (my $flat = $name) =~ s#/#__SLASH__#g;
-  my @dirs = ($from, ".");
-  foreach my $d (@dirs) {
-    foreach my $n ($name, $flat) { return "$d/$n" if (-f "$d/$n"); }
-  }
-  foreach my $d ($ENV{GMXLIB}, ($ENV{GMXDATA} ? "$ENV{GMXDATA}/top" : undef), "/usr/share/gromacs/top") {
-    return "$d/$name" if (defined($d) && -f "$d/$name");
-  }
-  return undef;
-}
-sub readTop {
-  my ($file) = @_;
-  return if ($visited{$file}++);
-  (my $dir = $file) =~ s#/?[^/]*$##;
-  $dir = "." if ($dir eq "");
-  open(my $fh, "<", $file) || return;
-  my ($sect, $cur) = ("", "");
-  my $named = 0;
-  #  Only the branch grompp will read counts: GROMOS water lists its atoms
-  #  twice (#ifndef HEAVY_H ... #else ...), which doubled every SOL.
-  my @on = (1);
-  while (my $l = <$fh>) {
-    $l =~ s/;.*//;
-    next if ($l =~ /^\s*$/);
-    if ($l =~ /^\s*#\s*if(n?)def\s+(\w+)/) {
-      push(@on, $on[-1] && (($1 eq "n") xor $defined{$2}));
-      next;
-    } elsif ($l =~ /^\s*#\s*else/) {
-      $on[-1] = (@on > 1 ? $on[-2] : 1) && !$on[-1] if (@on > 1);
-      next;
-    } elsif ($l =~ /^\s*#\s*endif/) {
-      pop(@on) if (@on > 1);
-      next;
-    }
-    next if (!$on[-1]);
-    if ($l =~ /^\s*#\s*define\s+(\w+)/) {
-      $defined{$1} = 1;
-      next;
-    } elsif ($l =~ /^\s*#\s*include\s+"([^"]+)"/) {
-      next if ($1 =~ /(forcefield|ffbonded|ffnonbonded)\.itp$/);
-      my $f = findInclude($1, $dir);
-      readTop($f) if (defined($f));
-    } elsif ($l =~ /^\s*#/) {
-      next;
-    } elsif ($l =~ /^\s*\[\s*(\w+)\s*\]/) {
-      $sect = lc($1);
-      $named = 0 if ($sect eq "moleculetype");
-    } elsif ($sect eq "moleculetype" && !$named) {
-      ($cur) = split(/\s+/, $l =~ s/^\s+//r);
-      $named = 1;
-      $atomsOf{$cur} = 0;
-    } elsif ($sect eq "atoms" && $cur ne "") {
-      $atomsOf{$cur}++;
-    } elsif ($sect eq "molecules") {
-      my ($n, $c) = split(" ", $l);
-      push(@order, [$n, $c]);
-    }
-  }
-  close($fh);
-}
-my %molAtoms;    # name -> list of atom indices over all its copies
-my $molsRead = 0;
-sub moleculeAtoms {
-  my $name = shift;
-  if (!$molsRead) {
-    die "gromacs.mkndx: a group asks for a molecule (mol:$name) and no topology was given.\n"
-      if (!defined($top) || !-f $top);
-    readTop($top);
-    my $at = 0;
-    foreach my $m (@order) {
-      my ($n, $c) = @$m;
-      die "gromacs.mkndx: molecule $n of the topology has no [ atoms ] that could be found, so the atoms of $name cannot be placed.\n"
-        if (!$atomsOf{$n});
-      for (my $i = 0; $i < $c; $i++) {
-        push(@{$molAtoms{$n}}, $at + 1 .. $at + $atomsOf{$n});
-        $at += $atomsOf{$n};
-      }
-    }
-    die "gromacs.mkndx: the topology's molecules hold $at atoms, the structure $n.\n" if ($at != $n);
-    $molsRead = 1;
-  }
-  die "gromacs.mkndx: the topology has no molecule named $name; it has: " .
-      join(" ", sort keys %molAtoms) . ".\n" if (!$molAtoms{$name});
-  return @{$molAtoms{$name}};
-}
-my %members;   # group name -> atom indices (1-based)
+def read(path):
+    try:
+        # Group definitions can be appended to this file: preserve unrecognised bytes.
+        with open(path, encoding='utf-8', errors='surrogateescape', newline=NL) as f:
+            return f.read()
+    except OSError as e:
+        fail('gromacs.mkndx: cannot read {}: {}'.format(path, e.strerror), e.errno)
 
-#  grompp refuses a pull group wider than a quarter of the box without a
-#  pbc reference atom (pull-pbc-ref-prev-step-com does not lift that in
-#  2025), so the .mdp gets the atom nearest each pull group's centre.
-sub pbcAtoms {
-  open(my $mf, "<", $mdp) || return;
-  my @lines = <$mf>;
-  close($mf);
-  my (%pullName, %hasAtom);
-  foreach (@lines) {
-    my $l = $_ =~ s/;.*//r;
-    $pullName{$1} = $2 if ($l =~ /^\s*pull[-_]group(\d+)[-_]name\s*=\s*(\S+)/i);
-    $hasAtom{$1} = 1 if ($l =~ /^\s*pull[-_]group(\d+)[-_]pbcatom\s*=/i);
-  }
-  my @add;
-  foreach my $g (sort keys %pullName) {
-    my $idx = $members{$pullName{$g}};
-    next if ($hasAtom{$g} || !$idx || @$idx < 2);
-    my @c = (0, 0, 0);
-    foreach my $i (@$idx) { $c[$_] += $xyz[$i - 1][$_] / @$idx for 0 .. 2; }
-    my ($best, $bd) = ($idx->[0], 1e30);
-    foreach my $i (@$idx) {
-      my $d = 0;
-      $d += ($xyz[$i - 1][$_] - $c[$_]) ** 2 for 0 .. 2;
-      ($best, $bd) = ($i, $d) if ($d < $bd);
-    }
-    push(@add, sprintf("pull-group%d-pbcatom      = %d\n", $g, $best));
-  }
-  return if (!@add);
-  open(my $wf, ">>", $mdp) || die "gromacs.mkndx: cannot write $mdp: $!\n";
-  print $wf @add;
-  close($wf);
-}
 
-sub block {
-  my ($name, @idx) = @_;
-  my $s = "[ $name ]\n";
-  for (my $i = 0; $i < @idx; $i += 15) {
-    my $e = $i + 14 < $#idx ? $i + 14 : $#idx;
-    $s .= join("", map { sprintf("%4d ", $_) } @idx[$i .. $e]) . "\n";
-  }
-  return $s;
-}
+def write(path, text, mode='w'):
+    try:
+        with open(path, mode, encoding='utf-8', errors='surrogateescape', newline=NL) as f:
+            f.write(text)
+    except OSError as e:
+        fail('gromacs.mkndx: cannot write {}: {}'.format(path, e.strerror), e.errno)
 
-my $text = block("System", 1 .. $n);
-foreach my $d (@defs) {
-  my ($name, $names) = @$d;
-  my @extra;
-  foreach my $r (@$names) {
-    if ($r =~ /^mol:(.+)$/) { push(@extra, moleculeAtoms($1)); next; }
-    next if ($seen{$r});
-    die "gromacs.mkndx: group $name asks for residue name $r, which is not in the structure; it has: " .
-        join(" ", sort keys %seen) . ".\n";
-  }
-  my %want = map { $_ => 1 } @$names;
-  my %all = map { $_ => 1 } @extra;
-  my @idx = grep { $want{$res[$_ - 1]} || $all{$_} } 1 .. $n;
-  $text .= block($name, @idx);
-  $members{$name} = \@idx;
-}
-pbcAtoms() if (%members);
-open(my $of, ">", $out) || die "gromacs.mkndx: cannot write $out: $!\n";
-print $of $text;
-close($of);
-exit 0;
+
+def number(s):
+    m = re.match(r'\s*[+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?', s, re.ASCII)
+    return float(m[0]) if m else 0
+
+
+class Topology:
+    def __init__(self, defined):
+        self.defined = defined
+        self.visited = set()
+        self.atoms = {}
+        self.order = []
+
+    def include(self, name, parent):
+        flat = name.replace('/', '__SLASH__')
+        candidates = [os.path.join(d, n) for d in (parent, '.') for n in (name, flat)]
+        dirs = [os.environ.get('GMXLIB'),
+                os.path.join(os.environ['GMXDATA'], 'top') if os.environ.get('GMXDATA') else None,
+                '/usr/share/gromacs/top']
+        candidates += [os.path.join(d, name) for d in dirs if d is not None]
+        return next((p for p in candidates if os.path.isfile(p)), None)
+
+    def read(self, path):
+        if path in self.visited:
+            return
+        self.visited.add(path)
+        try:
+            with open(path, encoding='utf-8', errors='surrogateescape', newline=NL) as f:
+                lines = f.readlines()
+        except OSError:
+            return
+        sect, cur, named, on = '', '', False, [True]
+        for line in lines:
+            line = line.split(';')[0]
+            if not line.strip():
+                continue
+            m = re.match(r'^\s*#\s*if(n?)def\s+(\w+)', line, re.ASCII)
+            if m:
+                on.append(on[-1] and (bool(m[1]) != (m[2] in self.defined)))
+                continue
+            if re.match(r'^\s*#\s*else', line):
+                if len(on) > 1:
+                    on[-1] = on[-2] and not on[-1]
+                continue
+            if re.match(r'^\s*#\s*endif', line):
+                if len(on) > 1:
+                    on.pop()
+                continue
+            if not on[-1]:
+                continue
+            define = re.match(r'^\s*#\s*define\s+(\w+)', line, re.ASCII)
+            inc = re.match(r'^\s*#\s*include\s+"([^"]+)"', line)
+            section = re.match(r'^\s*\[\s*(\w+)\s*\]', line, re.ASCII)
+            if define:
+                self.defined.add(define[1])
+            elif inc:
+                if re.search(r'(forcefield|ffbonded|ffnonbonded)\.itp$', inc[1]):
+                    continue
+                found = self.include(inc[1], os.path.dirname(path) or '.')
+                if found:
+                    self.read(found)
+            elif re.match(r'^\s*#', line):
+                continue
+            elif section:
+                sect = section[1].lower()
+                if sect == 'moleculetype':
+                    named = False
+            elif sect == 'moleculetype' and not named:
+                cur = line.split()[0]
+                named = True
+                self.atoms[cur] = 0
+            elif sect == 'atoms' and cur:
+                self.atoms[cur] += 1
+            elif sect == 'molecules':
+                fields = line.split()
+                self.order.append((fields[0], number(fields[1]) if len(fields) > 1 else 0))
+
+
+def block(name, indices):
+    return '[ {} ]\n'.format(name) + ''.join(
+        ''.join('{:4d} '.format(i) for i in indices[j:j + 15]) + '\n'
+        for j in range(0, len(indices), 15))
+
+
+def main(args):
+    if not 3 <= len(args) <= 4:
+        fail('usage: gromacs.mkndx conf.gro run.mdp out.ndx [topol.top]', 255)
+    gro, mdp, out = args[:3]
+    top = args[3] if len(args) == 4 else None
+    mdp_text = read(mdp)
+    defs, defined = [], set()
+    for line in mdp_text.splitlines(True):
+        m = re.match(r'^;\s*ecce-group\s+(\S+)\s*=\s*(.+?)\s*$', line, re.ASCII)
+        if m:
+            defs.append((m[1], re.split(r'\s+', m[2], flags=re.ASCII)))
+        m = re.match(r'^\s*define\s*=\s*([^;]*)', line, re.ASCII)
+        if m:
+            defined.update(re.findall(r'-D(\w+)', m[1], re.ASCII))
+    if not defs:
+        return 0
+    lines = read(gro).splitlines(True)
+    n = int(number(lines[1])) if len(lines) > 1 else 0
+    residues, xyz = [], []
+    for line in lines[2:2 + n]:
+        residues.append(line[5:10].strip())
+        xyz.append([number(line[20 + 8 * i:28 + 8 * i]) for i in range(3)])
+    if len(residues) != n or n == 0:
+        fail('gromacs.mkndx: {} lists {} atoms, not the {} it declares.'.format(gro, len(residues), n), 255 if len(residues) != n else errno.ENOTTY)
+    seen = set(residues)
+    mol_atoms = None
+
+    def molecule_atoms(name):
+        nonlocal mol_atoms
+        if mol_atoms is None:
+            if top is None or not os.path.isfile(top):
+                fail('gromacs.mkndx: a group asks for a molecule (mol:{}) and no topology was given.'.format(name),
+                     errno.ENOENT if top is not None else errno.ENOTTY)
+            topology = Topology(defined)
+            topology.read(top)
+            mol_atoms, at = {}, 0
+            for mol, count in topology.order:
+                size = topology.atoms.get(mol, 0)
+                if not size:
+                    fail('gromacs.mkndx: molecule {} of the topology has no [ atoms ] that could be found, '
+                         'so the atoms of {} cannot be placed.'.format(mol, name), 255)
+                for i in range(int(count + (count % 1 > 0))):
+                    mol_atoms.setdefault(mol, []).extend(range(at + 1, at + size + 1))
+                    at += size
+            if at != n:
+                fail("gromacs.mkndx: the topology's molecules hold {} atoms, the structure {}.".format(at, n), 255)
+        if not mol_atoms.get(name):
+            fail('gromacs.mkndx: the topology has no molecule named {}; it has: {}.'.format(
+                name, ' '.join(sorted(mol_atoms))), 255)
+        return mol_atoms[name]
+
+    text, members = block('System', list(range(1, n + 1))), {}
+    for name, names in defs:
+        extra = set()
+        for res in names:
+            if res.startswith('mol:') and len(res) > 4:
+                extra.update(molecule_atoms(res[4:]))
+            elif res not in seen:
+                fail('gromacs.mkndx: group {} asks for residue name {}, which is not in the structure; '
+                     'it has: {}.'.format(name, res, ' '.join(sorted(seen))))
+        idx = [i for i in range(1, n + 1) if residues[i - 1] in names or i in extra]
+        text += block(name, idx)
+        members[name] = idx
+    pull, has_atom = {}, set()
+    for line in mdp_text.splitlines(True):
+        line = line.split(';')[0]
+        m = re.match(r'^\s*pull[-_]group(\d+)[-_]name\s*=\s*(\S+)', line, re.I | re.ASCII)
+        if m:
+            pull[m[1]] = m[2]
+        m = re.match(r'^\s*pull[-_]group(\d+)[-_]pbcatom\s*=', line, re.I | re.ASCII)
+        if m:
+            has_atom.add(m[1])
+    add = ''
+    for group in sorted(pull):
+        idx = members.get(pull[group], [])
+        if group in has_atom or len(idx) < 2:
+            continue
+        centre = [sum(xyz[i - 1][k] / len(idx) for i in idx) for k in range(3)]
+        best = min(idx, key=lambda i: sum((xyz[i - 1][k] - centre[k]) ** 2 for k in range(3)))
+        add += 'pull-group%d-pbcatom      = %d\n' % (int(group), best)
+    if add:
+        write(mdp, add, 'a')
+    write(out, text)
+    return 0
+
+
+if __name__ == '__main__':
+    sys.exit(main(sys.argv[1:]))

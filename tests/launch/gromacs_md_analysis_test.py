@@ -290,7 +290,7 @@ def main():
             csv = os.path.join(s.state, "panel-%s.csv" % cmd)
             text, _ = bo.runScript(
                 s, display, env, wrappers, ["-context", u],
-                ["wait 3000", "mdcsv %s %s" % (cmd, csv), "quit"], png, "md" + cmd,
+                ["wait 3000", "background 1 1 1", "mdcsv %s %s" % (cmd, csv), "quit"], png, "md" + cmd,
                 {"ECCE_PANEL_MODE": "detail", "ECCE_OPEN_PANEL": panel})
             line = [l for l in text.splitlines() if "mdcsv curves=" in l]
             check(bool(line) and line[0].endswith(want),
