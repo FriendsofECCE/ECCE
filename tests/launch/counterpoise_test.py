@@ -76,7 +76,7 @@ def generate(work, name, code):
     env = dict(os.environ, ECCE_HOME=REPO)
     std = "std2ECCEQM" if code == "ecceqm" else "std2ORCA"
     with open(os.path.join(work, name + ".gbs")) as gbs:
-        r = subprocess.run(["perl", os.path.join(PARSERS, std)], stdin=gbs, env=env,
+        r = subprocess.run([sys.executable, os.path.join(PARSERS, std)], stdin=gbs, env=env,
                            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     with open(os.path.join(work, name + ".basis"), "wb") as out:
         out.write(r.stdout)

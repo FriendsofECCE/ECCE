@@ -28,6 +28,10 @@ namespace fs = std::filesystem;
 
 #include "util/ErrMsg.H"
 #include "util/Ecce.H"
+#ifdef _WIN32
+#include "util/Filesystem.H"
+namespace fs = ecce::fs;
+#endif
 #include "util/CompareOps.H"
 #include "util/SFile.H"
 #include "util/TempStorage.H"
@@ -2349,10 +2353,13 @@ const char* TGBSConfig::dump(const char* code_name, bool useNames)
 
   // Exec the script:
 #ifdef _WIN32
-  // Unported exporters still require Perl; converted ones use bundled Python.
+  // cmd.exe needs an interpreter for extensionless translators. Keep the
+  // remaining Perl exporters working until their writers are ported too.
   string interpreter = "perl";
-  if (codeName == "std2Gaussian-98" || codeName == "std2Gaussian-94" ||
-      codeName == "std2Gaussian-92") {
+  if (codeName == "std2NWChem" || codeName == "std2ORCA" ||
+      codeName == "std2ECCEQM" || codeName == "std2Gaussian-16" ||
+      codeName == "std2Gaussian-09" || codeName == "std2Gaussian-03" ||
+      codeName == "std2Gaussian-98") {
     fs::path py = fs::path(Ecce::ecceHome()) / "python" / "python.exe";
     string pyExe = fs::exists(py) ? py.string() : string("python.exe");
     interpreter = "\"" + pyExe + "\"";

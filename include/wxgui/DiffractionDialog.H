@@ -41,6 +41,10 @@ public:
   bool powder() const { return p_powder && !p_debye; }
   // The orientational average of all atoms (cell contents when periodic).
   void setDebye();
+  // Switch to a pattern mode (0 Fibre .. 4 Debye, as onPattern numbers them);
+  // false and why if the mode is unknown or needs a unit cell this structure
+  // has not got, so a script is told instead of silently getting another view.
+  bool setPattern(int mode, std::string& why);
   /** Opens on the view last chosen for <key> (a calculation) in this
       session, and remembers later choices under it. */
   void rememberViewFor(const std::string& key);
@@ -220,6 +224,7 @@ public:
   wxString setSource(int index, int doublet = -1) { return p_view->setSource(index, doublet); }
   bool powder() const { return p_view->powder(); }
   void setDebye() { p_view->setDebye(); }
+  bool setPattern(int mode, std::string& why) { return p_view->setPattern(mode, why); }
   void rememberViewFor(const std::string& key) { p_view->rememberViewFor(key); }
   bool debye() const { return p_view->debye(); }
   bool setLayer(const std::string& zone, int layer, double dmin, bool showAbsent, std::string& why) { return p_view->setLayer(zone, layer, dmin, showAbsent, why); }

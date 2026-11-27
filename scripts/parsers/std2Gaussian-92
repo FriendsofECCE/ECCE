@@ -1,9 +1,0 @@
-#!/usr/bin/env python3
-import sys
-
-from wrGaussian94GBS import legacy_main
-from wrGaussian92GBS import writeGaussian92
-
-
-if __name__ == '__main__':
-    sys.exit(legacy_main(writeGaussian92, '92'))
