@@ -2645,6 +2645,13 @@ add_test(NAME solvate COMMAND solvate_test ${CMAKE_SOURCE_DIR})
 set_tests_properties(solvate PROPERTIES
   ENVIRONMENT "ECCE_HOME=${CMAKE_SOURCE_DIR};ECCE_REALUSER=solvate;ECCE_REALUSERHOME=${CMAKE_BINARY_DIR}/solvate-home")
 
+# tests/tdat/vwr_radii_test (#1320): vdW radii from TPerTab are present and sane.
+add_executable(vwr_radii_test tests/tdat/vwr_radii_test.C)
+target_link_libraries(vwr_radii_test PRIVATE eccetdat ecceutil)
+add_test(NAME vwr_radii COMMAND vwr_radii_test)
+set_tests_properties(vwr_radii PROPERTIES
+  ENVIRONMENT "ECCE_HOME=${CMAKE_SOURCE_DIR};ECCE_REALUSER=vwr;ECCE_REALUSERHOME=${CMAKE_BINARY_DIR}/vwr-home")
+
 # tests/metal_bonds (#325): Metal bonds need no nubs.
 add_executable(metal_bond_test tests/metal_bonds/metal_bond_test.C)
 target_link_libraries(metal_bond_test PRIVATE eccetdat ecceutil)
