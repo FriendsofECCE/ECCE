@@ -14,7 +14,8 @@ key and must never reach a generated job script.
 processmachine: it is fed the form Machine Registration posts and the files
 it leaves behind are checked for the keys and blocks it does not manage.
 
-Exit status 77 (CTest SKIP) without perl or configdump.
+Exit status 77 (CTest SKIP) without configdump; the gensub checks
+also need perl, the processmachine checks do not.
 """
 
 import argparse
@@ -565,8 +566,9 @@ def post(home, user, fields, site=False, script=None, encoder=None,
         body = urlencode(fields)
     env = dict(os.environ, ECCE_HOME=home, ECCE_REALUSERHOME=user,
                CONTENT_LENGTH=str(len(body)))
-    return subprocess.run(["perl", script or os.path.join(REPO, "scripts",
-                                                         "processmachine")],
+    return subprocess.run([sys.executable,
+                           script or os.path.join(REPO, "scripts",
+                                                  "processmachine")],
                           input=body, env=env, text=True, cwd=cwd,
                           stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
@@ -781,11 +783,14 @@ def main():
     args = ap.parse_args()
     perl = shutil.which("perl")
     exe = os.path.join(args.build, "configdump")
-    if not perl or not os.path.exists(exe):
-        print("SKIP  needs perl and %s" % exe)
+    if not os.path.exists(exe):
+        print("SKIP  needs %s" % exe)
         return SKIP
 
-    if not args.processmachine:
+    # gensub is still Perl; processmachine (Python) must run without it.
+    if not perl:
+        print("SKIP  gensub tests need perl (processmachine tests still run)")
+    elif not args.processmachine:
         precedence(args.build, perl)
         threeLayers(args.build, perl)
         allocation(args.build)
