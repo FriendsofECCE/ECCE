@@ -6,8 +6,9 @@ imports and opens its pattern (#972).
 
 Each example of the topic is imported through the Organizer and opened in the
 Builder; the "calcdiffraction" script command is the Diffraction entry of its
-results and reports the pattern it opens: powder for the periodic calculations,
-fibre for the xTB molecules.  The periodic ones also give a layer (NaCl hk0
+results and reports the pattern it shows: powder for the periodic calculations,
+fibre for the xTB molecules, which ask for that view because a structure without
+a unit cell opens on Debye (#1230).  The periodic ones also give a layer (NaCl hk0
 only h,k both even; the all-odd hk1 spots weak for NaCl, nearly absent for KCl; quartz 00l only l = 3n).  Exit
 status 77 (skip) without Xvfb, import or the built binaries.
 """
@@ -30,7 +31,8 @@ from harness import say  # noqa: E402
 
 CLI = os.path.join(REPO, "scripts", "ecce_xrd.py")
 DX = os.path.join(REPO, "data", "client", "examples", "genchem")
-# folder, calculation, output extension, pattern the entry opens
+# folder, calculation, output extension, pattern the entry shows (the fibre
+# film is asked for: without a cell the entry itself opens on Debye, #1230)
 CASES = (("diffraction/qe-nacl_powder", "nacl_powder", ".pwout", "powder"),
          ("diffraction/qe-kcl", "kcl", ".pwout", "powder"),
          ("diffraction/qe-nacl_bragg", "nacl_bragg", ".pwout", "powder"),
@@ -96,8 +98,9 @@ def main():
             out = os.path.join(s.state, calc)
             os.makedirs(out, exist_ok=True)
             pngf, csvf = os.path.join(out, "d.png"), os.path.join(out, "d.csv")
+            req = " view=fibre" if kind == "fibre" else ""
             lines = ["wait 4000", "list Diffraction", "wait 1500",
-                     "calcdiffraction %s %s" % (pngf, csvf)]
+                     "calcdiffraction %s %s%s" % (pngf, csvf, req)]
             if kind != "fibre":
                 lines.append("calclayer %s %s %s 0 0.8 2,0,0" % (
                     os.path.join(out, "l.png"), os.path.join(out, "l.csv"),
@@ -122,10 +125,10 @@ def main():
                     lines.append("calcmeasure %s %s %s 0 0 viewtest" % (
                         view_kind, os.path.join(out, view_kind + "-view.png"), os.path.join(out, view_kind + "-view.csv")))
             if calc == "bdna":
-                lines.append("calcdiffraction %s %s %s 0 1" % (os.path.join(out, "dark.png"),
-                                                              os.path.join(out, "dark.csv"),
-                                                              os.path.join(out, "dark.xyz")))
-                lines.append("calcdiffraction %s %s %s 0 0 viewtest" % (
+                lines.append("calcdiffraction %s %s %s 0 1 view=fibre" % (os.path.join(out, "dark.png"),
+                                                                          os.path.join(out, "dark.csv"),
+                                                                          os.path.join(out, "dark.xyz")))
+                lines.append("calcdiffraction %s %s %s 0 0 viewtest view=fibre" % (
                     os.path.join(out, "fibre-view.png"), os.path.join(out, "fibre-view.csv"),
                     os.path.join(out, "view.xyz")))
             if calc == "nacl_powder":
@@ -147,7 +150,7 @@ def main():
                     shutil.copy(os.path.join(out, name), os.path.join(png, "%s-%s" % (calc, name)))
             bo.check("BUILDER: calcdiffraction pattern: %s" % kind in text and
                      "BUILDER: calcdiffraction: done" in text,
-                     "%s: the Diffraction entry opens the %s pattern" % (calc, kind))
+                     "%s: the Diffraction entry shows the %s pattern" % (calc, kind))
             if calc in ("bdna", "nacl_powder"):
                 count = 1 if calc == "bdna" else 2
                 bo.check(text.count("BUILDER: image view: PASS") == count,
