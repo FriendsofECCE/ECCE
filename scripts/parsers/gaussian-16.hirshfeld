@@ -1,22 +1,20 @@
-#!/usr/bin/env perl
-# Hirshfeld and CM5 charges from Gaussian's one table (Pop=Hirshfeld or
-# Pop=CM5 prints both):
-#
-#              Q-H        S-H        Dx         Dy         Dz        Q-CM5
-#     1  O   -0.323144   0.000000  -0.000000   0.000000  -0.186775  -0.659188
-#
-# Q-H is the first number of a row, Q-CM5 the last.
-$| = 1;
-use FindBin;
-require "$FindBin::Bin/atomcharges.pl";
+#!/usr/bin/env python3
+# Gaussian prints Hirshfeld and CM5 in one table: Q-H first, Q-CM5 last.
+import re
+import sys
 
-my (@h, @cm5);
-while (<STDIN>) {
-  next if (!/^\s*\d+\s+[A-Za-z]{1,2}\w*\s+(-?\d+\.\d+(?:\s+-?\d+\.\d+)*)\s*$/);
-  my @n = split(' ', $1);
-  push(@h, $n[0]);
-  push(@cm5, $n[$#n]) if (@n >= 6);
-}
-&emitCharges("HIRSHFELD", @h);
-&emitCharges("CM5", @cm5) if (scalar(@cm5) == scalar(@h));
-exit(0);
+from atomcharges import emit_charges
+
+hirshfeld = []
+cm5 = []
+for line in sys.stdin:
+    match = re.match(r"^\s*\d+\s+[A-Za-z]{1,2}\w*\s+(-?\d+\.\d+(?:\s+-?\d+\.\d+)*)\s*$", line)
+    if match:
+        numbers = match[1].split()
+        hirshfeld.append(numbers[0])
+        if len(numbers) >= 6:
+            cm5.append(numbers[-1])
+
+emit_charges("HIRSHFELD", hirshfeld)
+if len(cm5) == len(hirshfeld):
+    emit_charges("CM5", cm5)

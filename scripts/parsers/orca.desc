@@ -255,7 +255,7 @@ End=Sum of atomic charges
 # rest only when the input asks (! Hirshfeld, ! MBIS, ! NBO).  Loewdin has
 # no "Sum" line, so it ends on the block that follows it.  The Hirshfeld and
 # MBIS tables start at the "ATOM  CHARGE" header after some summary lines,
-# so they are not Skip=-counted; atomcharges.pl picks out the atom rows and
+# so they are not Skip=-counted; atomcharges.py picks out the atom rows and
 # the "  TOTAL" row ends them.  NPA comes from NBO's own text in the ORCA
 # output (the licensed program has to be installed and run via ! NBO).
 [LOEWDIN]

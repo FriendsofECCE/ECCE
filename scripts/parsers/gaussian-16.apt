@@ -1,7 +1,5 @@
-#!/usr/bin/env perl
-# APT atomic charges, one per atom; row parsing is in atomcharges.pl.
-$| = 1;
-use FindBin;
-require "$FindBin::Bin/atomcharges.pl";
-&emitCharges("APT", &chargeRows());
-exit(0);
+#!/usr/bin/env python3
+# APT atomic charges, one per atom, for the shared charge panel.
+from atomcharges import charge_rows, emit_charges
+
+emit_charges("APT", charge_rows())
