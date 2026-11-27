@@ -7,14 +7,18 @@ import sys
 from excited import emit_excited
 
 multiplicities = {"1": "Singlet", "2": "Doublet", "3": "Triplet"}
+# Perl matched bytes, so \s and \d are ASCII there: without re.ASCII a line led
+# by a UTF-8 no-break space, or carrying a non-ASCII digit, is parsed by Python
+# and skipped by Perl, and a state or transition silently appears or vanishes.
 states = []
 spectrum = {}
 # The Perl read job output as bytes; a stray byte must not crash the parse.
 sys.stdin.reconfigure(encoding="utf-8", errors="replace")
 for line in sys.stdin:
-    state = re.match(r"^STATE\s+(\d+):\s+E=\s*\S+ au\s+(-?\d+\.\d+) eV.*Mult\s+(\d+)", line)
-    transition = re.match(r"^\s+(\d+)([ab])\s*->\s*(\d+)([ab])\s*:\s+\S+\s+\(c=\s*(-?\d+\.\d+)\)", line)
-    row = re.match(r"^\s*\d+-\d+\S*\s+->\s+(\d+)-(\d+)\S*\s+(\d+\.\d+)\s+\d+\.\d+\s+\d+\.\d+\s+(\d+\.\d+)", line)
+    state = re.match(r"^STATE\s+(\d+):\s+E=\s*\S+ au\s+(-?\d+\.\d+) eV.*Mult\s+(\d+)", line, re.ASCII)
+    transition = re.match(r"^\s+(\d+)([ab])\s*->\s*(\d+)([ab])\s*:\s+\S+\s+\(c=\s*(-?\d+\.\d+)\)", line, re.ASCII)
+    row = re.match(r"^\s*\d+-\d+\S*\s+->\s+(\d+)-(\d+)\S*\s+(\d+\.\d+)\s+\d+\.\d+\s+\d+\.\d+\s+(\d+\.\d+)",
+                 line, re.ASCII)
     if state:
         states.append(dict(n=state[1], m=state[3], ev=state[2], f="0.0",
                            label=multiplicities.get(state[3], f"Mult{state[3]}"), trans=[]))

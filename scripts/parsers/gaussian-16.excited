@@ -8,26 +8,29 @@ import sys
 from excited import emit_excited
 
 key, runtype = (sys.argv[1:] + ["", ""])[:2]
+# Perl matched bytes, so \s and \d are ASCII there: without re.ASCII a line led
+# by a UTF-8 no-break space, or carrying a non-ASCII digit, is parsed by Python
+# and skipped by Perl, and a state or transition silently appears or vanishes.
 states = []
 td = None
 # The Perl read job output as bytes; a stray byte must not crash the parse.
 sys.stdin.reconfigure(encoding="utf-8", errors="replace")
 for line in sys.stdin:
-    total = re.search(r"Total Energy, E\(TD-HF/TD-DFT\)\s*=\s*(-?\d+\.\d+)", line)
+    total = re.search(r"Total Energy, E\(TD-HF/TD-DFT\)\s*=\s*(-?\d+\.\d+)", line, re.ASCII)
     if total:
         td = total[1]
         continue
-    state = re.match(r"^\s*Excited State\s+\d+:\s+(.*?)\s+(-?\d+\.\d+) eV\s+\d+\.\d+ nm\s+f=(\d+\.\d+)", line)
+    state = re.match(r"^\s*Excited State\s+\d+:\s+(.*?)\s+(-?\d+\.\d+) eV\s+\d+\.\d+ nm\s+f=(\d+\.\d+)", line, re.ASCII)
     if state:
         states.append(dict(label=state[1], ev=state[2], f=state[3], trans=[]))
     elif states:
-        transition = re.match(r"^\s+(\d+)\s*(->|<-)\s*(\d+)\s+(-?\d+\.\d+)\s*$", line)
+        transition = re.match(r"^\s+(\d+)\s*(->|<-)\s*(\d+)\s+(-?\d+\.\d+)\s*$", line, re.ASCII)
         if transition:
             # A backward arrow gives the de-excitation amplitude of full TD.
             source, target = (transition[1], transition[3]) if transition[2] == "->" else (transition[3], transition[1])
             states[-1]["trans"].append(f"{source}>{target}:{transition[4]}")
 
 emit_excited(states)
-if td is not None and re.search(r"Geo", runtype, re.I) and os.path.exists(f"{key}/g16TdOpt"):
+if td is not None and re.search(r"Geo", runtype, re.I | re.ASCII) and os.path.exists(f"{key}/g16TdOpt"):
     for prop in ("TE", "TEVEC"):
         print(f"key: {prop}\nsize:\n1\nvalues:\n{td}\nunits:\nHartree\nEND", flush=True)

@@ -5,6 +5,7 @@
 import re
 
 
+# Perl's s/\s+/_/g was ASCII; a no-break space inside a label must survive it.
 def emit_excited(states):
     if not states:
         return
@@ -12,7 +13,7 @@ def emit_excited(states):
     for key, values, units in (
         ("EXCIENERGY", [state["ev"] for state in states], "eV"),
         ("EXCIOSC", [state["f"] for state in states], "f"),
-        ("EXCISYM", [re.sub(r"\s+", "_", state["label"]) or "-"
+        ("EXCISYM", [re.sub(r"[ \t\n\r\f\v]+", "_", state["label"]) or "-"
                      for state in states], None),
         ("EXCITRANS", [",".join(state["trans"]) or "-" for state in states], None),
     ):
