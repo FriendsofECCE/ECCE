@@ -10,6 +10,8 @@ from excited import emit_excited
 key, runtype = (sys.argv[1:] + ["", ""])[:2]
 states = []
 td = None
+# The Perl read job output as bytes; a stray byte must not crash the parse.
+sys.stdin.reconfigure(encoding="utf-8", errors="replace")
 for line in sys.stdin:
     total = re.search(r"Total Energy, E\(TD-HF/TD-DFT\)\s*=\s*(-?\d+\.\d+)", line)
     if total:

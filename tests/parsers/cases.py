@@ -88,6 +88,33 @@ CASES = [
     # (one line, "<centre> <L> exp coef ..." joined by "|").  HCl/cc-pVTZ,
     # Cl is centre 1.
     dict(
+        name='g16-h2co-tddft-stray-byte',
+        desc='gaussian-16.desc',
+        fixture='gaussian-16/h2co_tddft_stray_byte.log',
+        silent_ok={'ORBSYM][ORBSYMBETA': 'no Orbital symmetries block in '
+                                         'this fixture'},
+        parse_args=('.', 'GeoVib', 'DFT', 'B3LYP', '0'),
+        expect={
+            'EXCIENERGY][EXCIOSC][EXCISYM][EXCITRANS': dict(blocks=2, keys={
+                'EXCIENERGY': {'values': '3.3832 6.9578 7.6606 7.8721 '
+                               '7.9066 8.2971 8.4586 9.5805 9.5907 10.3687',
+                               'units': 'eV'},
+                'EXCIOSC': {'values': '0.0000 0.0127 0.0296 0.0008 0.0315 '
+                            '0.1738 0.0000 0.0468 0.0000 0.0495'},
+                'EXCISYM': {'values_contain': 'Singlet-A2 Singlet-B2'},
+                'EXCITRANS': {'values_contain': '8>9:'},
+                # Opt TD (#521): the trace energy is the "Total Energy,
+                # E(TD-HF/TD-DFT)" of each step (this fixture has no "SCF
+                # Done" lines to rival it); TEVEC gets one point per block,
+                # step 1 (-114.361650132) is in the golden.
+                'TEVEC': {'values': '-114.372435238', 'units': 'Hartree'},
+            }),
+        },
+    ),
+    # #921: GFInput makes G16 echo the basis it used; CODEBASIS keeps it
+    # (one line, "<centre> <L> exp coef ..." joined by "|").  HCl/cc-pVTZ,
+    # Cl is centre 1.
+    dict(
         name='g16-hcl-gfinput-codebasis',
         desc='gaussian-16.desc',
         fixture='gaussian-16/hcl_ccpvtz_gfinput.log',
@@ -513,6 +540,26 @@ CASES = [
         name='orca-h2co-tddft',
         desc='orca.desc',
         fixture='orca/h2co_tddft.out',
+        silent_ok={'ORBSYM][ORBSYMBETA': 'no UseSym in this deck'},
+        parse_args=('.', 'Energy', 'DFT', 'B3LYP', '0'),
+        expect={
+            'EXCIENERGY][EXCIOSC][EXCISYM][EXCITRANS': dict(keys={
+                'EXCIENERGY': {'values': '4.018493 8.255707 9.154494 '
+                               '9.697642 10.280808 11.085267 11.610178 '
+                               '11.620493 13.143637 13.187152', 'units': 'eV'},
+                'EXCIOSC': {'values': '0.000000000 0.152342124 0.002342139 '
+                            '0.004444079 0.000000000 0.012484217 '
+                            '0.002710603 0.538095669 0.000000000 '
+                            '0.131140061'},
+                'EXCISYM': {'values_contain': 'Singlet Singlet'},
+                'EXCITRANS': {'values_contain': '8a>9a:0.99901186'},
+            }),
+        },
+    ),
+    dict(
+        name='orca-h2co-tddft-stray-byte',
+        desc='orca.desc',
+        fixture='orca/h2co_tddft_stray_byte.out',
         silent_ok={'ORBSYM][ORBSYMBETA': 'no UseSym in this deck'},
         parse_args=('.', 'Energy', 'DFT', 'B3LYP', '0'),
         expect={
