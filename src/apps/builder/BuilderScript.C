@@ -106,6 +106,8 @@
 //    chooser kind|pick SYM|search TEXT|enter TEXT|shot NAME|close
 //                                the element chooser popup: pick an element,
 //                                type a search, press Enter in it, save a PNG
+//    findpockets                 one line per binding pocket of the structure
+//    vinabox [pocket=N] [margin] the Vina search box around the selection or pocket N
 //    quit
 //  Each command is answered on stderr: "ECCE_BUILDER_SCRIPT: <line>: ok".
 
@@ -2677,7 +2679,8 @@ void Builder::runBuilderScript(const std::string& file)
         fprintf(stderr, "BUILDER: surface %s count=%d\n", w[1].c_str(),
                 sa.getPaths().getLength());
       } else if (w[0] == "vinabox" || w[0] == "vinaboxinfo" ||
-                 w[0] == "selectatoms" || w[0] == "poses") {
+                 w[0] == "selectatoms" || w[0] == "poses" ||
+                 w[0] == "findpockets") {
         outcome = vinaScriptCommand(w);
       } else if (w[0].compare(0, 4, "gten") == 0 && w[0] != "gtenkind") {
         outcome = ensembleCommand(w);

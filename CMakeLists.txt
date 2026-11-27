@@ -870,7 +870,7 @@ target_link_libraries(details_unit_test PRIVATE ecce-details-core)
 install(TARGETS ecce-dialog RUNTIME DESTINATION bin COMPONENT client)
 
 # --- wx + GL apps ---
-set(ECCE_BUILDER_LINK eccewxguicomm eccewxviz eccewxinv eccevizsg eccemoiv ecceinv eccecommxt eccecomm eccercmd
+set(ECCE_BUILDER_LINK eccedock eccewxguicomm eccewxviz eccewxinv eccevizsg eccemoiv ecceinv eccecommxt eccecomm eccercmd
        eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil
        ${ECCE_X11_LIBS} jpeg freetype)
 ecce_tool_objects(builder-objs src/apps/builder EXCLUDE BuilderApp.C
@@ -6260,6 +6260,15 @@ if(PYTHON3_EXECUTABLE)
                    --build ${CMAKE_BINARY_DIR}
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_vina_viewer PROPERTIES TIMEOUT 3600 SKIP_RETURN_CODE 77)
+
+  # #1320: binding pockets to the Vina search box (script hook); needs Xvfb
+  # and the 1IEP fixture, skips (77) otherwise.
+  add_test(NAME apps_pocket_box
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/pocket_box_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_pocket_box PROPERTIES TIMEOUT 600 SKIP_RETURN_CODE 77)
 
   # #1244: the Runtype Details list of ligand candidates.
   add_test(NAME apps_vina_molecules

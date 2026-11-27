@@ -2,6 +2,7 @@
 //  atoms, drawn as a wireframe in the viewer, redrawn when the editor's
 //  numbers change.  The box values live in the calculation's run type
 //  details (ES.Runtype.Vina.*), which ai.vina turns into the config.
+#include "dock/PocketFinder.H"
 #include "tdat/LigandSelect.H"
 #include "tdat/Residue.H"
 #include <algorithm>
@@ -13,6 +14,7 @@
 #include <memory>
 #include <sstream>
 #include <wx/menu.h>
+#include <wx/utils.h>
 
 #include "inv/nodes/SoSwitch.H"
 #include "inv/nodes/SoSeparator.H"
@@ -274,6 +276,89 @@ void Builder::vinaDetailsChanged(const string& url, const std::map<string, strin
 }
 
 
+// The tail shared by every way of setting the box: the six keys (stored by the
+// caller into g), the job back to CREATED, the drawing and the editor message.
+// Takes ownership of g.
+string Builder::commitVinaBox(TaskJob *job, ICalculation *ic, GUIValues *g,
+                              const VinaBox& box)
+{
+  char buf[32];
+  for (int k = 0; k < 3; k++) {
+    snprintf(buf, sizeof buf, "%.1f", box.centre[k]);
+    store(g, string("ES.Runtype.Vina.BoxCenter") + AXES[k], buf, "float_input", "A");
+    snprintf(buf, sizeof buf, "%.1f", box.size[k]);
+    store(g, string("ES.Runtype.Vina.BoxSize") + AXES[k], buf, "float_input", "A");
+  }
+  snprintf(buf, sizeof buf, "%.1f", box.margin);
+  store(g, "ES.Runtype.Vina.BoxMargin", buf, "float_input", "A");
+  store(g, "ES.Runtype.Vina.BoxAuto", "0", "toggle_input", "");
+  const bool ok = ic->guiparams(g);
+  delete g;
+  if (!ok) return "the box could not be stored with the calculation";
+  // The deck no longer matches: Launch must not reuse it, and an open
+  // Calculation Editor reloads the details (CalcEd::detailsMCB).
+  if (job->getState() > ResourceDescriptor::STATE_CREATED)
+    job->setState(ResourceDescriptor::STATE_CREATED);
+  drawVinaBox(box);
+  JMSMessage *msg = newMessage();
+  msg->addProperty("url", getContext());
+  publish("ecce_url_details", *msg);
+  delete msg;
+  return "";
+}
+
+
+// Binding pockets of the structure shown (#1320), best first.  The receptor is
+// what is scored: waters and bound ligands are dropped by the detector.
+string Builder::findPocketsReport(PocketFinder::Result& res)
+{
+  SGFragment *frag = getSG()->getFragment();
+  if (!frag || frag->numAtoms() == 0) return "there is no structure";
+  wxBusyCursor busy;  // ~0.2 s on a 4700-atom receptor, too short for a bar
+  res = PocketFinder::findPockets(*frag);
+  if (res.pockets.empty())
+    return "no binding pocket was found (is a receptor with a cleft loaded?)";
+  return "";
+}
+
+
+string Builder::vinaBoxFromPocket(int n, double margin, string *what)
+{
+  TaskJob *job = vinaJob();
+  ICalculation *ic = dynamic_cast<ICalculation*>(job);
+  if (!ic) return "the structure open is not a Vina calculation";
+  if (isReadOnly()) return "the calculation can no longer be edited";
+  PocketFinder::Result res;
+  string why = findPocketsReport(res);
+  if (!why.empty()) return why;
+  if (n < 1 || n > (int)res.pockets.size()) {
+    char b[80];
+    snprintf(b, sizeof b, "there is no pocket %d, %d found", n, (int)res.pockets.size());
+    return b;
+  }
+  const PocketFinder::Pocket& pk = res.pockets[n - 1];
+  GUIValues *g = ic->guiparams();
+  if (!g) g = new GUIValues;
+  if (margin < 0) margin = atof(value(g, "ES.Runtype.Vina.BoxMargin", "5").c_str());
+  if (!(margin >= 0)) margin = 5;
+  VinaBox box;
+  box.valid = true;
+  box.automatic = false;
+  box.margin = margin;
+  for (int k = 0; k < 3; k++) {
+    box.centre[k] = round1((pk.lo[k] + pk.hi[k]) / 2);
+    box.size[k] = std::max(1.0, round1(pk.hi[k] - pk.lo[k] + 2 * margin));
+  }
+  if (what) {
+    char b[160];
+    snprintf(b, sizeof b, "pocket %d of %d (volume %.0f A^3, %d lining residues)",
+             n, (int)res.pockets.size(), pk.volume, (int)pk.lining.size());
+    *what = b;
+  }
+  return commitVinaBox(job, ic, g, box);
+}
+
+
 string Builder::vinaBoxFromSelection(double margin)
 {
   TaskJob *job = vinaJob();
@@ -297,18 +382,10 @@ string Builder::vinaBoxFromSelection(double margin)
   box.valid = true;
   box.automatic = false;
   box.margin = margin;
-  char buf[32];
   for (int k = 0; k < 3; k++) {
     box.centre[k] = round1((lo[k] + hi[k]) / 2);
     box.size[k] = std::max(1.0, round1(hi[k] - lo[k] + 2 * margin));
-    snprintf(buf, sizeof buf, "%.1f", box.centre[k]);
-    store(g, string("ES.Runtype.Vina.BoxCenter") + AXES[k], buf, "float_input", "A");
-    snprintf(buf, sizeof buf, "%.1f", box.size[k]);
-    store(g, string("ES.Runtype.Vina.BoxSize") + AXES[k], buf, "float_input", "A");
   }
-  snprintf(buf, sizeof buf, "%.1f", margin);
-  store(g, "ES.Runtype.Vina.BoxMargin", buf, "float_input", "A");
-  store(g, "ES.Runtype.Vina.BoxAuto", "0", "toggle_input", "");
   // A selection that is exactly one ligand residue (not polymer, water or an
   // ion) is also the ligand to dock: fill Ligand atoms with it.  A box around
   // binding-site residues leaves the field as it was.
@@ -326,19 +403,7 @@ string Builder::vinaBoxFromSelection(double margin)
       store(g, "ES.Runtype.Docking.LigandAtoms", ranges, "text_input", "");
     }
   }
-  const bool ok = ic->guiparams(g);
-  delete g;
-  if (!ok) return "the box could not be stored with the calculation";
-  // The deck no longer matches: Launch must not reuse it, and an open
-  // Calculation Editor reloads the details (CalcEd::detailsMCB).
-  if (job->getState() > ResourceDescriptor::STATE_CREATED)
-    job->setState(ResourceDescriptor::STATE_CREATED);
-  drawVinaBox(box);
-  JMSMessage *msg = newMessage();
-  msg->addProperty("url", getContext());
-  publish("ecce_url_details", *msg);
-  delete msg;
-  return "";
+  return commitVinaBox(job, ic, g, box);
 }
 
 
@@ -359,9 +424,29 @@ void Builder::OnVinaBoxFromSelection(wxCommandEvent&)
 }
 
 
+void Builder::OnFindPockets(wxCommandEvent&)
+{
+  string what;
+  const string why = vinaBoxFromPocket(1, -1, &what);
+  if (!why.empty()) {
+    showMessage("Binding pockets: " + why + ".", true);
+    return;
+  }
+  char buf[300];
+  snprintf(buf, sizeof buf, "Docking box set around %s: centre %.1f %.1f %.1f, "
+           "size %.1f x %.1f x %.1f A. Save the calculation in the editor to "
+           "write it into the input.", what.c_str(), p_vinaBox.centre[0],
+           p_vinaBox.centre[1], p_vinaBox.centre[2], p_vinaBox.size[0],
+           p_vinaBox.size[1], p_vinaBox.size[2]);
+  showMessage(buf);
+}
+
+
 //  ECCE_BUILDER_SCRIPT commands for the box and the Poses panel:
 //    selectatoms <1-5,9>   select these atoms (numbered from 1)
 //    vinabox [margin]      Tools > Docking Box Around Selection
+//    vinabox pocket=N [margin]  the box around pocket N (1 = best) of findpockets
+//    findpockets           one line per binding pocket, best first
 //    vinaboxinfo           the box drawn: "drawn=0|1 centre x y z size x y z"
 //    poses select <rank>   show a pose, as a click on its row
 //    poses info            rows, the energy label, population, pocket, thumbnails
@@ -390,8 +475,35 @@ string Builder::vinaScriptCommand(const vector<string>& w)
     return buf;
   }
   if (w[0] == "vinabox") {
-    const string why = vinaBoxFromSelection(w.size() > 1 ? atof(w[1].c_str()) : -1);
+    // Words after the command: pocket=N and/or a margin; "pocket=" is taken
+    // out first so the positional margin keeps its meaning.
+    int pocket = 0;
+    double margin = -1;
+    for (size_t i = 1; i < w.size(); i++) {
+      if (w[i].compare(0, 7, "pocket=") == 0) {
+        pocket = atoi(w[i].c_str() + 7);
+        if (pocket < 1) return "FAIL: pocket=N needs N from 1";
+      } else {
+        margin = atof(w[i].c_str());
+      }
+    }
+    const string why = pocket ? vinaBoxFromPocket(pocket, margin) : vinaBoxFromSelection(margin);
     if (!why.empty()) return "FAIL: " + why;
+  }
+  if (w[0] == "findpockets") {
+    PocketFinder::Result res;
+    const string why = findPocketsReport(res);
+    if (!why.empty()) return "FAIL: " + why;
+    string out = "pockets=" + std::to_string(res.pockets.size());
+    int rank = 0;
+    for (const PocketFinder::Pocket& pk : res.pockets) {
+      snprintf(buf, sizeof buf, " ; #%d score %.1f volume %.0f centre %.1f %.1f %.1f "
+               "extent %.1f x %.1f x %.1f lining %d", ++rank, pk.score, pk.volume,
+               pk.centre[0], pk.centre[1], pk.centre[2], pk.hi[0] - pk.lo[0],
+               pk.hi[1] - pk.lo[1], pk.hi[2] - pk.lo[2], (int)pk.lining.size());
+      out += buf;
+    }
+    return out;
   }
   if (w[0] == "vinabox" || w[0] == "vinaboxinfo") {
     snprintf(buf, sizeof buf, "drawn=%d auto=%d centre %.1f %.1f %.1f size %.1f %.1f %.1f",
