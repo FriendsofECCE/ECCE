@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Byte-level reference cases captured from the three Perl exporters.
+"""Byte-level reference cases captured from the Perl Gaussian-98 exporter.
 
 Single-centre cases avoid Perl's randomized element order. Run through Slurm
 with python3 tests/basislegacy/run_tests.py; no services or GUI are needed.
