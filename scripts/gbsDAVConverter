@@ -454,6 +454,8 @@ def main(args):
     source = source or '/msrc/dist/gbasis-1.0'
     template = os.environ.get('ECCE_HOME', '') + '/data/admin/basissets'
     dest = dest or template + '/testNewData'
+    # The Perl read the answer as bytes; a stray byte must not crash the prompt.
+    sys.stdin.reconfigure(encoding='utf-8', errors='replace')
     while True:
         out('\nSource directory:\t%s\nDestination directory:\t%s\nOK? (y/n) ' % (source, dest))
         answer = sys.stdin.readline()
