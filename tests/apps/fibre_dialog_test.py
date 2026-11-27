@@ -6,7 +6,8 @@
 
 Headless through ECCE_BUILDER_SCRIPT: the Builder's DNA generator makes a
 20 bp poly(dA).poly(dT) duplex, the "diffraction" hook opens the dialog on that
-structure with its default fields, calculates, and saves the PNG and CSV.  The
+structure with its default fields and the fibre view (a structure without a unit
+cell opens on Debye, #1230), calculates, and saves the PNG and CSV.  The
 CSV must equal the CLI's for the .xyz the dialog was given.
 Exit 77 (skip) without an install or Xvfb.
 """
@@ -42,7 +43,7 @@ def run(display):
     png, csv, xyz = (os.path.join(work, n) for n in ("dialog.png", "dialog.csv", "dialog.xyz"))
     script = os.path.join(work, "fibre.script")
     with open(script, "w") as f:
-        f.write("\n".join(["wait 3000", "dna " + "A" * 20, "wait 1000", "diffraction %s %s %s" % (png, csv, xyz),
+        f.write("\n".join(["wait 3000", "dna " + "A" * 20, "wait 1000", "diffraction %s %s %s view=fibre" % (png, csv, xyz),
                            "quit"]) + "\n")
     try:
         auth = fixture.authFile(os.path.join(work, "auth.pipe"), user=fixture.realUser())

@@ -63,6 +63,12 @@ checked = []
 opts = {"out": None, "size": (1024, 600)}
 
 
+class DisplayQueryFailed(Exception):
+    """xwininfo did not answer, so the window list is unknown -- which is
+    not the same as the screen being empty, and must not be reported as
+    an app having opened nothing."""
+
+
 def topLevels(display):
     """[(id, title, width, height, x, y)] of the named top-level windows.
 
@@ -76,7 +82,7 @@ def topLevels(display):
             stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
             timeout=20).stdout.decode("utf-8", "replace")
     except subprocess.TimeoutExpired:
-        return []
+        raise DisplayQueryFailed("xwininfo did not answer within 20 s")
     found = []
     for line in text.splitlines():
         m = CHILD.match(line)
@@ -100,16 +106,49 @@ def shoot(display, label):
                    timeout=60)
 
 
+def knownWindows(display):
+    """topLevels(), but an unanswered xwininfo is reported and treated as
+    an empty screen -- for the callers that only need a "before" snapshot
+    or a poll, where retrying is the next loop iteration anyway."""
+    try:
+        return topLevels(display)
+    except DisplayQueryFailed as exc:
+        print("      (%s)" % exc)
+        return []
+
+
+def windowsSince(display, before, tries=4, pause=2.0):
+    """(new windows since `before`, why there are none).
+
+    Retried: an app can map its window later than the caller's settle, and
+    a loaded machine can leave xwininfo unanswered.  One look reported both
+    as "no window opened", which named a cause the test had not
+    established and hid a real defect behind an apparent flake.
+    """
+    why = "nothing new opened"
+    for attempt in range(tries):
+        if attempt:
+            time.sleep(pause)
+        try:
+            wins = [w for w in topLevels(display) if w not in before]
+        except DisplayQueryFailed as exc:
+            why = str(exc)
+            continue
+        if wins:
+            return wins, ""
+        why = "nothing new opened"
+    return [], why
+
+
 def measure(display, label, before):
     """Record every window opened since `before` that leaves the screen."""
     sw, sh = opts["size"]
-    wins = [w for w in topLevels(display) if w not in before]
+    wins, why = windowsSince(display, before)
     checked.append(label)
     shoot(display, label)
     if not wins:
-        print("      %s: no window to measure" % label)
-        offenders.append("%s: no window opened, so nothing was measured"
-                         % label)
+        print("      %s: no window to measure (%s)" % (label, why))
+        offenders.append("%s: nothing was measured (%s)" % (label, why))
         return
     for _id, title, w, h, x, y in wins:
         right, bottom = x + w, y + h + TITLE_ALLOWANCE
@@ -125,7 +164,7 @@ def measure(display, label, before):
 
 
 def appCheck(display, name):
-    before = set(topLevels(display))
+    before = set(knownWindows(display))
 
     def inspect(d):
         measure(d, "app-" + name, before)
@@ -195,7 +234,7 @@ def dialogCheck(display, root, item, scratch):
     #  A GTK assertion kills about one dialog in a hundred at start-up and
     #  never the same one twice, so a signal before any window gets one retry.
     for attempt in (1, 2):
-        before = set(topLevels(display))
+        before = set(knownWindows(display))
         err = open(errPath, "w")
         proc = subprocess.Popen(argv, env=env, cwd=root,
                                 stdout=subprocess.DEVNULL, stderr=err,
@@ -203,11 +242,11 @@ def dialogCheck(display, root, item, scratch):
         try:
             deadline = time.time() + 30
             while time.time() < deadline and proc.poll() is None:
-                if [w for w in topLevels(display) if w not in before]:
+                if [w for w in knownWindows(display) if w not in before]:
                     break
                 time.sleep(0.3)
             time.sleep(1.5)
-            shown = [w for w in topLevels(display) if w not in before]
+            shown = [w for w in knownWindows(display) if w not in before]
             if not shown and attempt == 1 and (proc.poll() or 0) < 0:
                 print("      %s: died on signal %d before showing a window; "
                       "retrying" % (label, -proc.poll()))

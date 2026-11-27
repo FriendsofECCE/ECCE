@@ -1206,6 +1206,17 @@ void DiffractionView::setDebye()
   onPattern(4);
 }
 
+bool DiffractionView::setPattern(int mode, string& why)
+{
+  if (mode < 0 || mode > 4) { why = "unknown pattern view"; return false; }
+  if (!p_periodic && crystalMode(mode)) {
+    why = "that view needs a periodic structure with a unit cell";
+    return false;
+  }
+  onPattern(mode);
+  return true;
+}
+
 void DiffractionView::rememberViewFor(const string& key)
 {
   p_viewKey = key;

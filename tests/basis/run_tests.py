@@ -33,11 +33,14 @@ Exit status is 0 only if every check passed.
 
 import argparse
 import ast
+import importlib
 import difflib
 import re
 import os
 import subprocess
 import sys
+
+import python_port_test
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(os.path.dirname(HERE))
@@ -62,6 +65,23 @@ CASES = [
                 ("splits SP into S and P",
                  lambda t: "shell O P\n  15.539616 0.0708743\n" in t),
                 ("ends the block", lambda t: t.rstrip().endswith("end"))],
+    ),
+    dict(
+        name="ecceqm-ascii-whitespace",
+        fixture="water_nbsp.gbs",
+        exporter="std2ECCEQM",
+        #  The Perl reader matched bytes: a row or shell header joined by a
+        #  no-break space, or led by a non-ASCII digit, is not data (#1331).
+        expect=[("drops the NBSP-joined row",
+                 lambda t: "5484.6717" not in t),
+                ("drops the NBSP-separated H shell", lambda t: "shell H" not in t)],
+    ),
+    dict(
+        name="nwchem-ascii-whitespace",
+        fixture="water_nbsp.gbs",
+        exporter="std2NWChem",
+        #  "\u00a0aug-cc-pwCVDZ" is not "aug-cc-pwCV..." to Perl's ASCII \s.
+        expect=[("keeps the library names", lambda t: "library" in t)],
     ),
     dict(
         name="g16-single-named",
@@ -436,19 +456,24 @@ def name_tables():
     """
     def table(path):
         if path.endswith('.py'):
+            # A literal table is read without importing; otherwise import it.
             tree = ast.parse(open(os.path.join(PARSERS, path)).read())
             for node in tree.body:
                 if (isinstance(node, ast.Assign) and
                         any(isinstance(t, ast.Name) and t.id == 'NameToBasis'
                             for t in node.targets)):
-                    return ast.literal_eval(node.value)
-            return {}
+                    try:
+                        return ast.literal_eval(node.value)
+                    except ValueError:
+                        break
+            sys.path.insert(0, PARSERS)
+            return importlib.import_module(path[:-3]).NameToBasis
         text = open(os.path.join(PARSERS, path)).read()
         return dict(re.findall(r'\$NameToBasis\{"([^"]+)"\}\s*=\s*"([^"]+)"',
                                text))
 
     must = {
-        "wrORCAGBS.pm": {
+        "wrORCAGBS.py": {
             "6-31g*": "6-31G*", "cc-pvdz": "cc-pVDZ",
             "aug-cc-pvtz": "aug-cc-pVTZ", "cc-pvtz-dk": "cc-pVTZ-DK",
             "cc-pwcvtz": "cc-pwCVTZ", "aug-cc-pcvdz": "aug-cc-pCVDZ",
@@ -470,7 +495,7 @@ def name_tables():
     #  Rejected by the code or a different basis from ECCE's under the
     #  same name: naming any of these must stay impossible.
     never = {
-        "wrORCAGBS.pm": ["pcseg-0", "3-21g*", "4-31g", "6-31++g",
+        "wrORCAGBS.py": ["pcseg-0", "3-21g*", "4-31g", "6-31++g",
                          "6-31++g*", "d-aug-cc-pvdz", "cc-pv(d+d)z",
                          "dz (dunning)"],
         "wrGaussian16GBS.py": ["6-31g(3df,3pd)", "cc-pvdz-dk", "cc-pcvdz",
@@ -498,9 +523,9 @@ def name_tables():
 def run(case):
     path = os.path.join(PARSERS, case["exporter"])
     with open(os.path.join(FIXTURES, case["fixture"])) as handle:
-        interpreter = (sys.executable if case['exporter'] in
-                       ('std2Gaussian-16', 'std2Gaussian-09', 'std2Gaussian-03')
-                       else 'perl')
+        interpreter = sys.executable if case["exporter"] in (
+            "std2NWChem", "std2ORCA", "std2ECCEQM", "std2Gaussian-16",
+            "std2Gaussian-09", "std2Gaussian-03") else "perl"
         proc = subprocess.run([interpreter, path], stdin=handle,
                               capture_output=True, text=True, timeout=60,
                               env=dict(os.environ, ECCE_HOME=REPO))
@@ -552,6 +577,11 @@ def main():
 
     os.makedirs(EXPECTED, exist_ok=True)
     failures, checks = [], 0
+
+    checks += 1
+    port_failures, _ = python_port_test.compare_references()
+    reader_failures, _ = python_port_test.reader_agreement()
+    failures.extend(port_failures + reader_failures)
 
     checks += 1
     for finding in fortran_d_notation():
