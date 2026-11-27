@@ -23,6 +23,8 @@ def perl_number(value):
 
 def readStandardBS(stream=None):
     if stream is None:
+        # The Perl read the basis dump as bytes; a stray byte must not crash the translation.
+        sys.stdin.reconfigure(encoding="utf-8", errors="replace")
         stream = sys.stdin
     bs = {'gbs': {}}
     numeric = {kind: {} for kind in ('orbital', 'exchange', 'charge', 'ecp')}
