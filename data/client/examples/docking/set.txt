@@ -1,0 +1,2 @@
+Docking
+Protein-ligand docking with AutoDock Vina: the SARS-CoV-2 main protease with nirmatrelvir, HIV-1 protease with a cyclic urea inhibitor, and acetylcholinesterase with a huprine inhibitor, each redocked into the binding site of its own crystal structure.
