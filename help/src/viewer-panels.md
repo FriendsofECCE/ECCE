@@ -78,6 +78,10 @@ not available.
 - **Take a panel out:** drag its title bar (the grey bar with the panel's
   name) away from the Viewer and let go. The panel becomes a window of its
   own; resize it from its edges.
+- **Dock it on a side:** drag the window back over the right-hand column of
+  the Viewer and let go; it docks there, with a blue preview first. Over the
+  top, left or bottom the window only moves. Hold **Ctrl** while dragging to
+  dock it there: the preview shows only then.
 - **Put every panel back:** choose **Tools > Dock Floating Panels**. Dragging
   a window back onto the Viewer is unreliable on Linux, so use this menu
   item instead.

@@ -4779,6 +4779,64 @@ void BuilderAuiManager::keepIndexOnTop(wxAuiManager& mgr)
 }
 
 
+//  The dock side a drop at the mouse would use, following wxAuiManager::
+//  DoDrop: the dock or pane under the pointer, else the nearest window edge.
+//  wxAUI_DOCK_NONE when no floating panel is being dragged or nothing docks.
+int BuilderAuiManager::dragSideAtMouse()
+{
+  wxPoint mouse = wxGetMousePosition();
+  bool dragging = false;
+  for (size_t i = 0; i < m_panes.GetCount(); ++i) {
+    wxAuiPaneInfo &pi = m_panes.Item(i);
+    if (pi.IsFloating() && !pi.IsToolbar() && pi.frame &&
+        pi.frame->GetScreenRect().Contains(mouse)) dragging = true;
+  }
+  if (!dragging || !m_frame) return wxAUI_DOCK_NONE;
+  wxPoint pt = m_frame->ScreenToClient(mouse);
+  wxAuiDockUIPart *part = HitTest(pt.x, pt.y);
+  if (part && part->dock && part->dock->dock_direction != wxAUI_DOCK_CENTER)
+    return part->dock->dock_direction;
+  if (part && part->pane && part->pane->dock_direction != wxAUI_DOCK_CENTER)
+    return part->pane->dock_direction;
+  const int edge = 30;
+  wxSize sz = m_frame->GetClientSize();
+  if (pt.y < edge) return wxAUI_DOCK_TOP;
+  if (pt.y > sz.y - edge) return wxAUI_DOCK_BOTTOM;
+  if (pt.x < edge) return wxAUI_DOCK_LEFT;
+  if (pt.x > sz.x - edge) return wxAUI_DOCK_RIGHT;
+  return wxAUI_DOCK_NONE;
+}
+
+
+void BuilderAuiManager::ShowHint(const wxRect& rect)
+{
+  if (!rect.IsEmpty() && !ctrlHeld()) {
+    int side = dragSideAtMouse();
+    if (side != wxAUI_DOCK_RIGHT) {
+      HideHint();
+      return;
+    }
+  }
+  wxAuiManager::ShowHint(rect);
+}
+
+
+bool BuilderAuiManager::simulateDrop(const wxString& name, int dir, bool ctrl)
+{
+  wxAuiPaneInfo &pi = GetPane(name);
+  if (!pi.IsOk() || !pi.IsFloating()) return false;
+  wxAuiPaneInfo drop = pi;
+  drop.Dock().Direction(dir);
+  wxAuiPaneInfo target = pi;
+  p_ctrlOverride = ctrl ? 1 : 0;
+  bool ok = CanDockPanel(pi) && ProcessDockResult(target, drop);
+  p_ctrlOverride = -1;
+  if (!ok) return false;
+  pi = target;
+  return !pi.IsFloating();
+}
+
+
 bool BuilderAuiManager::ProcessDockResult(wxAuiPaneInfo& target,
                                           const wxAuiPaneInfo& newPos)
 {
@@ -7499,6 +7557,27 @@ void Builder::updatePropertyMenus()
           else return s.fail("dockpane: where? " + where);
           pi.Show(true);
           updatePanes(true);
+          return true;
+        }
+        //  "dropside <name> top|bottom|left|right ctrl|noctrl <panel name>":
+        //  the drop of a floating panel on that side with or without Ctrl
+        //  (#1215); writes "docked=<0|1> floating=<0|1> dir=<n>" to <name>.txt.
+        if (w[0] == "dropside" && w.size() >= 5) {
+          string name = w[4];
+          for (size_t k = 5; k < w.size(); k++) name += " " + w[k];
+          int dir = w[2] == "top" ? wxAUI_DOCK_TOP : w[2] == "bottom" ?
+              wxAUI_DOCK_BOTTOM : w[2] == "left" ? wxAUI_DOCK_LEFT :
+              wxAUI_DOCK_RIGHT;
+          wxAuiPaneInfo &pi = p_mgr.GetPane(wxString(name));
+          if (!pi.IsOk() || !pi.IsFloating())
+            return s.fail("dropside: no floating pane " + name);
+          bool docked = p_mgr.simulateDrop(wxString(name), dir, w[3] == "ctrl");
+          if (docked) updatePanes(true);
+          wxAuiPaneInfo &after = p_mgr.GetPane(wxString(name));
+          std::ofstream out(outdir + "/" + w[1] + ".txt");
+          out << "docked=" << (docked ? 1 : 0) << " floating="
+              << (after.IsFloating() ? 1 : 0) << " dir="
+              << after.dock_direction << "\n";
           return true;
         }
         //  "paneorder": the docked panes of the Properties column, top to

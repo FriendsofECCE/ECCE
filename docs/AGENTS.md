@@ -235,6 +235,12 @@ dock position `<pos>` as a mouse drop would; `dockfloating` is the Dock
 button. The Properties list stays first in the column whatever the drop.
 Test: `tests/apps/mo_explore_workflow_test.py` (e).
 
+`dropside <name> top|bottom|left|right ctrl|noctrl <panel name>` (Builder scene
+script, #1215): the drop of a floating panel on that side with or without Ctrl;
+writes `<name>.txt` as `docked=<0|1> floating=<0|1> dir=<n>`. A floating panel
+docks without Ctrl only on the right; on top, left and bottom only with Ctrl
+(and the drag preview shows only then). Test: `tests/apps/dock_ctrl_test.py`.
+
 `panelpaints <name> <ms> <property>` (scene script, `ECCE_VIEWER_SCENE`,
 #1263): clicks `<property>` in the Properties list and writes every paint of
 a window inside the MOs/Surfaces panel for `<ms>` to `<name>.txt` (`paint

@@ -120,6 +120,22 @@ public:
   bool ProcessDockResult(wxAuiPaneInfo& target,
                          const wxAuiPaneInfo& newPos) override;
 
+  //  A floating panel docks without Ctrl only on the right; on the top,
+  //  left and bottom it only moves, and docks there with Ctrl held (#1215).
+  //  wxAUI itself never docks while Ctrl is down, hence this override.
+  bool CanDockPanel(const wxAuiPaneInfo& p) override
+  {
+    return p.IsToolbar() ? wxAuiManager::CanDockPanel(p)
+                         : !wxGetKeyState(WXK_ALT);
+  }
+  //  The preview is hidden where the drop would not dock.
+  void ShowHint(const wxRect& rect) override;
+
+  //  Test hook: the drop of floating pane <name> on side <dir> (a
+  //  wxAUI_DOCK_*) with Ctrl <ctrl>, as a mouse drop would leave it.
+  //  Returns true when the pane docked.
+  bool simulateDrop(const wxString& name, int dir, bool ctrl);
+
   static void keepIndexOnTop(wxAuiManager& mgr);
 
   void setFloatParent(wxWindow *w) { p_floatParent = w; }
@@ -142,6 +158,10 @@ public:
 
 private:
   wxWindow *p_floatParent = 0;
+  int p_ctrlOverride = -1;   // simulated Ctrl state in the test hook
+  bool ctrlHeld() const
+  { return p_ctrlOverride >= 0 ? p_ctrlOverride != 0 : wxGetKeyState(WXK_CONTROL); }
+  int dragSideAtMouse();
 };
 
 class Builder: public BuilderGUI,

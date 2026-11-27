@@ -3538,6 +3538,12 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/dock_test.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_dock PROPERTIES TIMEOUT 600 SKIP_RETURN_CODE 77)
+  # A floating panel docks without Ctrl only on the right (#1215).
+  add_test(NAME apps_dock_ctrl
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/dock_ctrl_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_dock_ctrl PROPERTIES TIMEOUT 600 SKIP_RETURN_CODE 77)
   # MOs panel Spin Density view: largest-spin atom, per-element sums, Show on
   # structure colours and their restore (#616).
   add_test(NAME apps_spin_panel
