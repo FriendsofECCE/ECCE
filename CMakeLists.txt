@@ -708,6 +708,9 @@ target_link_libraries(lineprofile PRIVATE
 ecce_library(eccedock src/dock)
 add_executable(ecce-pdbqt src/apps/pdbqt/ecce-pdbqt.C)
 target_link_libraries(ecce-pdbqt PRIVATE eccedock)
+# The receptor/ligand split for docking, shared by every caller (#1335).
+add_executable(ecce-docksplit src/apps/docksplit/ecce-docksplit.C)
+target_link_libraries(ecce-docksplit PRIVATE eccedock)
 
 # Recompute H, S, G from a calculation's stored frequencies with a chosen
 # low-frequency treatment (#692); the thermochemistry lives in tdat/thermo.
@@ -2657,6 +2660,13 @@ target_link_libraries(solvate_cli PRIVATE eccetdat ecceutil)
 add_test(NAME solvate COMMAND solvate_test ${CMAKE_SOURCE_DIR})
 set_tests_properties(solvate PROPERTIES
   ENVIRONMENT "ECCE_HOME=${CMAKE_SOURCE_DIR};ECCE_REALUSER=solvate;ECCE_REALUSERHOME=${CMAKE_BINARY_DIR}/solvate-home")
+
+# tests/dock (#1335): receptor/ligand split against the golden corpus, wx-free.
+add_executable(dock_split_test tests/dock/dock_split_test.C)
+target_link_libraries(dock_split_test PRIVATE eccedock)
+add_test(NAME dock_split COMMAND dock_split_test ${CMAKE_SOURCE_DIR})
+set_tests_properties(dock_split PROPERTIES SKIP_RETURN_CODE 77
+  ENVIRONMENT "ECCE_HOME=${CMAKE_SOURCE_DIR};ECCE_REALUSER=docksplit;ECCE_REALUSERHOME=${CMAKE_BINARY_DIR}/docksplit-home")
 
 # tests/metal_bonds (#325): Metal bonds need no nubs.
 add_executable(metal_bond_test tests/metal_bonds/metal_bond_test.C)
