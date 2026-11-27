@@ -84,10 +84,12 @@ $npwhl = Fetch "numpy" $pins.numpy.url $pins.numpy.sha256 "numpy-2.2.6-cp313-cp3
 Get-ChildItem $site -Recurse -Include *.pyi -File | Remove-Item -Force
 # site-packages on sys.path, and `import site` on (the embeddable default is off).
 $pth = Get-ChildItem $py -Filter "python*._pth" | Select-Object -First 1
-# ..\scripts\codereg: the Theory/Runtype dialogs import their shared
-# modules (templates.py) from there, and a ._pth file replaces the usual
-# "script's own directory first" (and PYTHONPATH).
-Set-Content -Encoding ascii $pth.FullName @("python313.zip", ".", "Lib\site-packages", "..\scripts\codereg", "import site")
+# ..\scripts\codereg, ..\scripts\parsers, ..\scripts: a ._pth file replaces
+# the usual "script's own directory first" (and PYTHONPATH), so the
+# codereg dialogs (templates.py), the Python parsers and basis exporters
+# (rdStandardGBS.py, #868) and the scripts' own modules are found only
+# because they are listed here.
+Set-Content -Encoding ascii $pth.FullName @("python313.zip", ".", "Lib\site-packages", "..\scripts\codereg", "..\scripts\parsers", "..\scripts", "import site")
 Copy-Item "$py\python.exe" "$py\python3.exe"
 Copy-Item "$py\pythonw.exe" "$py\python3w.exe"
 & "$py\python.exe" -c "import numpy; print('numpy', numpy.__version__)"
