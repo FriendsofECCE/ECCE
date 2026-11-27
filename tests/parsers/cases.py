@@ -577,6 +577,29 @@ CASES = [
         },
     ),
     dict(
+        # Stray bytes inside matched STATE/transition/spectrum lines, in the
+        # \S+ fields the regexes cross but do not capture: the property text
+        # must equal the clean run's, and equals the original Perl's.
+        name='orca-h2co-tddft-stray-in-state',
+        desc='orca.desc',
+        fixture='orca/h2co_tddft_stray_in_state.out',
+        silent_ok={'ORBSYM][ORBSYMBETA': 'no UseSym in this deck'},
+        parse_args=('.', 'Energy', 'DFT', 'B3LYP', '0'),
+        expect={
+            'EXCIENERGY][EXCIOSC][EXCISYM][EXCITRANS': dict(keys={
+                'EXCIENERGY': {'values': '4.018493 8.255707 9.154494 '
+                               '9.697642 10.280808 11.085267 11.610178 '
+                               '11.620493 13.143637 13.187152', 'units': 'eV'},
+                'EXCIOSC': {'values': '0.000000000 0.152342124 0.002342139 '
+                            '0.004444079 0.000000000 0.012484217 '
+                            '0.002710603 0.538095669 0.000000000 '
+                            '0.131140061'},
+                'EXCISYM': {'values_contain': 'Singlet Singlet'},
+                'EXCITRANS': {'values_contain': '8a>9a:0.99901186'},
+            }),
+        },
+    ),
+    dict(
         name='orca-hcn-irc',
         desc='orca.desc',
         fixture='orca/hcn_irc.out',
