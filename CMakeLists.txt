@@ -2951,7 +2951,7 @@ set_tests_properties(gromacs_run_settings PROPERTIES TIMEOUT 600)
 add_test(NAME gromacs_launchpp_python
          COMMAND ${PYTHON3_EXECUTABLE}
                  ${CMAKE_SOURCE_DIR}/tests/gromacs_md/launchpp_python_test.py)
-set_tests_properties(gromacs_launchpp_python PROPERTIES TIMEOUT 600)
+set_tests_properties(gromacs_launchpp_python PROPERTIES TIMEOUT 600 SKIP_RETURN_CODE 77)
 add_test(NAME gromacs_grompp_warnings
          COMMAND ${PYTHON3_EXECUTABLE}
                  ${CMAKE_SOURCE_DIR}/tests/gromacs_md/grompp_warn_test.py)

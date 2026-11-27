@@ -5,6 +5,8 @@ import os
 import re
 import sys
 
+from grompp_warn import WS, fields, number
+
 
 # Perl's buffered regular-file reads leave ENOTTY in $!, which die returns.
 def fail(message, code=errno.ENOTTY):
@@ -30,11 +32,6 @@ def write(path, text, mode='w'):
             f.write(text)
     except OSError as e:
         fail('gromacs.mkndx: cannot write {}: {}'.format(path, e.strerror), e.errno)
-
-
-def number(s):
-    m = re.match(r'\s*[+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?', s, re.ASCII)
-    return float(m[0]) if m else 0
 
 
 class Topology:
@@ -65,48 +62,48 @@ class Topology:
         sect, cur, named, on = '', '', False, [True]
         for line in lines:
             line = line.split(';')[0]
-            if not line.strip():
+            if not line.strip(WS):
                 continue
             m = re.match(r'^\s*#\s*if(n?)def\s+(\w+)', line, re.ASCII)
             if m:
                 on.append(on[-1] and (bool(m[1]) != (m[2] in self.defined)))
                 continue
-            if re.match(r'^\s*#\s*else', line):
+            if re.match(r'^\s*#\s*else', line, re.ASCII):
                 if len(on) > 1:
                     on[-1] = on[-2] and not on[-1]
                 continue
-            if re.match(r'^\s*#\s*endif', line):
+            if re.match(r'^\s*#\s*endif', line, re.ASCII):
                 if len(on) > 1:
                     on.pop()
                 continue
             if not on[-1]:
                 continue
             define = re.match(r'^\s*#\s*define\s+(\w+)', line, re.ASCII)
-            inc = re.match(r'^\s*#\s*include\s+"([^"]+)"', line)
+            inc = re.match(r'^\s*#\s*include\s+"([^"]+)"', line, re.ASCII)
             section = re.match(r'^\s*\[\s*(\w+)\s*\]', line, re.ASCII)
             if define:
                 self.defined.add(define[1])
             elif inc:
-                if re.search(r'(forcefield|ffbonded|ffnonbonded)\.itp$', inc[1]):
+                if re.search(r'(forcefield|ffbonded|ffnonbonded)\.itp$', inc[1], re.ASCII):
                     continue
                 found = self.include(inc[1], os.path.dirname(path) or '.')
                 if found:
                     self.read(found)
-            elif re.match(r'^\s*#', line):
+            elif re.match(r'^\s*#', line, re.ASCII):
                 continue
             elif section:
                 sect = section[1].lower()
                 if sect == 'moleculetype':
                     named = False
             elif sect == 'moleculetype' and not named:
-                cur = line.split()[0]
+                cur = fields(line)[0]
                 named = True
                 self.atoms[cur] = 0
             elif sect == 'atoms' and cur:
                 self.atoms[cur] += 1
             elif sect == 'molecules':
-                fields = line.split()
-                self.order.append((fields[0], number(fields[1]) if len(fields) > 1 else 0))
+                parts = fields(line)
+                self.order.append((parts[0], number(parts[1]) if len(parts) > 1 else 0))
 
 
 def block(name, indices):
@@ -122,7 +119,7 @@ def main(args):
     top = args[3] if len(args) == 4 else None
     mdp_text = read(mdp)
     defs, defined = [], set()
-    for line in mdp_text.splitlines(True):
+    for line in mdp_text.split('\n'):
         m = re.match(r'^;\s*ecce-group\s+(\S+)\s*=\s*(.+?)\s*$', line, re.ASCII)
         if m:
             defs.append((m[1], re.split(r'\s+', m[2], flags=re.ASCII)))
@@ -131,12 +128,16 @@ def main(args):
             defined.update(re.findall(r'-D(\w+)', m[1], re.ASCII))
     if not defs:
         return 0
-    lines = read(gro).splitlines(True)
+    lines = read(gro).split('\n')
+    if lines and not lines[-1]:
+        lines.pop()
     n = int(number(lines[1])) if len(lines) > 1 else 0
     residues, xyz = [], []
     for line in lines[2:2 + n]:
-        residues.append(line[5:10].strip())
-        xyz.append([number(line[20 + 8 * i:28 + 8 * i]) for i in range(3)])
+        # GRO columns count bytes even when a field contains multibyte text.
+        line = line.encode('utf-8', 'surrogateescape')
+        residues.append(line[5:10].decode('utf-8', 'surrogateescape').strip(WS))
+        xyz.append([number(line[20 + 8 * i:28 + 8 * i].decode('utf-8', 'surrogateescape')) for i in range(3)])
     if len(residues) != n or n == 0:
         fail('gromacs.mkndx: {} lists {} atoms, not the {} it declares.'.format(gro, len(residues), n), 255 if len(residues) != n else errno.ENOTTY)
     seen = set(residues)
@@ -179,7 +180,7 @@ def main(args):
         text += block(name, idx)
         members[name] = idx
     pull, has_atom = {}, set()
-    for line in mdp_text.splitlines(True):
+    for line in mdp_text.split('\n'):
         line = line.split(';')[0]
         m = re.match(r'^\s*pull[-_]group(\d+)[-_]name\s*=\s*(\S+)', line, re.I | re.ASCII)
         if m:
@@ -194,7 +195,7 @@ def main(args):
             continue
         centre = [sum(xyz[i - 1][k] / len(idx) for i in idx) for k in range(3)]
         best = min(idx, key=lambda i: sum((xyz[i - 1][k] - centre[k]) ** 2 for k in range(3)))
-        add += 'pull-group%d-pbcatom      = %d\n' % (int(group), best)
+        add += 'pull-group%d-pbcatom      = %d\n' % (int(number(group)), best)
     if add:
         write(mdp, add, 'a')
     write(out, text)

@@ -13,28 +13,31 @@ FAMILIES = [
 
 
 def ions(ff):
-    ff = re.sub(r'\.ff$', '', ff)
-    return next((f['ions'] for f in FAMILIES if re.search(f['re'], ff)), {})
+    ff = re.sub(r'\.ff$', '', ff, flags=re.ASCII)
+    return next((f['ions'] for f in FAMILIES if re.search(f['re'], ff, re.ASCII)), {})
 
 
 def rewrite(text, ff):
-    ion = ions(ff)
-    lines = text.split('\n')
+    ion = {el.encode('ascii'): name.encode('ascii') for el, name in ions(ff).items()}
+    # PDB columns and case folding follow the original byte-oriented reader.
+    lines = text.encode('utf-8', 'surrogateescape').split(b'\n')
     count = {}
     for line in lines:
-        if line.startswith(('ATOM  ', 'HETATM')):
+        if line.startswith((b'ATOM  ', b'HETATM')):
             key = line[17:27]
             count[key] = count.get(key, 0) + 1
     notes = []
     for i, line in enumerate(lines):
-        if not line.startswith(('ATOM  ', 'HETATM')) or count[line[17:27]] != 1:
+        if not line.startswith((b'ATOM  ', b'HETATM')) or count[line[17:27]] != 1:
             continue
-        res, el = line[17:20].strip(), line[76:78].strip().upper()
+        res = line[17:20].strip(b" \t\n\r\f\v")
+        el = line[76:78].strip(b" \t\n\r\f\v").upper()
         name = ion.get(el)
-        if name is None or res not in ('', 'UNK', name):
+        if name is None or res not in (b'', b'UNK', name):
             continue
-        atom = '{:<4}'.format(name) if len(el) > 1 else ' {:<3}'.format(name)
-        lines[i] = line[:12] + atom + line[16:17] + '{:<3}'.format(name) + line[20:]
+        atom = name.ljust(4) if len(el) > 1 else b' ' + name.ljust(3)
+        lines[i] = line[:12] + atom + line[16:17] + name.ljust(3) + line[20:]
         if res != name:
-            notes.append('{}: residue {} -> {}'.format(el, res or '(none)', name))
-    return '\n'.join(lines), notes
+            notes.append('{}: residue {} -> {}'.format(
+                el.decode('ascii'), (res or b'(none)').decode('ascii'), name.decode('ascii')))
+    return b'\n'.join(lines).decode('utf-8', 'surrogateescape'), notes

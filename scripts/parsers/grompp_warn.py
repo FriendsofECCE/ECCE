@@ -1,6 +1,20 @@
 """Classify grompp diagnostics for the launch dialog."""
 import re
 
+
+WS = " \t\n\r\f\v"
+
+
+def number(text):
+    # File fields use Perl numeric prefixes, including zero for missing numbers.
+    m = re.match(r"\s*([+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?)", text, re.ASCII)
+    return float(m[1]) if m else 0.0
+
+
+def fields(text):
+    return [s for s in re.split(r"\s+", text, flags=re.ASCII) if s]
+
+
 TABLE = [
     {
         'id': 'atom-names',
@@ -100,8 +114,8 @@ def explain(w):
         if i == 0:
             lead = 'The system has a net charge.'
             if w.get('charge') is not None:
-                q = format(float(w['charge']), '.3f').rstrip('0').rstrip('.')
-                q = re.sub('^-', '\u2212', q)
+                q = format(number(w['charge']), '.3f').rstrip('0').rstrip('.')
+                q = re.sub('^-', '\u2212', q, flags=re.ASCII)
                 lead = 'Net charge ' + q + ' e.'
             return (lead + ' With PME, a net charge adds a uniform background charge that can '
                     'cause artefacts. Neutralise the system with counter-ions '
@@ -113,7 +127,7 @@ def explain(w):
                 continue
             k, tau, times, dt = m.groups()
             what, step = ('thermostat', 'nsttcouple') if k == 't' else ('barostat', 'nstpcouple')
-            minimum = format(float(times) * float(dt), '.3g')
+            minimum = format(number(times) * number(dt), '.3g')
             return ('The {} coupling time tau-{} ({} ps) is too short for its coupling interval '
                     '({}*dt = {} ps). Raise tau-{} to {} ps or more in the task, or shorten {}.'
                     .format(what, k, tau, step, dt, k, minimum, step))
@@ -138,7 +152,7 @@ def parse(out, intended=False):
             cur = dict(head=line, text='')
             continue
         if cur is not None and re.match(r'^\s+\S', line, re.ASCII):
-            cur['text'] += (' ' if cur['text'] else '') + line.lstrip()
+            cur['text'] += (' ' if cur['text'] else '') + line.lstrip(WS)
             continue
         if cur is not None:
             warnings.append(cur)
@@ -154,7 +168,7 @@ def parse(out, intended=False):
             if not re.search(entry['re'], w['text'], re.ASCII):
                 continue
             if entry.get('charge') and not intended and not (
-                    charge is not None and abs(float(charge)) < CHARGE_LIMIT):
+                    charge is not None and abs(number(charge)) < CHARGE_LIMIT):
                 continue
             w.update(harmless=1, why=entry['why'])
             break

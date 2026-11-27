@@ -11,6 +11,7 @@ import tempfile
 
 import gmx_ions
 import grompp_warn
+from grompp_warn import WS, fields, number
 
 
 NL = None if os.name == 'nt' else ''
@@ -59,7 +60,7 @@ def diagnostic(out, pattern):
     lines = out.split('\n')
     while lines and not lines[-1]:
         lines.pop()
-    first = next((i for i, line in enumerate(lines) if re.search(pattern, line)), 0)
+    first = next((i for i, line in enumerate(lines) if re.search(pattern, line, re.ASCII)), 0)
     return '\n'.join(lines[first:])
 
 
@@ -67,8 +68,8 @@ def stage(work):
     for name in os.listdir('.'):
         if not os.path.isfile(name):
             continue
-        rel = re.sub(r'\.gmxff$', '', name.replace('__SLASH__', '/'))
-        if rel.startswith('/') or re.search(r'(^|/)\.\.(/|$)', rel):
+        rel = re.sub(r'\.gmxff$', '', name.replace('__SLASH__', '/'), flags=re.ASCII)
+        if rel.startswith('/') or re.search(r'(^|/)\.\.(/|$)', rel, re.ASCII):
             continue
         target = os.path.join(work, rel)
         os.makedirs(os.path.dirname(target), exist_ok=True)
@@ -101,9 +102,9 @@ def index_file(mdp):
 
 def minff_check_cutoff(gro):
     try:
-        lines = [l for l in read(gro).split('\n') if l.strip()]
-        b = [float(s) for s in lines[-1].split()] if lines else []
-    except (OSError, ValueError):
+        lines = [l for l in read(gro).split('\n') if l.strip(WS)]
+        b = [number(s) for s in fields(lines[-1])] if lines else []
+    except OSError:
         b = []
     if len(b) not in (3, 9):
         return 0.5

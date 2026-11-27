@@ -95,6 +95,133 @@ runpy.run_path(sys.argv[0], run_name='__main__')
 '''
 
 
+# Raw stdin keeps Perl in byte mode, as in the launch preprocessor.
+DRIVERS = {
+    'ions': (
+        'use GmxIons; local $/; my ($t,@n)=GmxIons::rewrite(<STDIN>, "amber99sb-ildn"); print $t, "\\nNOTES\\n", join("\\n",@n);',
+        "import gmx_ions; t,n=gmx_ions.rewrite(sys.stdin.buffer.read().decode('utf-8','surrogateescape'),'amber99sb-ildn'); sys.stdout.buffer.write((t+'\\nNOTES\\n'+'\\n'.join(n)).encode('utf-8','surrogateescape'))"),
+    'warnings': (
+        'use GromppWarn; local $/; my $t=<STDIN>; for my $w (GromppWarn::parse($t,0)) { print join("\\n", map { $w->{$_} // "<undef>" } qw(head text charge harmless why)), "\\n", GromppWarn::explain($w) // "<undef>", "\\n"; } print GromppWarn::translate($t);',
+        "import grompp_warn as g; t=sys.stdin.buffer.read().decode('utf-8','surrogateescape'); o='';\nfor w in g.parse(t):\n o+='\\n'.join(str(w[k]) if w.get(k) is not None else '<undef>' for k in ('head','text','charge','harmless','why'))+'\\n'+(g.explain(w) or '<undef>')+'\\n'\nsys.stdout.buffer.write((o+g.translate(t)).encode('utf-8','surrogateescape'))"),
+    'ion-family': (
+        'use GmxIons; local $/; my $ff=<STDIN>; my ($t,@n)=GmxIons::rewrite("HETATM    1 NA1  UNK     1       0.000   0.000   0.000  1.00  0.00          NA\\n", $ff); print $t, "\\nNOTES\\n", join("\\n",@n);',
+        "import gmx_ions; ff=sys.stdin.buffer.read().decode('utf-8','surrogateescape'); t,n=gmx_ions.rewrite('HETATM    1 NA1  UNK     1       0.000   0.000   0.000  1.00  0.00          NA\\n',ff); sys.stdout.buffer.write((t+'\\nNOTES\\n'+'\\n'.join(n)).encode('utf-8','surrogateescape'))"),
+    'explain': (
+        'use GromppWarn; local $/; my $q=<STDIN>; print GromppWarn::explain({text=>"Ewald electrostatics in a system with net charge",charge=>$q});',
+        "import grompp_warn as g; q=sys.stdin.buffer.read().decode('utf-8','surrogateescape'); sys.stdout.buffer.write(g.explain(dict(text='Ewald electrostatics in a system with net charge',charge=q)).encode('utf-8','surrogateescape'))"),
+    'cutoff': (
+        'open(my $f,"<",' + repr(str(HERE / 'perl/gromacs.launchpp')) + '); my $s; { local $/; $s=<$f>; } $s =~ /(sub minffCheckCutoff.*?)(?=\\n#)/s; eval $1; die $@ if $@; printf "%.12g\\n", minffCheckCutoff("conf.gro");',
+        "import runpy; g=runpy.run_path(" + repr(str(PARSERS / 'gromacs.launchpp')) + "); print(format(g['minff_check_cutoff']('conf.gro'),'.12g'))"),
+}
+
+
+def text_edges(c):
+    # Every mutation is isolated so an earlier parse failure cannot hide a later site.
+    tokens = [('nbsp', '\u00a0'), ('digit', '\u0663'), ('word', '\u00c5'),
+              ('stars', '*****'), ('prefix', '3x'), ('empty', '')]
+    def gro(n='3', res=b'SOL  ', coord=b'   0.000'):
+        row = b'    1' + res + b'   OW    1' + coord + b'   0.000   0.000\n'
+        return b'title\n' + n.encode() + b'\n' + row * 3 + b'1 1 1\n'
+    def mk(name, files):
+        c.compare('edge-' + name, 'gromacs.mkndx', files,
+                  ['conf.gro', 'run.mdp', 'out.ndx', 'topol.top'])
+    top = '[ moleculetype ]\nSOL 1\n[ atoms ]\n1\n[ molecules ]\nSOL 3\n'
+    mdp = '; ecce-group Water = SOL\npull-group1-name = Water\n'
+    mk('mdp-lines-nel', {'conf.gro': gro(), 'topol.top': top,
+       'run.mdp': '; junk\u0085; ecce-group Water = SOL\n'})
+    mk('gro-lines-nel', {'conf.gro': gro().replace(b'title', 'ti\u0085tle'.encode()),
+       'topol.top': top, 'run.mdp': mdp})
+    for label, token in tokens[:3]:
+        c.compare('edge-ion-family-' + label, 'ion-family', {'stdin': 'amber' + token + '.ff'}, [])
+        if shutil.which('gmx'):
+            c.compare('edge-launch-stage-diagnostic-' + label, 'gromacs.launchpp', {
+                'postParams': 'inputFile: gromacs.mdp\n',
+                'gromacs.mdp': 'integrator = ' + token + '\n',
+                'conf.gro': (HERE / 'fixtures/conf.gro').read_bytes(),
+                'topol.top': (HERE / 'fixtures/topol.top').read_bytes(),
+                token + '__SLASH__field.gmxff': 'data\n',
+            }, ['-p', 'postParams'])
+        for site, files in [
+            ('params', {'postParams': token + 'inputFile: prepare.gmxprep\n'}),
+            ('comment', {'postParams': 'inputFile: prepare.gmxprep ' + token + '!comment\n'}),
+            ('recipe', {'prepare.gmxprep': token + 'SOURCE=minff\n'}),
+        ]:
+            base = {'postParams': 'inputFile: prepare.gmxprep\n',
+                    'prepare.gmxprep': 'SOURCE=minff\n', 'ion.pdb': 'ATOM  \n'}
+            base.update(files)
+            c.compare('edge-launch-' + site + '-' + label, 'gromacs.launchpp', base,
+                      ['-p', 'postParams'], path='')
+    for label, token in tokens:
+        for site, files in [
+            ('gro-count', {'conf.gro': gro(token)}),
+            ('gro-xyz', {'conf.gro': gro(coord=token.encode().ljust(8))}),
+            ('gro-residue', {'conf.gro': gro(res=token.encode().ljust(5)[:5])}),
+            ('top-count', {'topol.top': top.replace('SOL 3', 'SOL ' + token),
+                           'run.mdp': '; ecce-group Water = mol:SOL\n'}),
+            ('top-name', {'topol.top': top.replace('SOL 1', token + 'SOL 1'),
+                          'run.mdp': '; ecce-group Water = mol:SOL\n'}),
+            ('top-molecules', {'topol.top': top.replace('SOL 3', token + 'SOL 3'),
+                               'run.mdp': '; ecce-group Water = mol:SOL\n'}),
+        ]:
+            base = {'conf.gro': gro(), 'run.mdp': mdp, 'topol.top': top}
+            base.update(files)
+            mk(site + '-' + label, base)
+        c.compare('edge-cutoff-' + label, 'cutoff', {'conf.gro': 'title\n0\n' + token + ' 0.2 0.2\n'}, [])
+        c.compare('edge-charge-' + label, 'warnings', {'stdin':
+                  'System has non-zero total charge: ' + token + '\n\nWARNING 1:\n  Ewald electrostatics in a system with net charge\n'}, [])
+        c.compare('edge-charge-explain-' + label, 'explain', {'stdin': token}, [])
+        for field in ('res', 'el', 'prefix'):
+            row = bytearray(b'HETATM    1 NA1  UNK     1       0.000   0.000   0.000  1.00  0.00          NA\n')
+            start, width = {'res': (17,3), 'el': (76,2), 'prefix': (6,5)}[field]
+            row[start:start+width] = token.encode().ljust(width)[:width]
+            c.compare('edge-ion-' + field + '-' + label, 'ions', {'stdin': bytes(row)}, [])
+    for label, token in tokens[:3]:
+        mk('top-include-name-' + label, {'conf.gro': gro('1'),
+           'topol.top': '[ moleculetype ]\nSOL 1\n[ atoms ]\n#include \"' + token + 'one.itp\"\n[ molecules ]\nSOL 1\n',
+           token + 'one.itp': '1\n', 'run.mdp': '; ecce-group Water = mol:SOL\n'})
+        for site, text in [
+            ('else', '#ifdef NO\n1\n' + token + '#else\n1\n#endif\n'),
+            ('endif', '#ifdef NO\n1\n' + token + '#endif\n1\n'),
+            ('include', token + '#include "one.itp"\n'),
+            ('directive', token + '#junk\n1\n'),
+            ('blank', token + '\n1\n'),
+            ('ifdef', '#ifdef FLAG' + token + '\n1\n#else\n1\n2\n#endif\n'),
+            ('define', '#define FLAG' + token + '\n#ifdef FLAG\n1\n#else\n1\n2\n#endif\n'),
+            ('section', '[ atoms' + token + ' ]\n1\n'),
+        ]:
+            mk('top-' + site + '-' + label, {'conf.gro': gro('1'),
+               'topol.top': '[ moleculetype ]\nSOL 1\n[ atoms ]\n' + text + '[ molecules ]\nSOL 1\n',
+               'one.itp': '1\n', 'run.mdp': 'define = -DFLAG\n; ecce-group Water = mol:SOL\n'})
+        for site, text in [
+            ('group', ';' + token + 'ecce-group Water = SOL\n'),
+            ('group-items', '; ecce-group Water = SOL' + token + 'SOL\n'),
+            ('pull-digit', mdp.replace('group1', 'group' + token)),
+            ('pull-space', mdp.replace('pull-group', token + 'pull-group')),
+            ('pull-atom', mdp + token + 'pull-group1-pbcatom = 1\n'),
+            ('pull-atom-digit', mdp + 'pull-group' + token + '-pbcatom = 1\n'),
+            ('define', 'define = -DFLAG' + token + '\n' + mdp),
+            ('mdp-lines', '; junk' + token + '; ecce-group Water = SOL\n'),
+        ]:
+            mk('mdp-' + site + '-' + label, {'conf.gro': gro(), 'topol.top': top, 'run.mdp': text})
+        for site, text in [
+            ('head', 'WARNING ' + token + ':\n  constraints on all bonds\n'),
+            ('head-space', 'WARNING 1:' + token + '\n  constraints on all bonds\n'),
+            ('indent', 'WARNING 1:\n' + token + '  constraints on all bonds\n'),
+            ('trim', 'WARNING 1:\n  ' + token + ' constraints on all bonds\n'),
+            ('word', token + 'tau-t ' + token + 'integrator\n'),
+        ]:
+            c.compare('edge-warning-' + site + '-' + label, 'warnings', {'stdin': text}, [])
+    for field in ('tau', 'times', 'dt'):
+        for label, token in tokens + [('malformed', 'e+'), ('decimal', '.')]:
+            values = dict(tau='0.01', times='20', dt='0.04')
+            values[field] = token
+            text = 'WARNING 1:\n  tau-t ({tau}) should be at least {times} times larger than nsttcouple*dt ({dt})\n'.format(**values)
+            c.compare('edge-warning-' + field + '-' + label, 'warnings', {'stdin': text}, [])
+    for label, token in tokens[:3]:
+        c.compare('edge-cutoff-separator-' + label, 'cutoff', {'conf.gro': 'title\n0\n0.2' + token + ' 0.2 0.2\n'}, [])
+        c.compare('edge-cutoff-last-row-' + label, 'cutoff', {'conf.gro': 'title\n0\n0.2 0.2 0.2\n' + token + '\n'}, [])
+
+
 class Comparison:
     def __init__(self, root, evidence):
         self.root, self.evidence, self.count = root, evidence, 0
@@ -115,10 +242,16 @@ class Comparison:
             if path is not None:
                 env['PATH'] = path
             # Identical scratch paths let raw failure diagnostics be compared without filtering.
-            command = ([shutil.which('perl'), '-e', PERL_RUN, str(HERE / 'perl' / script)] if language == 'perl' else
-                       [sys.executable, '-c', PYTHON_RUN, str(PARSERS / script)]) + args
+            if script in DRIVERS:
+                command = ([shutil.which('perl'), '-I' + str(PARSERS), '-e', DRIVERS[script][0]]
+                           if language == 'perl' else
+                           [sys.executable, '-c', 'import sys; sys.path.insert(0, ' + repr(str(PARSERS)) + ');' + DRIVERS[script][1]])
+            else:
+                command = ([shutil.which('perl'), '-e', PERL_RUN, str(HERE / 'perl' / script)] if language == 'perl' else
+                           [sys.executable, '-c', PYTHON_RUN, str(PARSERS / script)]) + args
             result = subprocess.run(command, cwd=str(work), env=env,
-                                    stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=90)
+                                    stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=90,
+                                    input=(files.get("stdin", b"").encode() if isinstance(files.get("stdin", b""), str) else files.get("stdin", b"")))
             scratch = tmp / 'fixed'
             if scratch.exists():
                 shutil.rmtree(str(scratch))
@@ -128,10 +261,6 @@ class Comparison:
                             exitcode=(str(result.returncode) + '\n').encode())
             snapshots.append(snapshot)
             shutil.rmtree(str(work))
-        assert snapshots[0] == snapshots[1], '{} differs: {}'.format(name, [
-            (k, snapshots[0].get(k), snapshots[1].get(k)) for k in set(snapshots[0]) | set(snapshots[1]) if snapshots[0].get(k) != snapshots[1].get(k)])
-        if expected is not None:
-            assert int(snapshots[1]['exitcode']) == expected, (name, snapshots[1])
         if self.evidence:
             for lang, snapshot in zip(('perl', 'python'), snapshots):
                 directory = self.evidence / name / lang
@@ -144,7 +273,12 @@ class Comparison:
                 paths = [str(self.evidence / name / lang / f) for lang in ('perl', 'python')]
                 for command in (['cmp'] + paths, ['sha256sum'] + paths):
                     print('$ ' + ' '.join(shlex.quote(p) for p in command), flush=True)
-                    subprocess.run(command, check=True)
+                    result = subprocess.run(command)
+                    print("rc={}".format(result.returncode), flush=True)
+        assert snapshots[0] == snapshots[1], '{} differs: {}'.format(name, [
+            (k, snapshots[0].get(k), snapshots[1].get(k)) for k in set(snapshots[0]) | set(snapshots[1]) if snapshots[0].get(k) != snapshots[1].get(k)])
+        if expected is not None:
+            assert int(snapshots[1]['exitcode']) == expected, (name, snapshots[1])
         self.count += 1
         print('PASS: {} stdout, stderr, exit code and all staged files byte-identical'.format(name), flush=True)
 
@@ -260,9 +394,13 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--evidence-dir', type=Path)
     args = parser.parse_args()
+    if not shutil.which('perl'):
+        print('SKIP: Perl is not on PATH')
+        return 77
     tables()
     with tempfile.TemporaryDirectory(prefix='.gmxlaunch-test-', dir=str(REPO)) as tmp:
         comparison = Comparison(Path(tmp), args.evidence_dir)
+        text_edges(comparison)
         mkndx(comparison)
         launches(comparison)
         print('PASS: %d Perl/Python script comparisons' % comparison.count)
