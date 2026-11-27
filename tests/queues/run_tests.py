@@ -377,7 +377,12 @@ def threadsPerRank(g, rep):
         rep.check(False, str(exc))
         rep.done()
         return
-    rep.check(plain == one, "threads=1 script identical to none")
+    # The "Generated <date>" header has one-second resolution; two runs can
+    # straddle a second, so compare as the golden checks do.
+    a, b = g.normalise(plain), g.normalise(one)
+    diff = "".join(difflib.unified_diff(
+        a.splitlines(1), b.splitlines(1), "no -K", "-K 1"))
+    rep.check(not diff, "threads=1 script identical to none" + ("\n" + diff if diff else ""))
     rep.check("OMP_NUM_THREADS" not in one and "cpus-per-task" not in one
               and "ntasks-per-node" not in one and "--ntasks=8" in one,
               "threads=1 writes no threads lines")
