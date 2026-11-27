@@ -4840,6 +4840,9 @@ bool BuilderAuiManager::simulateDrop(const wxString& name, int dir, bool ctrl)
 bool BuilderAuiManager::ProcessDockResult(wxAuiPaneInfo& target,
                                           const wxAuiPaneInfo& newPos)
 {
+  if (target.IsFloating() && !target.IsToolbar() && newPos.IsDocked() &&
+      newPos.dock_direction != wxAUI_DOCK_RIGHT && !ctrlHeld())
+    return false;
   if (!wxAuiManager::ProcessDockResult(target, newPos)) return false;
   wxAuiPaneInfo &idx = GetPane(Builder::NAME_PROPERTY_INDEX);
   if (idx.IsOk() && !target.IsFloating() && target.name != idx.name &&
