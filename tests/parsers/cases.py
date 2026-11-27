@@ -145,6 +145,47 @@ CASES = [
         },
     ),
     dict(
+        name='g16-h2o-optfreq-stray-byte',
+        desc='gaussian-16.desc',
+        fixture='gaussian-16/h2o_optfreq_stray_byte.log',
+        # HF/STO-3G Opt Freq, closed shell
+        parse_args=('.', 'GeoVib', 'SCF', 'RHF', '0'),
+        expect={
+            'MULLIKEN': dict(keys={
+                'MULLIKEN': {'values': '-0.330647 0.165312 0.165335',
+                             'units': 'e'},
+            }),
+            # Printed: zero-point 0.024386, sums -74.938683 / -74.937739 /
+            # -74.959907, S = 46.658 cal/mol-K at 298.15 K (see #176).
+            'EZEROPT][ETHERM][ENTHALPY][EGIBBS][ENTROPY][THERMOTEMP][THERMOPRES][THERMOSIGMA': dict(
+                keys={
+                    'EZEROPT': {'values': '0.024386', 'units': 'Hartree'},
+                    'ETHERM': {'values': '-74.938683', 'units': 'Hartree'},
+                    'ENTHALPY': {'values': '-74.937739', 'units': 'Hartree'},
+                    'EGIBBS': {'values': '-74.959907', 'units': 'Hartree'},
+                    'ENTROPY': {'values': '0.02216872', 'units': 'Hartree'},
+                }),
+            # The vibrational block: one [VIB][VIBFREQ][VIBIR][VIBRAM][VIBSYM]
+            # parse type, five properties out of one script invocation.
+            'VIB][VIBFREQ][VIBIR][VIBRAM][VIBSYM': dict(keys={
+                'VIBFREQ': {'values': '2169.8577 4141.5426 4392.6459'},
+                'VIBSYM': {'values': "A' A' A'"},
+                'VIB': {},
+                'VIBIR': {},
+                'VIBRAM': {},
+            }),
+            # Skip=5 must land exactly on the first atom row, so the very
+            # first value the geometry parser sees is atom 1.  (This is the
+            # off-by-one that silently produced zero output for ORCA.)
+            # The last Standard block repeats the converged geometry and is dropped
+            # (#498), so the last frame comes from the block before it.
+            'GEOMTRACE1': dict(min_blocks=2, instance=-2, keys={'GEOMTRACE': {}}),
+            # gaussian-16.energy emits ESCF/ESCFVEC and, when the theory
+            # matches, TE/TEVEC -- all from the one 'SCF Done:' line.
+            'ESCF1][ESCFVEC': dict(keys={'ESCF': {}, 'TE': {}}),
+        },
+    ),
+    dict(
         name='g16-h2o2-scan',
         desc='gaussian-16.desc',
         fixture='gaussian-16/h2o2_dihedral_scan.log',

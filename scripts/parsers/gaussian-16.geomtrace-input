@@ -1,19 +1,16 @@
-#!/usr/bin/env perl
-# GEOMTRACE for the Input and Z-Matrix orientation blocks of Gaussian 16:
-# holds the block back until it is known whether a Standard block follows (see gaussian-16-trace.pl).
-push(@INC,"$ENV{ECCE_HOME}/scripts/parsers");
-require "pertab.pl";
-require "gaussian-16-trace.pl";
-&loadPT;
-$| = 1;
-($key, $runtype, $ucCategory, $theory) = @ARGV;
-my ($rows, $labels) = readBlock();
-# An earlier Input block that no Standard block followed is its own step.
-my ($oldRows, $oldLabels) = takeStash($key);
-emitFrame($key, $oldRows, $oldLabels);
-saveStash($key, $rows, $labels);
-# The IRC starts from the last structure printed before its path begins
-# (Input, or Standard when it was read from an earlier job's checkpoint):
-# that is the TS point, which has no CURRENT STRUCTURE block (gaussian-16.ircgeom).
-saveIrcInput($key, $rows) if ($runtype =~ /IRC/i);
-exit(0);
+#!/usr/bin/env python3
+import importlib
+import os
+import sys
+
+sys.path.insert(0, os.path.join(os.environ["ECCE_HOME"], "scripts", "parsers"))
+trace = importlib.import_module("gaussian-16-trace")
+trace.configure_streams()
+key, runtype = (sys.argv[1:] + ["", ""])[:2]
+rows, labels = trace.read_block()
+# A held Input block with no following Standard block is its own step.
+old_rows, old_labels = trace.take_stash(key)
+trace.emit_frame(key, old_rows, old_labels)
+trace.save_stash(key, rows, labels)
+if "irc" in runtype.lower():
+    trace.save_irc_input(key, rows)

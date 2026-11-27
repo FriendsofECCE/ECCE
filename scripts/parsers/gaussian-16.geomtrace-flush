@@ -1,12 +1,11 @@
-#!/usr/bin/env perl
-# GEOMTRACE when Gaussian says symmetry is off: no Standard block follows, so
-# the held Input block is the frame for this step (see gaussian-16-trace.pl).
-push(@INC,"$ENV{ECCE_HOME}/scripts/parsers");
-require "pertab.pl";
-require "gaussian-16-trace.pl";
-&loadPT;
-$| = 1;
-($key, $runtype, $ucCategory, $theory) = @ARGV;
-my ($rows, $labels) = takeStash($key);
-emitFrame($key, $rows, $labels);
-exit(0);
+#!/usr/bin/env python3
+import importlib
+import os
+import sys
+
+sys.path.insert(0, os.path.join(os.environ["ECCE_HOME"], "scripts", "parsers"))
+trace = importlib.import_module("gaussian-16-trace")
+trace.configure_streams()
+key, runtype = (sys.argv[1:] + ["", ""])[:2]
+rows, labels = trace.take_stash(key)
+trace.emit_frame(key, rows, labels)
