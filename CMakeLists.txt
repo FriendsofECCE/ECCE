@@ -3357,7 +3357,7 @@ if(PYTHON3_EXECUTABLE)
   # checks what it says about each.  Weighted against FALSE ALARMS
   # rather than against misses: a user told their working deck is
   # broken stops believing the light, including the time it is right.
-  # Needs only python3 and perl.
+  # verifyinput needs only Python 3; the generator-warning checks still use Perl.
   #
   #     cd build-cmake && ctest -R verify --output-on-failure
   add_test(NAME verify
@@ -6196,7 +6196,7 @@ add_test(NAME pdbqt_redock_1iep COMMAND ${PYTHON3_EXECUTABLE}
   ${CMAKE_BINARY_DIR}/pdbqt_redock)
 set_tests_properties(pdbqt_redock_1iep PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 1800)
 # Automatic ligand choice in ai.vina/docking.pl and the atom-list checks of
-# verifyinput (#962, #963); scripts only, needs perl.
+# verifyinput (#962, #963); Python checker, Perl ai.vina/docking.pl generator.
 add_test(NAME vina_autoligand COMMAND ${PYTHON3_EXECUTABLE}
   ${CMAKE_SOURCE_DIR}/tests/dock/vina_autoligand_test.py ${CMAKE_SOURCE_DIR})
 

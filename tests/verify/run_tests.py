@@ -3,8 +3,8 @@
 ECCE input-deck checker suite (GitHub #148).
 
 Runs the real ``scripts/parsers/verifyinput`` over checked-in decks and
-checks what it says about each one.  Needs nothing but Python 3 and perl:
-no GUI, no ECCE services, no chemistry codes.
+checks what it says about each one. The checker needs only Python 3;
+the generator-warning checks also need Perl. No ECCE services are needed.
 
     ./run_tests.py            run everything
     ./run_tests.py -v         show every finding, not just the failures
@@ -240,7 +240,7 @@ CASES = [
 
 
 def run(fixture, code, atoms):
-    cmd = [CHECKER, "-f", os.path.join(FIXTURES, fixture)]
+    cmd = [sys.executable, CHECKER, "-f", os.path.join(FIXTURES, fixture)]
     if code:
         cmd += ["-c", code]
     if atoms:
@@ -773,6 +773,97 @@ def generator_warnings():
     return failures
 
 
+def compatibility_checks():
+    """Keep the caller contract, Perl quirks and UPF readers in step."""
+    import runpy
+    import tempfile
+
+    failures = 0
+    usage = b"usage: verifyinput -f <input file> -c <code> [-a <atoms>]\n"
+    with tempfile.TemporaryDirectory(prefix="ecce-verify-contract-") as work:
+        empty = os.path.join(work, "empty deck.in")
+        with open(empty, "wb"):
+            pass
+        missing = os.path.join(work, "missing deck.in")
+        cases = [([], 2, b"", usage), (["-h"], 0, b"", usage),
+                 (["-f", empty], 1, b"BAD|0|file|The input file is empty.\n", b""),
+                 (["-f", missing], 1,
+                  ("BAD|0|file|There is no input file at %s.\n" % missing).encode(), b"")]
+        for args, status, stdout, stderr in cases:
+            p = subprocess.run([sys.executable, CHECKER] + args, capture_output=True)
+            if (p.returncode, p.stdout.replace(b"\r\n", b"\n"),
+                    p.stderr.replace(b"\r\n", b"\n")) != (status, stdout, stderr):
+                print("FAIL  checker CLI contract: %r" % args)
+                failures += 1
+
+        deck = os.path.join(work, "deck.in")
+        with open(deck, "wb") as handle:
+            handle.write(b"H 0 0 0\n")
+        p = subprocess.run([sys.executable, CHECKER, "-f", deck], capture_output=True)
+        error = ("Modification of non-creatable array value attempted, subscript -1 at "
+                 "%s line 142.\n" % CHECKER).encode()
+        if p.returncode != 255 or p.stdout or p.stderr.replace(b"\r\n", b"\n") != error:
+            print("FAIL  first-line atom compatibility")
+            failures += 1
+
+        for value, box, warning in [("Inf", False, False), ("NaN", False, False),
+                                     ("20x", False, True), ("x", True, True)]:
+            with open(deck, "w") as handle:
+                handle.write("size_x = %s\n" % value)
+            p = subprocess.run([sys.executable, CHECKER, "-f", deck, "-c", "Vina"],
+                               capture_output=True, text=True)
+            stderr = ('Argument "%s" isn\'t numeric in numeric le (<=) at '
+                      'keywords line 880.\n' % value) if warning else ""
+            if (p.returncode != 1 or ("|box|" in p.stdout) != box or p.stderr != stderr):
+                print("FAIL  Vina numeric-prefix compatibility: %s" % value)
+                failures += 1
+
+        with open(os.path.join(FIXTURES, "ecceqm-water.qmin")) as handle:
+            ecceqm = handle.read()
+        for row, bad in [("bond x 2 bad 1 4", False), ("bond 1 2 0 1 x", True)]:
+            with open(deck, "w") as handle:
+                handle.write(ecceqm + "\nscan\n" + row + "\nend\n")
+            p = subprocess.run([sys.executable, CHECKER, "-f", deck, "-c", "ECCE-QM"],
+                               capture_output=True, text=True)
+            if ("|scan|" in p.stdout) != bad:
+                print("FAIL  ECCE-QM scan precedence compatibility: %s" % row)
+                failures += 1
+
+        checker = runpy.run_path(CHECKER)
+        names = ["", "lda", "SLA PZ", "SLA PW PBE PBE", "SLA PW PBX PBC",
+                 "SLA PW PSX PSC", "SLA PW RPB PBC", "SLA PZ NOGX NOGC",
+                 "SLA PW NOGX NOGC", "SLA LYP B88 BLYP", "SLA PW GGX GGC",
+                 "  custom   functional  ", "X Y Z W ignored"]
+        paths = []
+        for i, text in enumerate([
+                '<PP_HEADER functional="SLA PW PBE PBE"/>\n',
+                '  SLA LYP B88 BLYP Exchange-Correlation functional\n',
+                '\n' * 399 + 'functional="LDA"\n',
+                '\n' * 400 + 'functional="LDA"\n',
+                'no header\n']):
+            path = os.path.join(work, "header%d.UPF" % i)
+            with open(path, "w") as handle:
+                handle.write(text)
+            paths.append(path)
+        paths.append(missing)
+        # ai.qe still uses the Perl module; every alias and the header limit
+        # must agree until its final Perl caller has been ported.
+        perl = ('my $n = shift @ARGV; '
+                'for (1..$n) { print QEFunctional::canonical(shift @ARGV), "\\n"; } '
+                'for (@ARGV) { print QEFunctional::ofFile($_), "\\n"; }')
+        p = subprocess.run(["perl", "-I" + os.path.dirname(CHECKER), "-MQEFunctional",
+                            "-e", perl, str(len(names))] + names + paths,
+                           capture_output=True, text=True)
+        expected = [checker["qeCanonical"](name) for name in names]
+        expected += [checker["qeFunctionalOfFile"](path) for path in paths]
+        if p.returncode or p.stderr or p.stdout != "\n".join(expected) + "\n":
+            print("FAIL  Python/Perl QE functional compatibility")
+            failures += 1
+    if not failures:
+        print("ok    checker CLI and Python/Perl QE functional compatibility")
+    return failures
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("-v", "--verbose", action="store_true")
@@ -808,7 +899,7 @@ def main():
         #  GOOD check at line 0 is counted in the summary but invisible
         #  there (CP2K and QE once showed one "+" for eleven checks).
         if code in ("CP2K", "QuantumESPRESSO"):
-            out = subprocess.run([CHECKER, "-f", os.path.join(FIXTURES, fixture),
+            out = subprocess.run([sys.executable, CHECKER, "-f", os.path.join(FIXTURES, fixture),
                                   "-c", code, "-a", str(atoms)],
                                  capture_output=True, text=True).stdout
             for row in out.splitlines():
@@ -871,6 +962,7 @@ def main():
         print("ok    every word in the ECCE-generated fixtures is known")
 
     failures += generator_warnings()
+    failures += compatibility_checks()
 
     ran, codeFailures, codesChecked = codes_agreement(args.verbose)
     if not ran:

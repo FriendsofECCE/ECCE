@@ -174,7 +174,7 @@ def main():
         check(ok, "the cell is the structure's lattice (lengths 3.84 A, angles 60 deg): %s" % vec)
         check(len(re.findall(r"^\s+Si\s+-?\d", text, re.M)) == 2, "both Si atoms are in &COORD")
         check("BASIS_SET DZVP-MOLOPT-SR-GTH-q4" in text, "a basis set for silicon was found in the library")
-        rc = subprocess.run(["perl", os.path.join(REPO, "scripts", "parsers", "verifyinput"),
+        rc = subprocess.run([sys.executable, os.path.join(REPO, "scripts", "parsers", "verifyinput"),
                              "-f", deck, "-c", "CP2K", "-a", "2"],
                             capture_output=True, text=True)
         check(rc.returncode == 0 and "BAD|" not in rc.stdout, "Verify finds nothing wrong with the saved deck")
@@ -193,7 +193,7 @@ def main():
             check("RUN_TYPE GEO_OPT" in text and "&MOTION" in text and "MAX_ITER 9" in text
                   and "OPTIMIZER LBFGS" in text,
                   "a Geometry run writes GEO_OPT and &MOTION with the optimizer and step limit")
-            r = subprocess.run(["perl", os.path.join(REPO, "scripts", "parsers", "verifyinput"),
+            r = subprocess.run([sys.executable, os.path.join(REPO, "scripts", "parsers", "verifyinput"),
                                 "-f", deck, "-c", "CP2K", "-a", "2"], capture_output=True, text=True)
             check(r.returncode == 0 and re.search(r"^GOOD\|[1-9]\d*\|run\|", r.stdout, re.M),
                   "Verify marks the run type on its RUN_TYPE line")

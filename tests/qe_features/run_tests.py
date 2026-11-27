@@ -99,7 +99,7 @@ def verify(text, name):
     try:
         path = os.path.join(d, name)
         open(path, "w").write(text)
-        r = subprocess.run(["perl", os.path.join(PARSERS, "verifyinput"), "-f", path,
+        r = subprocess.run([sys.executable, os.path.join(PARSERS, "verifyinput"), "-f", path,
                             "-c", "QuantumESPRESSO"], capture_output=True, text=True,
                            env=dict(os.environ, ECCE_HOME=ROOT))
         return [l.split("|", 3) for l in r.stdout.splitlines() if l.count("|") >= 3]

@@ -106,7 +106,7 @@ def verify(text, atoms=None):
     try:
         path = os.path.join(d, "x.cp2kin")
         open(path, "w").write(text)
-        cmd = ["perl", os.path.join(PARSERS, "verifyinput"), "-f", path, "-c", "CP2K"]
+        cmd = [sys.executable, os.path.join(PARSERS, "verifyinput"), "-f", path, "-c", "CP2K"]
         if atoms:
             cmd += ["-a", str(atoms)]
         r = subprocess.run(cmd, capture_output=True, text=True)

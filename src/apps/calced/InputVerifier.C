@@ -1,5 +1,9 @@
 #include <fstream>
 #include <sstream>
+#ifdef _WIN32
+#include <filesystem>
+namespace fs = std::filesystem;
+#endif
 using std::ifstream;
 using std::ofstream;
 using std::istringstream;
@@ -56,6 +60,11 @@ bool InputVerifier::run(const string& text,
 
   string command = RCommand::quotePath(checker) + " -f " +
                     RCommand::quotePath(deck->path());
+#ifdef _WIN32
+  fs::path py = fs::path(Ecce::ecceHome()) / "python" / "python.exe";
+  string pyExe = fs::exists(py) ? py.string() : string("python.exe");
+  command = RCommand::quotePath(pyExe) + " " + command;
+#endif
   if (!codeName.empty())
     command += " -c \"" + codeName + "\"";
   if (atoms > 0) {

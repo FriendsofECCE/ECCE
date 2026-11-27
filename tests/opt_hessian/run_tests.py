@@ -113,7 +113,7 @@ def checker():
     for old, want in (("", True), ("%OldChk=guess.chkin\n", False)):
         with tempfile.NamedTemporaryFile("w", suffix=".g16in", delete=False) as f:
             f.write(base % old)
-        p = subprocess.run(["perl", os.path.join(ROOT, "scripts", "parsers", "verifyinput"),
+        p = subprocess.run([sys.executable, os.path.join(ROOT, "scripts", "parsers", "verifyinput"),
                             "-f", f.name, "-c", "Gaussian-16"], capture_output=True, text=True,
                            env=dict(os.environ, ECCE_HOME=ROOT))
         os.unlink(f.name)

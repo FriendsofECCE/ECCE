@@ -1,2393 +1,1695 @@
-#!/usr/bin/env perl
-#
-#  Look at a generated input deck and say whether anything is badly
-#  wrong with it, before it is submitted (GitHub #148).
-#
-#      verifyinput -f <input file> -c <code name> [-a <atom count>]
-#
-#  Writes one finding per line:
-#
-#      LEVEL|LINE|CHECK|MESSAGE
-#
-#  LEVEL is BAD, UNSURE or GOOD.  LINE is the 1-based line a finding
-#  points at, "FIRST-LAST" for a finding about a run of lines, or 0
-#  where it points at the file as a whole.  A range on a GOOD finding
-#  is what lets a reader see WHICH lines were actually examined and
-#  passed, rather than having to take "checked" on trust.  GOOD lines
-#  are emitted for checks that ran and passed, deliberately: a checker
-#  that prints nothing when it is happy teaches nobody what it covers,
-#  and "green" then gets read as "this calculation is correct" rather
-#  than "these particular things are in order".
-#
-#  WHAT THIS MAY AND MAY NOT DECIDE.
-#
-#  Rules about the SHAPE of a deck -- which sections exist, which are
-#  required, how one ends -- come from the codes' documentation and are
-#  safe.  Rules about whether a KEYWORD is valid do not: this tree has
-#  been wrong about that repeatedly from reading manuals (NWChem's
-#  documented dispersion spellings are rejected; ORCA takes 6-31++G**
-#  but not 6-31++G; Gaussian wants GD3BJ and ECCE wrote GD3-BJ).  A
-#  checker that calls a correct deck wrong is worse than no checker,
-#  because the user learns to ignore it.  So nothing here rejects a
-#  keyword; anything it cannot judge is UNSURE.
+#!/usr/bin/env python3
+"""Check the structure of a generated input deck before submission.
 
-use strict;
-use warnings;
-use Getopt::Std;
-use FindBin;
-use lib $FindBin::RealBin;
-use QEFunctional;
+verifyinput -f <input file> -c <code name> [-a <atom count>]
+Findings on stdout are LEVEL|LINE|CHECK|MESSAGE; exit 1 means a BAD finding.
+Unknown keywords are UNSURE: the vocabulary describes what ECCE writes,
+not everything a chemistry code accepts.
+"""
 
-our ($opt_f, $opt_c, $opt_a, $opt_h);
-getopts('f:c:a:h');
+import os
+import re
+import sys
 
-if ($opt_h || !defined($opt_f)) {
-  print STDERR "usage: verifyinput -f <input file> -c <code> [-a <atoms>]\n";
-  exit($opt_h ? 0 : 2);
+
+NUM = r'[-+]?(?:\d+\.?\d*|\.\d+)(?:[eEdD][-+]?\d+)?'
+Z = dict(zip(
+    'H He Li Be B C N O F Ne Na Mg Al Si P S Cl Ar K Ca Sc Ti V Cr Mn Fe '
+    'Co Ni Cu Zn Ga Ge As Se Br Kr Rb Sr Y Zr Nb Mo Tc Ru Rh Pd Ag Cd In Sn '
+    'Sb Te I Xe Cs Ba La Ce Pr Nd Pm Sm Eu Gd Tb Dy Ho Er Tm Yb Lu Hf Ta W '
+    'Re Os Ir Pt Au Hg Tl Pb Bi Po At Rn'.split(), range(1, 87)))
+findings = []
+
+
+def finding(level, line, check, message):
+    findings.append('|'.join(str(x) for x in (level, line, check, message)))
+
+
+def diagnostic(message):
+    sys.stderr.buffer.write(message.replace('\n', os.linesep).encode('utf-8', 'surrogateescape'))
+
+
+def balanced(text):
+    depth = 0
+    for character in text:
+        if character == '(':
+            depth += 1
+        if character == ')':
+            depth -= 1
+        if depth < 0:
+            return False
+    return depth == 0
+
+
+def geometryLines(start, stop, directives, what):
+    L = stripped
+    if start > stop or start < 0 or stop >= len(L):
+        return
+    first = next((i for i in range(start, stop + 1)
+                  if re.search(r'\S', L[i], re.ASCII)), -1)
+    cartesian = r'^\s*[A-Za-z][A-Za-z]?\S*\s+' + NUM + r'\s+' + NUM + r'\s+' + NUM + r'(\s|$)'
+    if first < 0 or not re.search(cartesian, L[first], re.ASCII):
+        return
+    odd = []
+    for i in range(start, stop + 1):
+        if not re.search(r'\S', L[i], re.ASCII):
+            continue
+        if re.search(cartesian, L[i], re.ASCII):
+            continue
+        if directives is not None and re.search(directives, L[i], re.I | re.ASCII):
+            continue
+        odd.append(i)
+    if odd:
+        line = re.sub(r'^\s+|\s+$', '', L[odd[0]], flags=re.ASCII)
+        if len(line) > 43:
+            line = line[:40] + '...'
+        finding('BAD', odd[0] + 1, 'geometry',
+                'This line is inside the {} but is not an atom: every '
+                'other line there gives an element and three coordinates, '
+                'and this one reads "{}".{}'.format(
+                    what, line, ' {} more like it follow.'.format(len(odd) - 1)
+                    if len(odd) > 1 else ''))
+    else:
+        count = sum(bool(re.search(r'\S', L[i], re.ASCII)) for i in range(start, stop + 1))
+        finding('GOOD', '{}-{}'.format(start + 1, stop + 1), 'geometry',
+                'Every one of the {} lines in the {} is an atom.'.format(count, what))
+
+
+def electronCount(charge, multiplicity, atomLines, assumed=False):
+    level = 'UNSURE' if assumed else 'BAD'
+    protons = 0
+    for symbol in atomLines:
+        element = symbol.lower().capitalize()
+        if element not in Z:
+            return
+        protons += Z[element]
+    if protons <= 0:
+        return
+    electrons = protons - int(charge)
+    if electrons < 0:
+        finding(level, 0, 'electrons',
+                'The charge of {} removes more electrons than this molecule has.'.format(charge))
+        return
+    unpaired = int(multiplicity) - 1
+    if unpaired > electrons:
+        finding(level, 0, 'electrons',
+                'A multiplicity of {} needs {} unpaired electrons, and this molecule has only {} '
+                'altogether.'.format(multiplicity, unpaired, electrons))
+        return
+    if (electrons - unpaired) % 2:
+        ok = 'an odd multiplicity (1, 3, 5)' if electrons % 2 == 0 else 'an even multiplicity (2, 4, 6)'
+        finding(level, 0, 'electrons',
+                'Charge {} gives this molecule {} electrons, which cannot have a multiplicity of {}: '
+                '{} electrons require {}. {}'.format(
+                    charge, electrons, multiplicity, electrons, ok,
+                    'This deck does not state a multiplicity, so one was assumed -- the assumption may be what is wrong here.'
+                    if assumed else 'Either the charge or the multiplicity is wrong.'))
+        return
+    finding('GOOD', 0, 'electrons',
+            '{} electrons at charge {}, consistent with a multiplicity of {}.'.format(electrons, charge, multiplicity))
+
+
+def knownWords(codeName):
+    places = []
+    home = os.environ.get('ECCE_HOME')
+    if home and home != '0':
+        places.append(home + '/data/client/config/verify')
+    # Preserve the checkout lookup as well as the installed ECCE_HOME lookup.
+    here = re.sub(r'/[^/]+$', '', sys.argv[0])
+    places.append(here + '/../../data/client/config/verify')
+    for place in places:
+        path = place + '/' + codeName + '.words'
+        try:
+            with open(path, encoding='latin-1', newline=None if os.name == 'nt' else '') as handle:
+                return {word.rstrip('\n').lower(): 1 for word in handle
+                        if re.search(r'\S', word, re.ASCII)}
+        except OSError:
+            continue
+    return {}
+
+
+def unknownWords(codeName, text, line, what):
+    words = knownWords(codeName)
+    if not words:
+        return
+    split = r'[\s=(),/]+' if codeName.startswith('Gaussian') else r'[\s=(),]+'
+    unknown, reported = [], set()
+    for token in re.split(split, text, flags=re.ASCII):
+        token = re.sub(r'^#\S?', '', token, flags=re.ASCII)
+        if not re.search(r'[A-Za-z]', token) or re.search(r'^\d', token, re.ASCII):
+            continue
+        key = token.lower()
+        if key in words:
+            continue
+        bare = re.sub(r'^(ro|r|u)', '', key)
+        if bare != key and bare in words:
+            continue
+        if key in reported:
+            continue
+        reported.add(key)
+        unknown.append(token)
+    if not unknown:
+        return
+    finding('UNSURE', line, 'keywords',
+            'ECCE would not have written {} on the {}: {}. That is not a fault -- it is what a '
+            'hand edit looks like -- but nothing here can tell you whether the code accepts {}.'.format(
+                'this word' if len(unknown) == 1 else 'these words', what,
+                ', '.join('"{}"'.format(t) for t in unknown), 'it' if len(unknown) == 1 else 'them'))
+def gaussian():
+    L = stripped
+    fromCheck = re.search(r'geom\s*=\s*\(?[^)\n]*check', whole, re.I | re.A)
+    allCheck = re.search(r'geom\s*=\s*\(?[^)\n]*allcheck', whole, re.I | re.A)
+    routeAt = next((i for i, line in enumerate(L) if re.search(r'^\s*#', line, re.A)), -1)
+    if routeAt < 0:
+        finding('BAD', 0, 'route',
+                "There is no route card: no line begins with '#'. Gaussian "
+                'will not know what to run.')
+        return
+    routeEnd = next((i for i in range(routeAt, len(L)) if re.search(r'^\s*$', L[i], re.A)), len(L))
+    last = routeEnd - 1 if routeEnd < len(L) else len(L) - 1
+    route = ' '.join(L[routeAt:last + 1])
+    finding('GOOD', '{}-{}'.format(routeAt + 1, last + 1), 'route', 'The route card is present.')
+    unknownWords(code, route, routeAt + 1, 'route card')
+    if not balanced(route):
+        finding('BAD', routeAt + 1, 'keywords',
+                'The parentheses on the route card do not balance. '
+                'Gaussian rejects the entire route card when they do not, '
+                'so nothing on it takes effect.')
+    td = re.search(r'(?:^|\s)(TDA?)\s*(?:=\s*\(?([^\s)]*)|\(([^)]*)\))?', route, re.I | re.A)
+    if td:
+        opts = td.group(3) if td.group(3) is not None else (td.group(2) or '')
+        at = routeAt + 1
+        states = re.search(r'NStates\s*=\s*(-?\d+)', opts, re.I | re.A)
+        if states and int(states.group(1)) < 1:
+            finding('UNSURE', at, 'excited', 'NStates is {}; TD needs at least one state.'.format(states.group(1)))
+        else:
+            finding('GOOD', at, 'excited', 'TD excited-state request is present.')
+        if re.search(r'(?:^|[\s/])RO\w*', route, re.I | re.A) and not re.search(r'\bUHF\b', route, re.I | re.A):
+            finding('UNSURE', at, 'excited',
+                    'TD is not available for a restricted open-shell (RO) '
+                    'reference in Gaussian.')
+        if re.search(r'\b(MP[2-5]|CCSD|CCD|QCISD|CASSCF|CIS)\b', route, re.I | re.A):
+            finding('UNSURE', at, 'excited',
+                    'TD is requested together with a correlated or CI method; '
+                    'TD applies to HF and DFT references.')
+        if re.search(r'\bopt\b', route, re.I | re.A) and not re.search('root', opts, re.I | re.A):
+            finding('UNSURE', at, 'excited',
+                    'TD with an optimisation optimises the geometry of the first '
+                    'excited state, not the ground state.')
+    late = [i + 1 for i in range(routeAt + 1, len(L)) if re.search(r'^\s*%[A-Za-z]', L[i], re.A)]
+    if late:
+        finding('BAD', late[0], 'link0',
+                'A %-directive appears after the route card. Link 0 '
+                'directives (%mem, %chk, %nprocshared) must come before '
+                "the '#' line, or Gaussian will not act on them.")
+    got = []
+    for pattern, label in [(r'^\s*%mem\s*=', 'memory'),
+                           (r'^\s*%(nprocshared|cpu|nproc)\s*=', 'processors'),
+                           (r'^\s*%chk\s*=', 'a checkpoint file')]:
+        if re.search(pattern, whole, re.M | re.I | re.A):
+            got.append(label)
+    if got:
+        finding('GOOD', 0, 'link0', 'Link 0 asks for ' + ', '.join(got) + '.')
+    if fromCheck and not re.search(r'^\s*%chk\s*=', whole, re.M | re.I | re.A):
+        finding('BAD', 0, 'link0',
+                'The route card reads from a checkpoint file, but no %chk '
+                'says which one.')
+    if re.search(r'\breadfc\b', whole, re.I | re.A) and not re.search(r'^\s*%oldchk\s*=', whole, re.M | re.I | re.A):
+        finding('UNSURE', routeAt + 1, 'link0',
+                'The route card says Opt=ReadFC, but no %OldChk names the '
+                'checkpoint file of an earlier calculation to read the force '
+                "constants from. Pick that calculation's checkpoint as the "
+                'orbital guess in the Calculation Editor, or Gaussian will '
+                'stop for lack of force constants.')
+    if re.search(r'\bNoSymm\b', whole, re.I | re.A) and not qstWanted:
+        finding('UNSURE', routeAt + 1, 'symmetry',
+                'This deck says NoSymm, so the calculation will report no '
+                'orbital symmetry labels -- no MO correlation diagram can '
+                'be drawn from it, and orbitals will be numbered rather '
+                'than named. Tick "Use symmetry" in the Calculation '
+                'Editor if that was not intended.')
+    if routeEnd >= len(L):
+        finding('BAD', routeAt + 1, 'sections',
+                'There is no blank line after the route card. Gaussian '
+                'reads the route until a blank line, so it will run the '
+                'title into it.')
+        return
+    finding('GOOD', 0, 'sections', 'The route card is closed by a blank line.')
+    if allCheck:
+        finding('UNSURE', 0, 'sections',
+                'The route says Geom=AllCheck, so the title, charge and '
+                'geometry come from the checkpoint file rather than from '
+                'here. What that file holds cannot be judged from this deck.')
+        return
+    titleAt = routeEnd + 1
+    if titleAt >= len(L) or re.search(r'^\s*$', L[titleAt], re.A):
+        finding('BAD', titleAt + 1, 'title',
+                'The title section is empty. Gaussian requires a title '
+                'between the route card and the charge line.')
+        return
+    titleEnd = next((i for i in range(titleAt, len(L)) if re.search(r'^\s*$', L[i], re.A)), len(L))
+    if titleEnd >= len(L):
+        finding('BAD', titleAt + 1, 'sections',
+                'There is no blank line after the title, so Gaussian will '
+                'read the charge line as part of it.')
+        return
+    swallowed = -1
+    for i in range(titleAt, titleEnd):
+        if (re.search(r'^\s*-?\d+\s+-?\d+\s*(!.*)?$', L[i], re.A) or
+                re.search(r'^\s*[A-Za-z][A-Za-z]?\S*\s+$NUM\s+$NUM\s+$NUM(\s|$)'.replace('$NUM', NUM), L[i], re.A)):
+            swallowed = i
+            break
+    if swallowed >= 0:
+        finding('BAD', swallowed + 1, 'sections',
+                'There is no blank line between the title and this line, so '
+                'Gaussian will read it as part of the title. The title runs '
+                'from line {} to line {}, which cannot be what was meant.'.format(titleAt + 1, titleEnd))
+        return
+    finding('GOOD', '{}-{}'.format(titleAt + 1, titleEnd), 'title', 'A title is present and closed.')
+    chargeAt = titleEnd + 1
+    if chargeAt >= len(L) or not re.search(r'^\s*-?\d+\s+-?\d+\s*(!.*)?$', L[chargeAt], re.A):
+        finding('BAD', chargeAt + 1 if chargeAt < len(L) else 0, 'charge',
+                'The line after the title is not a charge and multiplicity '
+                'pair. Gaussian expects two integers there.')
+        return
+    charge, mult = re.search(r'^\s*(-?\d+)\s+(-?\d+)', L[chargeAt], re.A).groups()
+    finding('GOOD', chargeAt + 1, 'charge', 'Charge {}, multiplicity {}.'.format(charge, mult))
+    electronCount(charge, mult, atomSymbols)
+    geomEnd = next((i for i in range(chargeAt + 1, len(L)) if re.search(r'^\s*$', L[i], re.A)), len(L))
+    if geomEnd >= len(L):
+        finding('BAD', chargeAt + 2, 'sections',
+                'The molecule specification is not followed by a blank '
+                'line. Gaussian needs one to know it has ended.')
+    else:
+        finding('GOOD', 0, 'sections', 'The molecule specification is closed by a blank line.')
+    geometryLines(chargeAt + 1, geomEnd - 1 if geomEnd < len(L) else len(L) - 1,
+                  None, 'molecule specification')
+    if (geomEnd < len(L) and
+            not re.search(r'gen|qst[23]|extrabasis|pseudo|modred|read|charge|massage|connect|oniom|gic|cards|extern|@', route, re.I | re.A) and
+            not re.search('--link1--', whole, re.I | re.A)):
+        for i in range(geomEnd + 1, len(L)):
+            if re.search(r'^\s*$', L[i], re.A):
+                continue
+            finding('UNSURE', i + 1, 'sections',
+                    'Nothing on the route card asks Gaussian to read input '
+                    'after the molecule specification, so it will ignore '
+                    'this line.')
+            break
+    if not re.search(r'^\s*$', L[-1], re.A):
+        finding('BAD', len(L), 'sections',
+                'The file does not end with a blank line, which Gaussian requires.')
+    gaussianBasis()
+
+
+def gaussianBasis():
+    L = stripped
+    if not re.search(r'/gen\b', whole, re.I | re.A):
+        return
+    start = next((i for i, line in enumerate(L) if re.search(r'^\s*([A-Za-z]{1,2}\d*|-?\d+)(\s+([A-Za-z]{1,2}\d*|-?\d+))*\s+0\s*$', line, re.A)), -1)
+    if start < 0:
+        finding('BAD', 0, 'basis',
+                'The route card says /GEN, which means the basis set is '
+                'given in this file, but no basis block was found.')
+        return
+    covered = set()
+    groups = shells = named = byNumber = 0
+    i = start
+    while i < len(L):
+        if re.search(r'^\s*$', L[i], re.A):
+            if groups:
+                break
+            i += 1
+            continue
+        header = re.search(r'^\s*(.+?)\s+0\s*$', L[i], re.A)
+        if header:
+            names = header.group(1)
+            for token in re.split(r'\s+', names, flags=re.A):
+                if re.search(r'^-?\d+$', token, re.A):
+                    byNumber += 1
+                    continue
+                token = re.sub('^-', '', token)
+                covered.add(token.lower().capitalize())
+            groups += 1
+            i += 1
+            closed = False
+            while i < len(L):
+                if re.search(r'^\s*\*{4,}\s*$', L[i], re.A):
+                    closed = True
+                    i += 1
+                    break
+                shell = re.search(r'^\s*(SP|S|P|D|F|G|H|I)\s+(\d+)\s+$NUM\s*$'.replace('$NUM', NUM), L[i], re.I | re.A)
+                if shell:
+                    kind, count = shell.group(1).upper(), shell.group(2)
+                    shells += 1
+                    wanted = 3 if kind == 'SP' else 2
+                    for k in range(1, int(count) + 1):
+                        i += 1
+                        if i >= len(L):
+                            finding('BAD', i, 'basis',
+                                    'The basis block stops in the middle of a shell: '
+                                    'the {} shell declares {} primitives and '
+                                    'the file runs out before they are all given.'.format(kind, count))
+                            return
+                        # Require the complete primitive row; a shell header also contains numbers.
+                        numbers = re.search(r'^\s*($NUM)(?:\s+($NUM))*\s*$'.replace('$NUM', NUM), L[i], re.A)
+                        allNumbers = re.findall('(' + NUM + ')', L[i], re.A)
+                        if not numbers or len(allNumbers) < wanted:
+                            finding('BAD', i + 1, 'basis',
+                                    'This should be primitive {} of {} for the '
+                                    '{} shell above it, and it is not a row of '
+                                    '{} numbers. The shell declares more '
+                                    'primitives than it lists.'.format(k, count, kind, wanted))
+                            return
+                    i += 1
+                    continue
+                if re.search(r'^\s*\S+\s*$', L[i], re.A):
+                    named += 1
+                    i += 1
+                    continue
+                finding('BAD', i + 1, 'basis',
+                        'This line is inside the basis block but is neither a '
+                        "shell (like 'S 3 1.00'), nor a basis name, nor the "
+                        "'****' separator that ends an element group.")
+                return
+            if not closed:
+                finding('BAD', i if i < len(L) else len(L), 'basis',
+                        "A basis group is never closed by a '****' separator.")
+                return
+            continue
+        break
+    missing = [element for element in elements if element not in covered]
+    if missing and not byNumber:
+        finding('BAD', start + 1, 'basis',
+                'The basis block covers ' + ', '.join(sorted(covered)) +
+                ', but the molecule also contains ' + ', '.join(missing) +
+                '. Every element needs a basis set.')
+        return
+    what = '{} element group{}'.format(groups, '' if groups == 1 else 's')
+    if shells:
+        what += ', {} shell{}'.format(shells, '' if shells == 1 else 's')
+    if named:
+        what += ', {} named'.format(named)
+    stop = len(L) - 1 if i >= len(L) else i - 1
+    stop = max(stop, start)
+    finding('GOOD', '{}-{}'.format(start + 1, stop + 1), 'basis',
+            'The Gen basis block is complete and readable: {}.'.format(what))
+    if byNumber:
+        finding('UNSURE', start + 1, 'basis',
+                'Some basis groups name centres by number rather than by '
+                'element, so whether every atom is covered could not be '
+                'checked.')
+
+
+def orca():
+    L = stripped
+    bang = next((i + 1 for i, line in enumerate(L) if re.search(r'^\s*!', line, re.A)), 0)
+    if bang:
+        finding('GOOD', bang, 'route', "The '!' keyword line is present.")
+        keywords = re.sub(r'^\s*!', '', L[bang - 1], flags=re.A)
+        unknownWords(code, keywords, bang, "'!' line")
+    else:
+        finding('BAD', 0, 'route',
+                "There is no '!' keyword line. ORCA will not know what to run.")
+    openedAt = firstBlock = lastBlock = -1
+    blocks = 0
+    inSub = False
+    for i, line in enumerate(L):
+        # NewGTO/NewECP have their own end; it does not close %basis.
+        if openedAt >= 0 and not inSub and re.search(r'^\s*New\w+\s+\w+\s*$', line, re.I | re.A):
+            inSub = True
+            continue
+        if inSub:
+            if re.search(r'^\s*end\s*$', line, re.I | re.A):
+                inSub = False
+            continue
+        if openedAt < 0 and re.search(r'^\s*%(\w+)\s*$', line, re.A):
+            openedAt = i
+            if firstBlock < 0:
+                firstBlock = i
+            continue
+        if openedAt >= 0 and re.search(r'^\s*end\s*$', line, re.I | re.A):
+            blocks += 1
+            lastBlock = i
+            openedAt = -1
+            continue
+        if openedAt < 0 and re.search(r'^\s*%\w+\s+\S', line, re.A):
+            if firstBlock < 0:
+                firstBlock = i
+            lastBlock = i
+            blocks += 1
+    if openedAt >= 0:
+        finding('BAD', openedAt + 1, 'blocks',
+                "This % block is never closed by an 'end'. ORCA reads to "
+                'the end of the file looking for one.')
+    elif blocks:
+        finding('GOOD', '{}-{}'.format(firstBlock + 1, lastBlock + 1), 'blocks',
+                '{} % block{} present and closed.'.format(blocks, ' is' if blocks == 1 else 's are'))
+    orcaBasis(L)
+    tdAt = 0
+    inTd = False
+    nroots = triplets = None
+    for i, line in enumerate(L):
+        if re.search(r'^\s*%tddft\s*$', line, re.I | re.A):
+            inTd = True
+            tdAt = i + 1
+            continue
+        if inTd and re.search(r'^\s*end\s*$', line, re.I | re.A):
+            inTd = False
+            continue
+        if inTd:
+            roots = re.search(r'^\s*nroots\s+(-?\d+)', line, re.I | re.A)
+            if roots:
+                nroots = roots.group(1)
+            triplet = re.search(r'^\s*triplets\s+(\w+)', line, re.I | re.A)
+            if triplet:
+                triplets = triplet.group(1)
+    if tdAt:
+        if nroots is None:
+            finding('UNSURE', tdAt, 'excited',
+                    'The %tddft block gives no nroots; ORCA will compute '
+                    'only its default number of states.')
+        elif int(nroots) < 1:
+            finding('BAD', tdAt, 'excited', 'nroots is {}; %tddft needs at least one state.'.format(nroots))
+        else:
+            finding('GOOD', tdAt, 'excited', 'TD-DFT asks for {} states.'.format(nroots))
+        kw = L[bang - 1] if bang else ''
+        if re.search(r'\b(\w*MP2\w*|CCSD\w*|CASSCF|NEVPT2|CASPT2|DLPNO\S*)', kw, re.I | re.A):
+            finding('UNSURE', tdAt, 'excited',
+                    '%tddft acts on the SCF/DFT reference; the correlated '
+                    "method on the '!' line does not give excited states.")
+        spin = re.search(r'^\s*\*\s*\w+\s+-?\d+\s+([2-9]\d*)\b', whole, re.M | re.A)
+        if triplets is not None and re.search(r'^(true|1|yes)$', triplets, re.I | re.A) and spin:
+            finding('UNSURE', tdAt, 'excited',
+                    'Triplets are requested for an open-shell (multiplicity '
+                    "{}) system; ORCA's unrestricted TD-DFT has no "
+                    'singlet/triplet split.'.format(spin.group(1)))
+    openAt = -1
+    isFile = False
+    for i, line in enumerate(L):
+        opening = re.search(r'^\s*\*\s*(xyzfile|xyz|int|gzmt)\b', line, re.I | re.A)
+        if opening:
+            openAt = i
+            isFile = opening.group(1).lower() == 'xyzfile'
+            break
+    if openAt < 0:
+        finding('BAD', 0, 'geomblock', "There is no '* xyz' line opening the geometry.")
+        return
+    chargeLine = re.search(r'^\s*\*\s*\w+\s+(-?\d+)\s+(\d+)', L[openAt], re.A)
+    if chargeLine:
+        charge, mult = chargeLine.groups()
+        finding('GOOD', openAt + 1, 'charge', 'Charge {}, multiplicity {}.'.format(charge, mult))
+        electronCount(charge, mult, atomSymbols)
+    else:
+        finding('BAD', openAt + 1, 'charge',
+                "The '* xyz' line does not carry a charge and a "
+                'multiplicity, which ORCA expects on it.')
+    if isFile:
+        finding('UNSURE', openAt + 1, 'geomblock',
+                'The geometry is read from a separate .xyz file, so it '
+                'could not be checked from here.')
+        return
+    closed = next((i + 1 for i in range(openAt + 1, len(L)) if re.search(r'^\s*\*\s*$', L[i], re.A)), 0)
+    if closed:
+        finding('GOOD', closed, 'geomblock', "The geometry block is closed by a '*'.")
+        geometryLines(openAt + 1, closed - 2, None, 'geometry block')
+    else:
+        finding('BAD', openAt + 1, 'geomblock',
+                'The geometry block opened here is never closed by a line '
+                "holding a single '*'.")
+
+
+def orcaBasis(L=None):
+    if L is None:
+        L = stripped
+    num = NUM
+    bad = 0
+    gtoRows = ecpRows = 0
+    first = last = -1
+    lval = dict((name, i) for i, name in enumerate('spdfghik'))
+    i = 0
+    while i < len(L):
+        block = re.search(r'^\s*New(GTO|ECP)\s+(\w+)\s*$', L[i], re.I | re.A)
+        if not block:
+            i += 1
+            continue
+        kind, el = block.group(1).upper(), block.group(2)
+        at = i + 1
+        if first < 0:
+            first = at
+        lmax = ncore = closed = None
+        seen = {}
+        i += 1
+        while i < len(L):
+            line = L[i]
+            if re.search(r'^\s*end\s*$', line, re.I | re.A):
+                closed = i + 1
+                i += 1
+                break
+            core = re.search(r'^\s*N_core\s+(\d+)\s*$', line, re.I | re.A)
+            if kind == 'ECP' and core:
+                ncore = core.group(1)
+                i += 1
+                continue
+            maximum = re.search(r'^\s*lmax\s+([spdfghik])\s*$', line, re.I | re.A)
+            if kind == 'ECP' and maximum:
+                lmax = maximum.group(1).lower()
+                i += 1
+                continue
+            hdr = r'^\s*([SPDFGHIKL])\s+(\d+)\s*$' if kind == 'GTO' else r'^\s*([spdfghik])\s+(\d+)\s*$'
+            shell = re.search(hdr, line, re.I | re.A)
+            if shell:
+                sh, n = shell.group(1).lower(), shell.group(2)
+                hline = i + 1
+                seen[sh] = hline
+                if kind == 'ECP' and lmax is not None and lval[sh] > lval[lmax]:
+                    finding('BAD', hline, 'basis',
+                            "ECP shell '{}' on {} is above its declared lmax "
+                            "'{}'. ORCA stops on this.".format(sh, el, lmax))
+                    bad += 1
+                if kind == 'ECP':
+                    row = r'^\s*\d+\s+$num\s+$num\s+\d+\s*$'
+                elif sh == 'l':
+                    row = r'^\s*\d+\s+$num\s+$num\s+$num\s*$'
+                else:
+                    row = r'^\s*\d+\s+$num\s+$num\s*$'
+                row = row.replace('$num', num)
+                got = 0
+                i += 1
+                while got < int(n) and i < len(L) and re.search(row, L[i], re.A):
+                    got += 1
+                    i += 1
+                if got < int(n):
+                    why = ''
+                    if kind == 'ECP' and i < len(L) and re.search(r'^\s*$num\s+$num\s+$num\s*$'.replace('$num', num), L[i], re.A):
+                        why = (' Its rows have three columns; ORCA needs four -- '
+                               'index, exponent, coefficient, power -- and without '
+                               'the index stops with "exponent expected in NewECP".')
+                    finding('BAD', hline, 'basis',
+                            'This {} shell on {} declares {} row{} but {}'
+                            ' in the form ORCA reads.{}'.format(kind, el, n,
+                                '' if int(n) == 1 else 's',
+                                'only {} follow'.format(got) if got else 'none follow', why))
+                    bad += 1
+                    while i < len(L) and not re.search(hdr, L[i], re.I | re.A) and not re.search(r'^\s*end\s*$', L[i], re.I | re.A):
+                        i += 1
+                else:
+                    if kind == 'ECP':
+                        ecpRows += got
+                    else:
+                        gtoRows += got
+                    if i < len(L) and re.search(row, L[i], re.A):
+                        finding('BAD', i + 1, 'basis',
+                                'This row follows a {} shell on {} that declared only {}.'.format(kind, el, n))
+                        bad += 1
+                        while i < len(L) and re.search(row, L[i], re.A):
+                            i += 1
+                continue
+            finding('BAD', i + 1, 'basis',
+                    'This line inside the New{} block for {} is neither a '
+                    'shell header nor one of its rows.'.format(kind, el))
+            bad += 1
+            i += 1
+        if not closed:
+            finding('BAD', at, 'basis', "The New{} block for {} is never closed by an 'end'.".format(kind, el))
+            bad += 1
+            continue
+        last = closed
+        if kind == 'ECP':
+            if ncore is None:
+                finding('BAD', at, 'basis', 'The NewECP block for {} has no N_core line.'.format(el))
+                bad += 1
+            if lmax is None:
+                finding('BAD', at, 'basis', 'The NewECP block for {} has no lmax line.'.format(el))
+                bad += 1
+            elif lmax not in seen:
+                finding('BAD', at, 'basis',
+                        'The NewECP block for {} declares lmax {} but lists '
+                        "no '{}' shell. ORCA accepts this and silently runs "
+                        'with a different potential from the one intended.'.format(el, lmax, lmax))
+                bad += 1
+    if first > 0 and not bad:
+        finding('GOOD', '{}-{}'.format(first, last), 'basis',
+                'Every NewGTO/NewECP shell lists the rows it declares '
+                '({} basis, {} ECP), in the column layout ORCA reads.'.format(gtoRows, ecpRows))
+
+
+def nwchem():
+    L = stripped
+    blocks = set()
+    depth, openedAt, openName = 0, 0, ""
+    for i, line in enumerate(L):
+        if re.search(r'^\s*#', line, re.ASCII):
+            continue
+        m = re.search(r'^\s*(geometry|basis|dft|scf|mp2|ccsd|tce|property|cosmo|driver|md|set|constraints|ecp|relativistic)\b', line, re.I | re.ASCII)
+        if not depth and m:
+            if re.search(r'^\s*set\b', line, re.I | re.ASCII):
+                continue
+            depth, openedAt, openName = 1, i + 1, m.group(1).lower()
+            blocks.add(openName)
+            continue
+        if depth and re.search(r'^\s*end\s*$', line, re.I | re.ASCII):
+            depth = 0
+            continue
+    if 'geometry' in blocks:
+        finding("GOOD", 0, "geometry", "A geometry block is present.")
+        ok = r'^\s*(end|units?|angstroms?|au|bohr|nm|pm|nocenter|center|noautoz|autoz|noautosym|autosym|symmetry|zcoord|zmatrix|variables|constants|load|print|adjust|system|bqbq)\b'
+        for i, line in enumerate(L):
+            if re.search(r'^\s*geometry\b', line, re.I | re.ASCII):
+                close = len(L) - 1
+                for j in range(i + 1, len(L)):
+                    if re.search(r'^\s*end\s*$', L[j], re.I | re.ASCII):
+                        close = j - 1
+                        break
+                geometryLines(i + 1, close, ok, "geometry block")
+                break
+    else:
+        finding("BAD", 0, "geometry", "There is no geometry block.")
+    if depth:
+        finding("BAD", openedAt, "sections",
+                "The {} block is never closed by an 'end'. NWChem "
+                "reads to the end of the file looking for it.".format(openName))
+    else:
+        finding("GOOD", 0, "sections", "Every block is closed by an 'end'.")
+    m = re.search(r'^\s*charge\s+(-?\d+)', whole, re.M | re.I | re.ASCII)
+    charge = m.group(1) if m else 0
+    mult, assumed = 1, 1
+    m = re.search(r'^\s*mult(?:iplicity)?\s+(\d+)', whole, re.M | re.I | re.ASCII)
+    n = re.search(r'^\s*nopen\s+(\d+)', whole, re.M | re.I | re.ASCII)
+    if m:
+        mult, assumed = m.group(1), 0
+    elif n:
+        mult, assumed = int(n.group(1)) + 1, 0
+    finding("GOOD", 0, "charge", "Charge {}, multiplicity {}{}.".format(
+        charge, mult, " (assumed: the deck does not say)" if assumed else ""))
+    electronCount(charge, mult, atomSymbols, assumed)
+    if int(mult) > 1:
+        if re.search(r'^\s*task\s+ccsd(?:\(t\)|\+t\(ccsd\))?\s', whole, re.M | re.I | re.ASCII):
+            finding("BAD", 0, "openshell",
+                    "The multiplicity is {}, but NWChem's ccsd module is "
+                    "closed-shell only and stops with 'nopen is not zero'. "
+                    "Use UCCSD or ROCCSD (tensor contraction engine) instead.".format(mult))
+        if (re.search(r'^\s*task\s+mp2\s', whole, re.M | re.I | re.ASCII) and
+                not re.search(r'^\s*uhf\b', whole, re.M | re.I | re.ASCII)):
+            finding("BAD", 0, "openshell",
+                    "The multiplicity is {}, but NWChem's mp2 module needs "
+                    "a UHF reference for an open shell and stops with "
+                    "'unknown SCFTYPE'. Use UMP2.".format(mult))
+    if re.search(r'^\s*zcoord\b', whole, re.M | re.I | re.ASCII):
+        if re.search(r'^\s*fix\s+atom\b', whole, re.M | re.I | re.ASCII):
+            finding("BAD", 0, "constraints",
+                    "Fixed atoms cannot be combined with bond, angle or torsion "
+                    "constraints in NWChem: the optimizer stops with 'cartesian "
+                    "constraints+internals'. Use either fixed atoms, or the "
+                    "internal-coordinate constraints (a restraint may be combined "
+                    "with the latter).")
+        elif re.search(r'^\s*geometry\b[^\n]*\bnoautoz\b', whole, re.M | re.I | re.ASCII):
+            finding("BAD", 0, "constraints",
+                    "The geometry has noautoz, and NWChem then ignores the zcoord "
+                    "bond, angle and torsion constraints without a message.")
+    if re.search(r'^\s*task\b', whole, re.M | re.I | re.ASCII):
+        finding("GOOD", 0, "task", "A task directive is present.")
+    else:
+        finding("BAD", 0, "task", "There is no task directive, so NWChem will read this file "
+                "and then do nothing.")
+
+
+def lineOf(pattern):
+    for i, line in enumerate(stripped):
+        if re.search(pattern, line):
+            return i + 1
+    return 0
+
+
+def cp2k():
+    L = stripped
+    ranges, stack = {}, []
+    bad = 0
+    for i, line in enumerate(L):
+        line = re.sub(r'[#!].*', '', line, flags=re.ASCII)
+        m = re.search(r'^\s*&END\b\s*(\w*)', line, re.I | re.ASCII)
+        if m:
+            name = m.group(1).upper()
+            top = stack.pop() if stack else None
+            if top is not None:
+                ranges.setdefault(top[0].upper(), '{}-{}'.format(top[1], i + 1))
+            if top is None or (name and top[0].upper() != name):
+                finding("BAD", i + 1, "sections",
+                        "This &END does not close the section open at that point" +
+                        (" (&{} from line {}).".format(top[0], top[1]) if top is not None else "."))
+                bad += 1
+                break
+        else:
+            m = re.search(r'^\s*&(\w+)', line, re.ASCII)
+            if m:
+                stack.append((m.group(1), i + 1))
+    if not bad and stack:
+        finding("BAD", stack[-1][1], "sections",
+                "The &{} section opened here is never closed by &END.".format(stack[-1][0]))
+    elif not bad:
+        finding("GOOD", "1-{}".format(len(L)), "sections", "Every section is closed by &END.")
+    for name, shown in [("global", "&GLOBAL"), ("force_eval", "&FORCE_EVAL"),
+                        ("subsys", "&SUBSYS"), ("cell", "&CELL"), ("coord", "&COORD")]:
+        pattern = re.compile(r'^\s*&' + name + r'\b', re.I | re.ASCII)
+        if re.search(pattern.pattern, whole, re.M | re.I | re.ASCII):
+            finding("GOOD", ranges.get(name.upper()) or lineOf(pattern), name,
+                    "The {} section is present.".format(shown))
+        else:
+            finding("BAD", 0, name, "There is no {} section.".format(shown))
+    m = re.search(r'^\s*RUN_TYPE\s+(\S+)', whole, re.M | re.I | re.ASCII)
+    run = m.group(1) if m else None
+    if run is None:
+        finding("UNSURE", 0, "run", "RUN_TYPE is not set, so CP2K runs its default (ENERGY).")
+    elif (re.search(r'^(GEO_OPT|CELL_OPT)$', run.upper(), re.ASCII) and
+          not re.search(r'^\s*&MOTION\b', whole, re.M | re.I | re.ASCII)):
+        finding("BAD", 0, "run", "RUN_TYPE {} needs a &MOTION section with "
+                "its own subsection; CP2K stops without it.".format(run))
+    else:
+        finding("GOOD", lineOf(re.compile(r'^\s*RUN_TYPE\s', re.I | re.ASCII)), "run",
+                "RUN_TYPE {}.".format(run.upper()))
+    kind, atoms, cur, inCoord = {}, {}, None, False
+    for line in L:
+        line = re.sub(r'[#!].*', '', line, flags=re.ASCII)
+        if re.search(r'^\s*&COORD\b', line, re.I | re.ASCII):
+            inCoord = True
+            continue
+        if re.search(r'^\s*&END\s+COORD\b', line, re.I | re.ASCII):
+            inCoord = False
+            continue
+        m = re.search(r'^\s*(([A-Z][a-z]?)\w*)\s+' + NUM + r'\s+' + NUM + r'\s+' + NUM, line, re.ASCII)
+        if inCoord and m:
+            atoms[m.group(1)] = m.group(2)
+            continue
+        m = re.search(r'^\s*&KIND\s+(\S+)', line, re.I | re.ASCII)
+        if m:
+            cur = m.group(1)
+            kind[cur] = {}
+            continue
+        if re.search(r'^\s*&END\s+KIND\b', line, re.I | re.ASCII):
+            cur = None
+            continue
+        m = re.search(r'^\s*(BASIS_SET|POTENTIAL|ELEMENT)\s+(\S+)', line, re.I | re.ASCII)
+        if cur is not None and m:
+            kind[cur][m.group(1).upper()] = m.group(2)
+    def full(label):
+        k = kind.get(label)
+        return k and 'BASIS_SET' in k and 'POTENTIAL' in k
+    missing = [label for label in sorted(atoms) if not full(label) and not full(atoms[label])]
+    if missing:
+        finding("BAD", 0, "kinds", "No &KIND with both a BASIS_SET and a POTENTIAL for: " +
+                ', '.join(missing) + ". CP2K stops without them.")
+    elif atoms:
+        k1, k2 = lineOf(re.compile(r'^\s*&KIND\b', re.I | re.ASCII)), 0
+        for i, line in enumerate(L):
+            if re.search(r'^\s*&END\s+KIND\b', line, re.I | re.ASCII):
+                k2 = i + 1
+        finding("GOOD", '{}-{}'.format(k1, k2) if k1 and k2 >= k1 else k1, "kinds",
+                "Every element (" + ', '.join(sorted(atoms)) + ") has a basis set and a potential.")
+    m = re.search(r'^\s*MULTIPLICITY\s+(\d+)', whole, re.M | re.I | re.ASCII)
+    mult = m.group(1) if m else None
+    if (mult is not None and int(mult) > 1 and
+            not re.search(r'^\s*(UKS|LSD|UNRESTRICTED_KOHN_SHAM)\b', whole, re.M | re.I | re.ASCII)):
+        finding("BAD", 0, "spin", "MULTIPLICITY {} is set without UKS, so "
+                "CP2K runs a restricted calculation and stops on the spin state.".format(mult))
+    elif mult is not None:
+        finding("GOOD", lineOf(re.compile(r'^\s*MULTIPLICITY\s', re.I | re.ASCII)), "spin",
+                "Multiplicity {}.".format(mult))
+    if re.search(r'^\s*&DFT_PLUS_U\b', whole, re.M | re.I | re.ASCII):
+        if not kind:
+            finding("BAD", 0, "plus_u", "&DFT_PLUS_U is outside any &KIND.")
+        else:
+            finding("GOOD", lineOf(re.compile(r'^\s*&DFT_PLUS_U\b', re.I | re.ASCII)), "plus_u",
+                    "DFT+U is set on a kind.")
+
+
+def cardRange(pattern):
+    first = lineOf(pattern)
+    if not first:
+        return 0
+    last = first
+    for i in range(first, len(stripped)):
+        if re.search(r'^\s*(&\w+|/\s*$|(ATOMIC_SPECIES|ATOMIC_POSITIONS|K_POINTS|CELL_PARAMETERS|OCCUPATIONS|CONSTRAINTS|ATOMIC_FORCES|ADDITIONAL_K_POINTS|HUBBARD)\b)', stripped[i], re.I | re.ASCII):
+            break
+        if re.search(r'\S', stripped[i], re.ASCII):
+            last = i + 1
+    return '{}-{}'.format(first, last) if last > first else first
+
+
+def espresso():
+    L = stripped
+    nlRange, nlName, nlStart = {}, None, 0
+    for i, line in enumerate(L):
+        m = re.search(r'^\s*&(\w+)', line, re.ASCII)
+        if m:
+            nlName, nlStart = m.group(1).lower(), i + 1
+            continue
+        if re.search(r'^\s*/\s*$', line, re.ASCII) and nlName is not None:
+            nlRange.setdefault(nlName, '{}-{}'.format(nlStart, i + 1))
+            nlName = None
+    for name, shown in [("control", "&CONTROL"), ("system", "&SYSTEM"), ("electrons", "&ELECTRONS")]:
+        pattern = re.compile(r'^\s*&' + name + r'\b', re.I | re.ASCII)
+        if re.search(pattern.pattern, whole, re.M | re.I | re.ASCII):
+            finding("GOOD", nlRange.get(name) or lineOf(pattern), name,
+                    "The {} namelist is present.".format(shown))
+        else:
+            finding("BAD", 0, name, "There is no {} namelist.".format(shown))
+    opened, openAt = 0, 0
+    for i, line in enumerate(L):
+        if re.search(r'^\s*&\w+', line, re.ASCII):
+            opened += 1
+            openAt = i + 1
+            continue
+        if re.search(r'^\s*/\s*$', line, re.ASCII):
+            opened -= 1
+            continue
+    if opened > 0:
+        finding("BAD", openAt, "sections", "A namelist opened here is never closed by a '/' on a line of its own.")
+    elif opened == 0:
+        finding("GOOD", '1-{}'.format(len(L)), "sections", "Every namelist is closed by a '/'.")
+    if re.search(r'^\s*ATOMIC_POSITIONS', whole, re.M | re.I | re.ASCII):
+        finding("GOOD", cardRange(re.compile(r'^\s*ATOMIC_POSITIONS', re.I | re.ASCII)), "positions",
+                "An ATOMIC_POSITIONS block is present.")
+    else:
+        finding("BAD", 0, "positions", "There is no ATOMIC_POSITIONS block.")
+    if re.search(r'^\s*ATOMIC_SPECIES', whole, re.M | re.I | re.ASCII):
+        finding("GOOD", cardRange(re.compile(r'^\s*ATOMIC_SPECIES', re.I | re.ASCII)), "species",
+                "An ATOMIC_SPECIES block is present.")
+    else:
+        finding("BAD", 0, "species", "There is no ATOMIC_SPECIES block, so no pseudopotential is named for any element.")
+    espressoOptions(L)
+
+
+# Keep these names in step with QEFunctional.pm while ai.qe still uses Perl.
+_QE_FOUR = {
+    "SLA PW PBX PBC": "PBE", "SLA PW PSX PSC": "PBESOL",
+    "SLA PW RPB PBC": "REVPBE", "SLA PZ NOGX NOGC": "PZ",
+    "SLA PW NOGX NOGC": "PW", "SLA LYP B88 BLYP": "BLYP",
+    "SLA PW GGX GGC": "PW91",
 }
-
-my $code = defined($opt_c) ? $opt_c : "";
-my @findings;
-
-sub finding {
-  my ($level, $line, $check, $message) = @_;
-  push(@findings, join("|", $level, $line, $check, $message));
-}
-
-#  ---------------------------------------------------------------- read
-unless (-e $opt_f) {
-  finding("BAD", 0, "file", "There is no input file at $opt_f.");
-  print "$_\n" foreach (@findings);
-  exit 1;
-}
-
-open(my $in, '<', $opt_f) or do {
-  finding("BAD", 0, "file", "The input file could not be read: $!");
-  print "$_\n" foreach (@findings);
-  exit 1;
-};
-binmode($in);
-my @lines = <$in>;
-close($in);
-
-if (!@lines) {
-  finding("BAD", 0, "file", "The input file is empty.");
-  print "$_\n" foreach (@findings);
-  exit 1;
-}
-finding("GOOD", 0, "file", scalar(@lines) . " lines.");
-
-#  --------------------------------------------- bytes that cannot be read
-#
-#  This is the check that matters most and needs no knowledge of any
-#  code.  Two decks in one afternoon were generated with six bytes of
-#  binary where the basis set belongs -- invisible in a text view, and
-#  refused by the code after the job had reached a queue.
-my $binary = 0;
-for my $i (0 .. $#lines) {
-  my $line = $lines[$i];
-  if ($line =~ /([^\x09\x0a\x0d\x20-\x7e])/) {
-    my $byte = ord($1);
-    finding("BAD", $i + 1, "readable",
-            sprintf("This line contains a byte that is not text (0x%02x). " .
-                    "That is not something a person typed, and the code " .
-                    "will refuse the file.", $byte));
-    $binary++;
-    last if ($binary >= 5);
-  }
-}
-finding("GOOD", 0, "readable", "Every byte is printable text.")
-  if (!$binary);
-
-#  --------------------------------------------------------- the geometry
-#
-#  An element symbol and three numbers, which is what every one of these
-#  codes writes.  Counted rather than parsed: the point is to notice
-#  that the geometry is missing or the wrong size, not to re-read it.
-#  A number as any of these codes may write one, including the
-#  exponent forms -- Gaussian decks from this tree carry coordinates
-#  like -2.26132e-16, and a pattern demanding plain decimals reports
-#  a perfectly good ozone deck as having no geometry at all.
-my $NUM = qr/[-+]?(?:\d+\.?\d*|\.\d+)(?:[eEdD][-+]?\d+)?/;
-
-my $whole_early = join("", @lines);
-#  A CREST Solvation Shell deck carries the solvent molecule as a
-#  $solvent ... $end block after line 1; its atoms are not the molecule's.
-my %solventLine;
-if ($code eq "CREST") {
-  my $in = 0;
-  for my $i (0 .. $#lines) {
-    $in = 1 if ($lines[$i] =~ /^\s*\$solvent\b/i);
-    $solventLine{$i} = 1 if ($in);
-    $in = 0 if ($in && $lines[$i] =~ /^\s*\$end\b/i);
-  }
-}
-my $atoms = 0;
-my $firstAtom = 0;
-my $lastAtom = 0;
-my @runs;        # atoms in each consecutive block of atom lines
-my $prevAtom = 0;
-for my $i (0 .. $#lines) {
-  next if ($solventLine{$i});
-  #  Trailing tokens are allowed: MOPAC writes an optimisation flag
-  #  after each coordinate, and NWChem permits a tag.  A CP2K kind label
-  #  (Nb_e) is an element with a suffix.
-  if ($lines[$i] =~ /^\s*([A-Z][a-z]?|x)\d*(?:_\w+)?\s+$NUM\s+$NUM\s+$NUM(\s|$)/) {
-    #  A Gaussian ModRedundant line ("D 11 8 5 1 S 12 30") looks like a
-    #  deuterium or boron atom; its numbers are atom indices, never decimals.
-    next if ($lines[$i] =~ /^\s*[BADLX]\s+\d+\s+\d+(\s+\d+){0,2}(\s+[A-Z]\b|\s+[-+]?\d*\.\d+|\s*$)/);
-    $atoms++;
-    $firstAtom = $i + 1 if (!$firstAtom);
-    $lastAtom = $i + 1;
-    if ($prevAtom == $i) { $runs[-1]++ } else { push(@runs, 1) }
-    $prevAtom = $i + 1;
-  }
-}
-
-#  Opt=QST2/QST3 decks carry one title/charge/geometry block per
-#  structure; each is checked against the calculation's atom count.
-my $qstWanted = 0;
-{
-  my $rc = join(" ", grep { /^\s*#/ } @lines);
-  $qstWanted = $1 if ($rc =~ /\bqst([23])\b/i);
-}
-
-if ($code eq "Vina") {
-  #  A Vina deck holds no coordinates by design; the structure is the auxiliary
-  #  input vina.vinafrag and the atom lists are judged in vina().
-} elsif (!$atoms && $whole_early =~ /geom\s*=\s*\(?[^)\n]*check/i) {
-  #  A deck that says it takes its geometry from the checkpoint file
-  #  is right to have none here.
-  finding("UNSURE", 0, "geometry",
-          "There is no geometry in this file, but the route card reads " .
-          "it from the checkpoint file. Whether that checkpoint holds " .
-          "what you expect cannot be judged from here.");
-} elsif (!$atoms) {
-  finding("BAD", 0, "geometry",
-          "No geometry was found: no line holds an element symbol and " .
-          "three coordinates. The calculation has nothing to run on.");
-} elsif ($qstWanted) {
-  my $ref = (defined($opt_a) && $opt_a =~ /^\d+$/ && $opt_a > 0) ? $opt_a : $runs[0];
-  if (@runs != $qstWanted) {
-    finding("BAD", $firstAtom, "geometry",
-            "Opt=QST$qstWanted needs $qstWanted structures, one after " .
-            "another, but the deck has " . scalar(@runs) . ".");
-  } elsif (grep { $_ != $ref } @runs) {
-    finding("BAD", $firstAtom, "geometry",
-            "The structures have " . join(", ", @runs) . " atoms; the " .
-            "calculation says it has $ref. Each one must have the same atoms.");
-  } else {
-    finding("GOOD", $firstAtom, "geometry",
-            "$qstWanted structures of $ref atoms each.");
-  }
-} elsif (defined($opt_a) && $opt_a =~ /^\d+$/ && $opt_a > 0 && $atoms != $opt_a) {
-  finding("BAD", $firstAtom, "geometry",
-          "The geometry has $atoms atoms; the calculation says it has " .
-          "$opt_a. One of them is wrong.");
-} else {
-  finding("GOOD", $lastAtom > $firstAtom ? "$firstAtom-$lastAtom" : $firstAtom,
-          "geometry", "$atoms atoms.");
-}
-
-#  ------------------------------------------- what each code needs
-#
-#  Everything below is about the SHAPE of a deck -- which sections
-#  exist, where each one ends, and whether what one section promises
-#  another section delivers.  None of it judges a keyword.
-#
-#  A NOTE ON WHY NOT, because the temptation recurs.  Gaussian ships
-#  `testrt`, its own route-card parser, which rejects exactly what the
-#  real program rejects -- including the GD3BJ/GD3-BJ spelling that
-#  cost a job in September 2026.  It is deliberately NOT called from
-#  here: ECCE submits to remote machines, so the client doing the
-#  checking is precisely where Gaussian is least likely to be
-#  installed, and a check that degrades to "unsure" on most
-#  installations is not a check.  It is used in tests/verify instead,
-#  as the oracle the rules below are validated against -- so a rule
-#  here is never merely somebody's reading of a manual.  Add rules
-#  that way too.
-
-my $whole = join("", @lines);
-my @stripped = map { my $line = $_; chomp($line); $line } @lines;
-
-#  Which elements the molecule actually contains, for the checks that
-#  ask whether every one of them has been given a basis set.
-my %seen;
-my @elements;
-my @atomSymbols;
-for my $i (0 .. $#stripped) {
-  #  QST decks repeat the molecule; count its electrons once.
-  last if ($qstWanted && @runs && $i + 1 >= $firstAtom + $runs[0]);
-  next if ($solventLine{$i});
-  if ($stripped[$i] =~ /^\s*([A-Z][a-z]?|x)\d*(?:_\w+)?\s+$NUM\s+$NUM\s+$NUM(\s|$)/) {
-    my $element = ucfirst(lc($1));
-    #  NWChem tags are case-insensitive, so a hand-typed dummy may be "x".
-    next if (lc($1) eq "x");   # a dummy atom: no nucleus, electrons or basis
-    push(@atomSymbols, $element);
-    next if (exists($seen{$element}));
-    $seen{$element} = 1;
-    push(@elements, $element);
-  }
-}
-
-
-#  Parentheses that do not balance.
-#
-#  Confirmed against Gaussian's own parser rather than assumed: an
-#  unclosed '(' and an unopened ')' are both rejected outright, while
-#  EMPTY parentheses are accepted -- which matters, because ECCE emits
-#  "Freq=()" on nearly every deck and a rule written from intuition
-#  would have condemned every one of them.  This is also the shape of
-#  a real ECCE bug: a theory dialog once offered "MPW1PBE (hybrid"
-#  with the closing parenthesis missing.
-sub balanced
-{
-  my ($text) = @_;
-  my $depth = 0;
-  foreach my $character (split(//, $text)) {
-    $depth++ if ($character eq "(");
-    $depth-- if ($character eq ")");
-    return 0 if ($depth < 0);
-  }
-  return ($depth == 0);
-}
-
-
-
-#  Lines inside a geometry that are not part of one.
-#
-#  THE CHECK A HAND EDIT NEEDS.  Everything else here asks whether a
-#  section exists and where it ends; none of that notices a stray
-#  character typed INSIDE one.  Reported live on 2026-09-25: an "s"
-#  added to an NWChem deck, which stops it running and which the
-#  checker passed without comment.
-#
-#  The rule is only applied to a geometry that is already known to be
-#  Cartesian -- its first atom line carries three coordinates -- and
-#  then every line in it must carry three too, or be a directive the
-#  code takes there.  That is deliberately narrow: a Z-matrix has
-#  lines of several shapes and a bare element symbol is a legal one,
-#  so nothing is concluded about those at all.
-sub geometryLines
-{
-  my ($from, $to, $directives, $what) = @_;
-  my @L = @stripped;
-  return if ($from > $to || $from < 0 || $to > $#L);
-
-  #  Cartesian only: the first real line must be symbol + 3 numbers.
-  my $first = -1;
-  for my $i ($from .. $to) {
-    next if ($L[$i] =~ /^\s*$/);
-    $first = $i;
-    last;
-  }
-  return if ($first < 0);
-  return unless ($L[$first] =~ /^\s*[A-Za-z][A-Za-z]?\S*\s+$NUM\s+$NUM\s+$NUM(\s|$)/);
-
-  my @odd;
-  for my $i ($from .. $to) {
-    next if ($L[$i] =~ /^\s*$/);
-    next if ($L[$i] =~ /^\s*[A-Za-z][A-Za-z]?\S*\s+$NUM\s+$NUM\s+$NUM(\s|$)/);
-    next if (defined($directives) && $L[$i] =~ /$directives/i);
-    push(@odd, $i);
-  }
-
-  if (@odd) {
-    my $line = $L[$odd[0]];
-    $line =~ s/^\s+//;
-    $line =~ s/\s+$//;
-    $line = substr($line, 0, 40) . "..." if (length($line) > 43);
-    finding("BAD", $odd[0] + 1, "geometry",
-            "This line is inside the $what but is not an atom: every " .
-            "other line there gives an element and three coordinates, " .
-            "and this one reads \"$line\"." .
-            (scalar(@odd) > 1
-               ? " " . (scalar(@odd) - 1) . " more like it follow." : ""));
-  } else {
-    my $count = 0;
-    for my $i ($from .. $to) { $count++ if ($L[$i] =~ /\S/); }
-    finding("GOOD", ($from + 1) . "-" . ($to + 1), "geometry",
-            "Every one of the $count lines in the $what is an atom.");
-  }
-}
-
-
-#  ====================================================================
-#  Charge, multiplicity and the electron count
-#
-#  A FORBIDDEN COMBINATION THAT NEEDS NO KNOWLEDGE OF ANY CODE.
-#
-#  The electron count follows from the elements and the charge, and
-#  the multiplicity fixes how many of those electrons are unpaired.
-#  The two have to agree in parity: an even number of electrons cannot
-#  produce a doublet, and eleven electrons cannot produce a singlet.
-#  Every one of these codes refuses such a job, in its own words and
-#  usually well into the run.
-#
-#  This is arithmetic on the deck, not an opinion about chemistry, and
-#  it is the same arithmetic for Gaussian, ORCA, NWChem and MOPAC --
-#  which is why it lives here rather than in any one of them.
-my %Z = (
-  H=>1, He=>2, Li=>3, Be=>4, B=>5, C=>6, N=>7, O=>8, F=>9, Ne=>10,
-  Na=>11, Mg=>12, Al=>13, Si=>14, P=>15, S=>16, Cl=>17, Ar=>18,
-  K=>19, Ca=>20, Sc=>21, Ti=>22, V=>23, Cr=>24, Mn=>25, Fe=>26,
-  Co=>27, Ni=>28, Cu=>29, Zn=>30, Ga=>31, Ge=>32, As=>33, Se=>34,
-  Br=>35, Kr=>36, Rb=>37, Sr=>38, Y=>39, Zr=>40, Nb=>41, Mo=>42,
-  Tc=>43, Ru=>44, Rh=>45, Pd=>46, Ag=>47, Cd=>48, In=>49, Sn=>50,
-  Sb=>51, Te=>52, I=>53, Xe=>54, Cs=>55, Ba=>56, La=>57, Ce=>58,
-  Pr=>59, Nd=>60, Pm=>61, Sm=>62, Eu=>63, Gd=>64, Tb=>65, Dy=>66,
-  Ho=>67, Er=>68, Tm=>69, Yb=>70, Lu=>71, Hf=>72, Ta=>73, W=>74,
-  Re=>75, Os=>76, Ir=>77, Pt=>78, Au=>79, Hg=>80, Tl=>81, Pb=>82,
-  Bi=>83, Po=>84, At=>85, Rn=>86,
-);
-
-#  $assumed is true when the deck did not actually say what the
-#  multiplicity is and a default was taken for it.  A PARITY FAULT IS
-#  THEN NOT A RED, because the fault may be in the assumption rather
-#  than in the deck: NWChem without a `mult` line and MOPAC without a
-#  spin keyword are both read here as singlets, and on an odd-electron
-#  molecule that guess would condemn a perfectly good input.  Red is
-#  reserved for the case where the deck states both numbers itself and
-#  they cannot both be true.
-sub electronCount
-{
-  my ($charge, $multiplicity, $atomLines, $assumed) = @_;
-  my $level = $assumed ? "UNSURE" : "BAD";
-
-  my $protons = 0;
-  foreach my $symbol (@$atomLines) {
-    my $element = ucfirst(lc($symbol));
-    #  One unknown element and the sum is wrong, so say nothing at all
-    #  rather than accuse a perfectly good deck.
-    return unless (exists($Z{$element}));
-    $protons += $Z{$element};
-  }
-  return unless ($protons > 0);
-
-  my $electrons = $protons - $charge;
-  if ($electrons < 0) {
-    finding($level, 0, "electrons",
-            "The charge of $charge removes more electrons than this " .
-            "molecule has.");
-    return;
-  }
-
-  my $unpaired = $multiplicity - 1;
-  if ($unpaired > $electrons) {
-    finding($level, 0, "electrons",
-            "A multiplicity of $multiplicity needs $unpaired unpaired " .
-            "electrons, and this molecule has only $electrons " .
-            "altogether.");
-    return;
-  }
-
-  if ((($electrons - $unpaired) % 2) != 0) {
-    my $ok = (($electrons % 2) == 0) ? "an odd multiplicity (1, 3, 5)"
-                                     : "an even multiplicity (2, 4, 6)";
-    finding($level, 0, "electrons",
-            "Charge $charge gives this molecule $electrons electrons, " .
-            "which cannot have a multiplicity of $multiplicity: " .
-            "$electrons electrons require $ok. " .
-            ($assumed
-               ? "This deck does not state a multiplicity, so one was " .
-                 "assumed -- the assumption may be what is wrong here."
-               : "Either the charge or the multiplicity is wrong."));
-    return;
-  }
-
-  finding("GOOD", 0, "electrons",
-          "$electrons electrons at charge $charge, consistent with a " .
-          "multiplicity of $multiplicity.");
-}
-
-
-#  ====================================================================
-#  Words ECCE itself can emit
-#
-#  Loaded from data/client/config/verify/<Code>.words, harvested from
-#  the generators, templates and basis tables by
-#  tools/verify/build_vocabulary.py.
-#
-#  THIS IS NOT A LIST OF WHAT THE CODE ACCEPTS, and must never be
-#  treated as one.  ORCA 6 has well over a thousand keywords and
-#  Gaussian's route options run to hundreds; no list of those could be
-#  kept current, and an incomplete one would condemn valid keywords --
-#  the false-alarm failure that makes a checker worthless.
-#
-#  What this knows is the much smaller, closed set of words ECCE can
-#  write.  A token outside it is text a human typed, which is exactly
-#  what Final Edit produces and exactly what is worth pointing at.
-#  So an unknown word is UNSURE, NEVER BAD: "I do not recognise this"
-#  is true of a hand-typed keyword whether or not the code accepts it,
-#  and a harvest with gaps then produces more amber rather than false
-#  red.
-sub knownWords
-{
-  my ($codeName) = @_;
-  my %words;
-
-  my $home = $ENV{"ECCE_HOME"};
-  my @places;
-  push(@places, "$home/data/client/config/verify") if ($home);
-  #  Beside this script, for a repository checkout.
-  my $here = $0;
-  $here =~ s{/[^/]+$}{};
-  push(@places, "$here/../../data/client/config/verify");
-
-  foreach my $place (@places) {
-    my $path = "$place/$codeName.words";
-    next unless (-r $path);
-    open(my $in, '<', $path) or next;
-    while (my $word = <$in>) {
-      chomp($word);
-      $words{lc($word)} = 1 if ($word =~ /\S/);
-    }
-    close($in);
-    last;
-  }
-  return \%words;
-}
-
-
-#  Tokens on a keyword line that ECCE would not have written.
-sub unknownWords
-{
-  my ($codeName, $text, $line, $what) = @_;
-
-  my $words = knownWords($codeName);
-  #  No vocabulary file: say nothing at all rather than call every
-  #  word unknown.
-  return unless (%$words);
-
-  #  Gaussian separates method from basis with '/'; ORCA does not --
-  #  "def2/J" is one keyword there, and splitting it reports two words
-  #  that were never written.
-  my $split = ($codeName =~ /^Gaussian/) ? qr{[\s=(),/]+} : qr{[\s=(),]+};
-
-  my @unknown;
-  my %reported;
-  foreach my $token (split($split, $text)) {
-    $token =~ s/^#\S?//;
-    next unless ($token =~ /[A-Za-z]/);
-    next if ($token =~ /^\d/);
-
-    my $key = lc($token);
-    next if (exists($words->{$key}));
-
-    #  Gaussian writes the reference on the front of the method:
-    #  rB3LYP, uPBE1PBE, roHF.  Strip it and try again before
-    #  concluding anything.
-    my $bare = $key;
-    if ($bare =~ s/^(ro|r|u)//) {
-      next if (exists($words->{$bare}));
-    }
-
-    next if (exists($reported{$key}));
-    $reported{$key} = 1;
-    push(@unknown, $token);
-  }
-
-  return unless (@unknown);
-
-  my $list = join(", ", map { "\"$_\"" } @unknown);
-  finding("UNSURE", $line, "keywords",
-          "ECCE would not have written " .
-          (scalar(@unknown) == 1 ? "this word" : "these words") .
-          " on the $what: $list. That is not a fault -- it is what a " .
-          "hand edit looks like -- but nothing here can tell you " .
-          "whether the code accepts " .
-          (scalar(@unknown) == 1 ? "it" : "them") . ".");
-}
-
-#  ====================================================================
-#  Gaussian
-#
-#  A Gaussian deck is positional and blank-line delimited:
-#
-#      %-directives (Link 0)     optional, must precede the route
-#      # route card              one or more lines
-#      <blank>
-#      title                     one or more lines
-#      <blank>
-#      charge multiplicity
-#      molecule specification
-#      <blank>
-#      further sections          Gen basis, ECP, ModRedundant, ...
-#      <blank>                   the file must end with one
-#
-#  Get a blank line wrong and Gaussian reads the title as part of the
-#  route, or the charge line as part of the title, and then complains
-#  about something that names neither.
-#  ====================================================================
-sub gaussian
-{
-  my @L = @stripped;
-
-  my $fromCheck = ($whole =~ /geom\s*=\s*\(?[^)\n]*check/i);
-  my $allCheck  = ($whole =~ /geom\s*=\s*\(?[^)\n]*allcheck/i);
-
-  #  --------------------------------------------------- the route card
-  my $routeAt = -1;
-  for my $i (0 .. $#L) {
-    if ($L[$i] =~ /^\s*#/) { $routeAt = $i; last; }
-  }
-  if ($routeAt < 0) {
-    finding("BAD", 0, "route",
-            "There is no route card: no line begins with '#'. Gaussian " .
-            "will not know what to run.");
-    return;
-  }
-
-  my $routeEnd = $#L + 1;
-  for my $i ($routeAt .. $#L) {
-    if ($L[$i] =~ /^\s*$/) { $routeEnd = $i; last; }
-  }
-  my $last = ($routeEnd <= $#L) ? $routeEnd - 1 : $#L;
-  my $route = join(" ", @L[$routeAt .. $last]);
-  finding("GOOD", ($routeAt + 1) . "-" . ($last + 1), "route",
-          "The route card is present.");
-
-  unknownWords($code, $route, ($routeAt + 1), "route card");
-
-  if (!balanced($route)) {
-    finding("BAD", $routeAt + 1, "keywords",
-            "The parentheses on the route card do not balance. " .
-            "Gaussian rejects the entire route card when they do not, " .
-            "so nothing on it takes effect.");
-  }
-
-  #  Excited states.  Only things that are wrong by construction are
-  #  flagged; whether TD suits the functional is the user's call.
-  if ($route =~ /(?:^|\s)(TDA?)\s*(?:=\s*\(?([^\s)]*)|\(([^)]*)\))?/i) {
-    my $opts = defined($3) ? $3 : (defined($2) ? $2 : "");
-    my $at = $routeAt + 1;
-    if ($opts =~ /NStates\s*=\s*(-?\d+)/i && $1 < 1) {
-      finding("UNSURE", $at, "excited",
-              "NStates is $1; TD needs at least one state.");
-    } else {
-      finding("GOOD", $at, "excited", "TD excited-state request is present.");
-    }
-    if ($route =~ /(?:^|[\s\/])RO\w*/i && $route !~ /\bUHF\b/i) {
-      finding("UNSURE", $at, "excited",
-              "TD is not available for a restricted open-shell (RO) " .
-              "reference in Gaussian.");
-    }
-    if ($route =~ /\b(MP[2-5]|CCSD|CCD|QCISD|CASSCF|CIS)\b/i) {
-      finding("UNSURE", $at, "excited",
-              "TD is requested together with a correlated or CI method; " .
-              "TD applies to HF and DFT references.");
-    }
-    if ($route =~ /\bopt\b/i && $opts !~ /root/i) {
-      finding("UNSURE", $at, "excited",
-              "TD with an optimisation optimises the geometry of the first " .
-              "excited state, not the ground state.");
-    }
-  }
-
-  #  ---------------------------------------------------------- Link 0
-  my @late;
-  for my $i ($routeAt + 1 .. $#L) {
-    push(@late, $i + 1) if ($L[$i] =~ /^\s*%[A-Za-z]/);
-  }
-  if (@late) {
-    finding("BAD", $late[0], "link0",
-            "A %-directive appears after the route card. Link 0 " .
-            "directives (%mem, %chk, %nprocshared) must come before " .
-            "the '#' line, or Gaussian will not act on them.");
-  }
-
-  #  Reported, not judged: how much memory or how many processors a
-  #  job should ask for is the user's business and the queue's.
-  my @got;
-  push(@got, "memory")            if ($whole =~ /^\s*%mem\s*=/mi);
-  push(@got, "processors")        if ($whole =~ /^\s*%(nprocshared|cpu|nproc)\s*=/mi);
-  push(@got, "a checkpoint file") if ($whole =~ /^\s*%chk\s*=/mi);
-  if (@got) {
-    finding("GOOD", 0, "link0", "Link 0 asks for " . join(", ", @got) . ".");
-  }
-  #  NOTHING IS SAID WHEN LINK 0 IS ABSENT, and that is deliberate.
-  #
-  #  This complained that a deck had no %mem, no %nprocshared and no
-  #  %chk. The processor count is NOT a property of a saved deck:
-  #  gaussian-16.launchpp strips any %nproc and inserts the real one
-  #  at launch, from the queue's own numbers, because that is the
-  #  only place it is known. Faulting a deck for not carrying it
-  #  yet is faulting it for being a deck rather than a running job.
-  #
-  #  Memory has a working default, and a checkpoint file is optional
-  #  unless something reads one -- which is checked separately just
-  #  below. So there was nothing left that this could truthfully call
-  #  a problem, and an amber that fires on ordinary decks is exactly
-  #  the noise that teaches people to ignore the light.
-  if ($fromCheck && $whole !~ /^\s*%chk\s*=/mi) {
-    finding("BAD", 0, "link0",
-            "The route card reads from a checkpoint file, but no %chk " .
-            "says which one.");
-  }
-
-  #  Opt=ReadFC takes the force constants from the checkpoint of an
-  #  earlier calculation, which reaches the job as %OldChk (the orbital
-  #  guess in the Calculation Editor).  Without one Gaussian has nothing
-  #  to read; a warning only, since Final Edit may supply it some other way.
-  if ($whole =~ /\breadfc\b/i && $whole !~ /^\s*%oldchk\s*=/mi) {
-    finding("UNSURE", $routeAt + 1, "link0",
-            "The route card says Opt=ReadFC, but no %OldChk names the " .
-            "checkpoint file of an earlier calculation to read the force " .
-            "constants from. Pick that calculation's checkpoint as the " .
-            "orbital guess in the Calculation Editor, or Gaussian will " .
-            "stop for lack of force constants.");
-  }
-
-  #  SYMMETRY OFF IS A CHOICE WITH A CONSEQUENCE, so say it before
-  #  the job runs rather than after.
-  #
-  #  A deck carrying NoSymm produces no orbital symmetry labels, and
-  #  without those there is no MO correlation diagram to be had from
-  #  it -- which is only discovered once the calculation has finished,
-  #  and then looks like the diagram being broken rather than like the
-  #  deck having asked for this. Amber, because switching symmetry off
-  #  is a legitimate thing to want.
-  if ($whole =~ /\bNoSymm\b/i && !$qstWanted) {
-    finding("UNSURE", $routeAt + 1, "symmetry",
-            "This deck says NoSymm, so the calculation will report no " .
-            "orbital symmetry labels -- no MO correlation diagram can " .
-            "be drawn from it, and orbitals will be numbered rather " .
-            "than named. Tick \"Use symmetry\" in the Calculation " .
-            "Editor if that was not intended.");
-  }
-
-  #  ------------------------------------------------- section spacing
-  if ($routeEnd > $#L) {
-    finding("BAD", $routeAt + 1, "sections",
-            "There is no blank line after the route card. Gaussian " .
-            "reads the route until a blank line, so it will run the " .
-            "title into it.");
-    return;
-  }
-  finding("GOOD", 0, "sections",
-          "The route card is closed by a blank line.");
-
-  if ($allCheck) {
-    finding("UNSURE", 0, "sections",
-            "The route says Geom=AllCheck, so the title, charge and " .
-            "geometry come from the checkpoint file rather than from " .
-            "here. What that file holds cannot be judged from this deck.");
-    return;
-  }
-
-  my $titleAt = $routeEnd + 1;
-  if ($titleAt > $#L || $L[$titleAt] =~ /^\s*$/) {
-    finding("BAD", $titleAt + 1, "title",
-            "The title section is empty. Gaussian requires a title " .
-            "between the route card and the charge line.");
-    return;
-  }
-  my $titleEnd = $#L + 1;
-  for my $i ($titleAt .. $#L) {
-    if ($L[$i] =~ /^\s*$/) { $titleEnd = $i; last; }
-  }
-  if ($titleEnd > $#L) {
-    finding("BAD", $titleAt + 1, "sections",
-            "There is no blank line after the title, so Gaussian will " .
-            "read the charge line as part of it.");
-    return;
-  }
-  #  A TITLE THAT HAS SWALLOWED THE DECK IS NOT A TITLE.
-  #
-  #  Gaussian reads the title until a blank line, so a stray line
-  #  where the blank should be makes the title run on through the
-  #  charge line and the whole geometry -- and this then reported the
-  #  title as checked-and-right over all of it, painting the stray
-  #  line and every atom green, before complaining about a missing
-  #  charge line somewhere past the end. Reported live 2026-09-25: an
-  #  "s" on line 4 was marked good and line 13 was marked wrong.
-  #
-  #  If the title contains something that belongs to a later section,
-  #  the fault is the missing blank line, and it is AT that line.
-  my $swallowed = -1;
-  for my $i ($titleAt .. $titleEnd - 1) {
-    if ($L[$i] =~ /^\s*-?\d+\s+-?\d+\s*(!.*)?$/ ||
-        $L[$i] =~ /^\s*[A-Za-z][A-Za-z]?\S*\s+$NUM\s+$NUM\s+$NUM(\s|$)/) {
-      $swallowed = $i;
-      last;
-    }
-  }
-  if ($swallowed >= 0) {
-    finding("BAD", $swallowed + 1, "sections",
-            "There is no blank line between the title and this line, so " .
-            "Gaussian will read it as part of the title. The title runs " .
-            "from line " . ($titleAt + 1) . " to line $titleEnd, which " .
-            "cannot be what was meant.");
-    return;
-  }
-
-  finding("GOOD", ($titleAt + 1) . "-" . $titleEnd, "title",
-          "A title is present and closed.");
-
-  my $chargeAt = $titleEnd + 1;
-  if ($chargeAt > $#L || $L[$chargeAt] !~ /^\s*-?\d+\s+-?\d+\s*(!.*)?$/) {
-    finding("BAD", ($chargeAt <= $#L ? $chargeAt + 1 : 0), "charge",
-            "The line after the title is not a charge and multiplicity " .
-            "pair. Gaussian expects two integers there.");
-    return;
-  }
-  my ($charge, $mult) = ($L[$chargeAt] =~ /^\s*(-?\d+)\s+(-?\d+)/);
-  finding("GOOD", $chargeAt + 1, "charge",
-          "Charge $charge, multiplicity $mult.");
-  electronCount($charge, $mult, \@atomSymbols);
-
-  my $geomEnd = $#L + 1;
-  for my $i ($chargeAt + 1 .. $#L) {
-    if ($L[$i] =~ /^\s*$/) { $geomEnd = $i; last; }
-  }
-  if ($geomEnd > $#L) {
-    finding("BAD", $chargeAt + 2, "sections",
-            "The molecule specification is not followed by a blank " .
-            "line. Gaussian needs one to know it has ended.");
-  } else {
-    finding("GOOD", 0, "sections",
-            "The molecule specification is closed by a blank line.");
-  }
-
-  geometryLines($chargeAt + 1,
-                (($geomEnd <= $#L) ? $geomEnd - 1 : $#L),
-                undef, "molecule specification");
-
-  #  Gaussian reads past the molecule only when the route asks it to,
-  #  and ignores anything else, so text there is never what was meant.
-  #  Any keyword that might read input keeps this quiet.
-  if ($geomEnd <= $#L &&
-      $route !~ /gen|qst[23]|extrabasis|pseudo|modred|read|charge|massage|connect|oniom|gic|cards|extern|\@/i &&
-      $whole !~ /--link1--/i) {
-    for my $i ($geomEnd + 1 .. $#L) {
-      next if ($L[$i] =~ /^\s*$/);
-      finding("UNSURE", $i + 1, "sections",
-              "Nothing on the route card asks Gaussian to read input " .
-              "after the molecule specification, so it will ignore " .
-              "this line.");
-      last;
-    }
-  }
-
-  if ($L[$#L] !~ /^\s*$/) {
-    finding("BAD", $#L + 1, "sections",
-            "The file does not end with a blank line, which Gaussian " .
-            "requires.");
-  }
-
-  gaussianBasis();
-}
-
-
-#  ------------------------------------------------- the Gen basis set
-#
-#  "/GEN" on the route card means the basis follows in this file, so
-#  everything about it can be checked from the file alone: that the
-#  block exists, that it is built the way Gaussian's basis reader
-#  expects, that each shell lists as many primitives as it declares,
-#  and that every element in the molecule is covered by one.
-#
-#  This is the check #146 needed.  A basis block that came out as six
-#  bytes of binary was read by Gaussian as an atomic symbol, and the
-#  job died with a segmentation violation -- after reaching a queue.
-sub gaussianBasis
-{
-  my @L = @stripped;
-  return unless ($whole =~ m{/gen\b}i);
-
-  #  The first element group header: names, then a terminating zero.
-  my $start = -1;
-  for my $i (0 .. $#L) {
-    if ($L[$i] =~ /^\s*([A-Za-z]{1,2}\d*|-?\d+)(\s+([A-Za-z]{1,2}\d*|-?\d+))*\s+0\s*$/) {
-      $start = $i;
-      last;
-    }
-  }
-  if ($start < 0) {
-    finding("BAD", 0, "basis",
-            "The route card says /GEN, which means the basis set is " .
-            "given in this file, but no basis block was found.");
-    return;
-  }
-
-  my %covered;
-  my ($groups, $shells, $named, $byNumber) = (0, 0, 0, 0);
-  my $i = $start;
-
-  while ($i <= $#L) {
-    if ($L[$i] =~ /^\s*$/) { last if ($groups); $i++; next; }
-
-    #  An element group header.
-    if ($L[$i] =~ /^\s*(.+?)\s+0\s*$/) {
-      my $names = $1;
-      foreach my $token (split(/\s+/, $names)) {
-        #  A bare number is a centre index rather than an element.
-        #  Legal, and it simply cannot be cross-checked against the
-        #  geometry -- so note that and claim no coverage from it.
-        if ($token =~ /^-?\d+$/) { $byNumber++; next; }
-        $token =~ s/^-//;
-        $covered{ucfirst(lc($token))} = 1;
-      }
-      $groups++;
-      $i++;
-
-      my $closed = 0;
-      while ($i <= $#L) {
-        if ($L[$i] =~ /^\s*\*{4,}\s*$/) { $closed = 1; $i++; last; }
-
-        #  A shell: angular momentum, a primitive count, a scale
-        #  factor -- then exactly that many lines of primitives.
-        if ($L[$i] =~ /^\s*(SP|S|P|D|F|G|H|I)\s+(\d+)\s+$NUM\s*$/i) {
-          my ($type, $count) = (uc($1), $2);
-          $shells++;
-          my $wanted = ($type eq "SP") ? 3 : 2;
-          for my $k (1 .. $count) {
-            $i++;
-            if ($i > $#L) {
-              finding("BAD", $i, "basis",
-                      "The basis block stops in the middle of a shell: " .
-                      "the $type shell declares $count primitives and " .
-                      "the file runs out before they are all given.");
-              return;
-            }
-            #  ANCHORED, and nothing but numbers.  Merely counting
-            #  numbers found anywhere in the line accepts the NEXT
-            #  SHELL's header as a primitive -- " S   1  1.00" holds
-            #  two numbers -- so a shell that declares five primitives
-            #  and lists three was read as complete, which is exactly
-            #  the truncation this check exists to catch.
-            my @numbers = ($L[$i] =~ /^\s*($NUM)(?:\s+($NUM))*\s*$/);
-            @numbers = grep { defined($_) } @numbers;
-            my @all = ($L[$i] =~ /($NUM)/g);
-            if (!@numbers || scalar(@all) < $wanted) {
-              finding("BAD", $i + 1, "basis",
-                      "This should be primitive $k of $count for the " .
-                      "$type shell above it, and it is not a row of " .
-                      "$wanted numbers. The shell declares more " .
-                      "primitives than it lists.");
-              return;
-            }
-          }
-          $i++;
-          next;
-        }
-
-        #  Naming a basis the code ships is legal here and needs no
-        #  primitives at all.
-        if ($L[$i] =~ /^\s*\S+\s*$/) { $named++; $i++; next; }
-
-        finding("BAD", $i + 1, "basis",
-                "This line is inside the basis block but is neither a " .
-                "shell (like 'S 3 1.00'), nor a basis name, nor the " .
-                "'****' separator that ends an element group.");
-        return;
-      }
-
-      if (!$closed) {
-        finding("BAD", ($i <= $#L ? $i : $#L + 1), "basis",
-                "A basis group is never closed by a '****' separator.");
-        return;
-      }
-      next;
-    }
-
-    last;
-  }
-
-  #  Every element in the molecule needs a basis, or Gaussian stops
-  #  with a message that names no element.
-  my @missing;
-  foreach my $element (@elements) {
-    push(@missing, $element) unless (exists($covered{$element}));
-  }
-
-  if (@missing && !$byNumber) {
-    finding("BAD", $start + 1, "basis",
-            "The basis block covers " . join(", ", sort keys %covered) .
-            ", but the molecule also contains " . join(", ", @missing) .
-            ". Every element needs a basis set.");
-    return;
-  }
-
-  my $what = "$groups element group" . ($groups == 1 ? "" : "s");
-  $what .= ", $shells shell" . ($shells == 1 ? "" : "s") if ($shells);
-  $what .= ", $named named" if ($named);
-  #  The whole block, so a reader can see that all of it was walked
-  #  rather than just found.
-  my $stop = ($i > $#L) ? $#L : $i - 1;
-  $stop = $start if ($stop < $start);
-  finding("GOOD", ($start + 1) . "-" . ($stop + 1), "basis",
-          "The Gen basis block is complete and readable: $what.");
-  if ($byNumber) {
-    finding("UNSURE", $start + 1, "basis",
-            "Some basis groups name centres by number rather than by " .
-            "element, so whether every atom is covered could not be " .
-            "checked.");
-  }
-}
-
-
-#  ====================================================================
-#  ORCA
-#
-#      ! keyword line
-#      %block ... end            or a one-line %keyword value
-#      * xyz <charge> <mult>
-#        geometry
-#      *
-#
-#  The geometry block's closing '*' is the thing worth checking: ORCA
-#  reads to the end of the file looking for it and reports the failure
-#  in terms of whatever it last managed to parse.
-#  ====================================================================
-sub orca
-{
-  my @L = @stripped;
-
-  my $bang = 0;
-  for my $i (0 .. $#L) { $bang = $i + 1 if (!$bang && $L[$i] =~ /^\s*!/); }
-  if ($bang) {
-    finding("GOOD", $bang, "route", "The '!' keyword line is present.");
-    my $keywords = $L[$bang - 1];
-    $keywords =~ s/^\s*!//;
-    unknownWords($code, $keywords, $bang, "'!' line");
-  } else {
-    finding("BAD", 0, "route",
-            "There is no '!' keyword line. ORCA will not know what to " .
-            "run.");
-  }
-
-  #  The % blocks, which are most of an ORCA deck and were covered by
-  #  no check at all -- so they came out unmarked beside a report
-  #  saying every check passed, which reads as an oversight.
-  #
-  #  A "%keyword value" line is complete on its own (%maxcore 1000);
-  #  a "%keyword" with nothing after it opens a block that "end" has
-  #  to close.
-  {
-    my $openedAt = -1;
-    my $blocks = 0;
-    my $firstBlock = -1;
-    my $lastBlock = -1;
-    my $inSub = 0;
-    for my $i (0 .. $#L) {
-      #  %basis holds its own NewGTO/NewECP/NewAuxGTO ... end
-      #  sub-blocks; their 'end' is not the one that closes %basis.
-      if ($openedAt >= 0 && !$inSub &&
-          $L[$i] =~ /^\s*New\w+\s+\w+\s*$/i) { $inSub = 1; next; }
-      if ($inSub) { $inSub = 0 if ($L[$i] =~ /^\s*end\s*$/i); next; }
-      if ($openedAt < 0 && $L[$i] =~ /^\s*%(\w+)\s*$/) {
-        $openedAt = $i;
-        $firstBlock = $i if ($firstBlock < 0);
-        next;
-      }
-      if ($openedAt >= 0 && $L[$i] =~ /^\s*end\s*$/i) {
-        $blocks++;
-        $lastBlock = $i;
-        $openedAt = -1;
-        next;
-      }
-      #  A one-line directive with its value on the same line.
-      if ($openedAt < 0 && $L[$i] =~ /^\s*%\w+\s+\S/) {
-        $firstBlock = $i if ($firstBlock < 0);
-        $lastBlock = $i;
-        $blocks++;
-      }
-    }
-
-    if ($openedAt >= 0) {
-      finding("BAD", $openedAt + 1, "blocks",
-              "This % block is never closed by an 'end'. ORCA reads to " .
-              "the end of the file looking for one.");
-    } elsif ($blocks) {
-      finding("GOOD", ($firstBlock + 1) . "-" . ($lastBlock + 1), "blocks",
-              "$blocks % block" . ($blocks == 1 ? " is" : "s are") .
-              " present and closed.");
-    }
-  }
-
-  orcaBasis(\@L);
-
-  #  Excited states: a %tddft block.  Only what is wrong by construction
-  #  is flagged.
-  {
-    my $tdAt = 0;
-    my $inTd = 0;
-    my ($nroots, $triplets);
-    for my $i (0 .. $#L) {
-      if ($L[$i] =~ /^\s*%tddft\s*$/i) { $inTd = 1; $tdAt = $i + 1; next; }
-      if ($inTd && $L[$i] =~ /^\s*end\s*$/i) { $inTd = 0; next; }
-      if ($inTd) {
-        $nroots   = $1 if ($L[$i] =~ /^\s*nroots\s+(-?\d+)/i);
-        $triplets = $1 if ($L[$i] =~ /^\s*triplets\s+(\w+)/i);
-      }
-    }
-    if ($tdAt) {
-      if (!defined($nroots)) {
-        finding("UNSURE", $tdAt, "excited",
-                "The %tddft block gives no nroots; ORCA will compute " .
-                "only its default number of states.");
-      } elsif ($nroots < 1) {
-        finding("BAD", $tdAt, "excited",
-                "nroots is $nroots; %tddft needs at least one state.");
-      } else {
-        finding("GOOD", $tdAt, "excited", "TD-DFT asks for $nroots states.");
-      }
-      my $kw = $bang ? $L[$bang - 1] : "";
-      if ($kw =~ /\b(\w*MP2\w*|CCSD\w*|CASSCF|NEVPT2|CASPT2|DLPNO\S*)/i) {
-        finding("UNSURE", $tdAt, "excited",
-                "%tddft acts on the SCF/DFT reference; the correlated " .
-                "method on the '!' line does not give excited states.");
-      }
-      if (defined($triplets) && $triplets =~ /^(true|1|yes)$/i &&
-          $whole =~ /^\s*\*\s*\w+\s+-?\d+\s+([2-9]\d*)\b/m) {
-        finding("UNSURE", $tdAt, "excited",
-                "Triplets are requested for an open-shell (multiplicity " .
-                "$1) system; ORCA's unrestricted TD-DFT has no " .
-                "singlet/triplet split.");
-      }
-    }
-  }
-
-
-  #  The geometry block.
-  my $openAt = -1;
-  my $isFile = 0;
-  for my $i (0 .. $#L) {
-    if ($L[$i] =~ /^\s*\*\s*(xyzfile|xyz|int|gzmt)\b/i) {
-      $openAt = $i;
-      $isFile = ($1 =~ /^xyzfile$/i);
-      last;
-    }
-  }
-
-  if ($openAt < 0) {
-    finding("BAD", 0, "geomblock",
-            "There is no '* xyz' line opening the geometry.");
-    return;
-  }
-
-  #  Charge and multiplicity live on that same line.
-  if ($L[$openAt] =~ /^\s*\*\s*\w+\s+(-?\d+)\s+(\d+)/) {
-    finding("GOOD", $openAt + 1, "charge",
-            "Charge $1, multiplicity $2.");
-    electronCount($1, $2, \@atomSymbols);
-  } else {
-    finding("BAD", $openAt + 1, "charge",
-            "The '* xyz' line does not carry a charge and a " .
-            "multiplicity, which ORCA expects on it.");
-  }
-
-  if ($isFile) {
-    finding("UNSURE", $openAt + 1, "geomblock",
-            "The geometry is read from a separate .xyz file, so it " .
-            "could not be checked from here.");
-    return;
-  }
-
-  my $closed = 0;
-  for my $i ($openAt + 1 .. $#L) {
-    if ($L[$i] =~ /^\s*\*\s*$/) { $closed = $i + 1; last; }
-  }
-  if ($closed) {
-    finding("GOOD", $closed, "geomblock",
-            "The geometry block is closed by a '*'.");
-    geometryLines($openAt + 1, $closed - 2, undef, "geometry block");
-  } else {
-    finding("BAD", $openAt + 1, "geomblock",
-            "The geometry block opened here is never closed by a line " .
-            "holding a single '*'.");
-  }
-}
-
-
-
-#  ORCA's %basis block: NewGTO and NewECP sub-blocks.  SHAPE only --
-#  which rows a shell has and how many columns each carries, all of it
-#  established by running ORCA 6.1.1 (2026-09-27), not from the manual:
-#
-#    NewGTO El / <L> <n> / n rows "idx exponent coeff" / end
-#    NewECP El / N_core <k> / lmax <l> / <l'> <n> /
-#               n rows "idx exponent coeff power" / end
-#
-#  A NewECP row without its leading index stops ORCA with "exponent
-#  expected in NewECP"; a count one too high, "index number expected";
-#  one too low, "l=7 exceeds lmax".  An ECP with no shell for lmax
-#  itself is the dangerous one: ORCA ACCEPTS it and runs a different
-#  potential (CH3I: -331.30 against -336.23 Eh).  Nothing here says
-#  whether a basis or an ECP is the right one.
-sub orcaBasis
-{
-  my @L = @{$_[0]};
-  my $num  = qr/[-+]?(?:\d+\.?\d*|\.\d+)(?:[eEdD][-+]?\d+)?/;
-  my $bad = 0;
-  my ($gtoRows, $ecpRows, $first, $last) = (0, 0, -1, -1);
-  my %lval = (s=>0, p=>1, d=>2, f=>3, g=>4, h=>5, i=>6, k=>7);
-
-  my $i = 0;
-  while ($i <= $#L) {
-    my $line = $L[$i];
-    my ($kind, $el);
-    if ($line =~ /^\s*New(GTO|ECP)\s+(\w+)\s*$/i) {
-      ($kind, $el) = (uc($1), $2);
-    } else { $i++; next; }
-    my $at = $i + 1;
-    $first = $at if ($first < 0);
-    my ($lmax, $ncore, %seen, $closed);
-    $i++;
-    while ($i <= $#L) {
-      my $l = $L[$i];
-      if ($l =~ /^\s*end\s*$/i) { $closed = $i + 1; $i++; last; }
-      if ($kind eq "ECP" && $l =~ /^\s*N_core\s+(\d+)\s*$/i) { $ncore = $1; $i++; next; }
-      if ($kind eq "ECP" && $l =~ /^\s*lmax\s+([spdfghik])\s*$/i) { $lmax = lc($1); $i++; next; }
-      my $hdr = ($kind eq "GTO") ? qr/^\s*([SPDFGHIKL])\s+(\d+)\s*$/i
-                                 : qr/^\s*([spdfghik])\s+(\d+)\s*$/i;
-      if ($l =~ $hdr) {
-        my ($sh, $n) = (lc($1), $2);
-        my $hline = $i + 1;
-        $seen{$sh} = $hline;
-        if ($kind eq "ECP" && defined($lmax) && $lval{$sh} > $lval{$lmax}) {
-          finding("BAD", $hline, "basis",
-                  "ECP shell '$sh' on $el is above its declared lmax " .
-                  "'$lmax'. ORCA stops on this.");
-          $bad++;
-        }
-        #  Anchored: the whole row, exactly this many columns. An
-        #  unanchored count would take the next shell's header as a row.
-        my $row = ($kind eq "ECP") ? qr/^\s*\d+\s+$num\s+$num\s+\d+\s*$/
-                : ($sh eq "l")     ? qr/^\s*\d+\s+$num\s+$num\s+$num\s*$/
-                :                    qr/^\s*\d+\s+$num\s+$num\s*$/;
-        my $got = 0;
-        $i++;
-        while ($got < $n && $i <= $#L && $L[$i] =~ $row) { $got++; $i++; }
-        if ($got < $n) {
-          my $why = "";
-          if ($kind eq "ECP" && $i <= $#L &&
-              $L[$i] =~ /^\s*$num\s+$num\s+$num\s*$/) {
-            $why = " Its rows have three columns; ORCA needs four -- " .
-                   "index, exponent, coefficient, power -- and without " .
-                   "the index stops with \"exponent expected in NewECP\".";
-          }
-          finding("BAD", $hline, "basis",
-                  "This $kind shell on $el declares $n row" .
-                  ($n == 1 ? "" : "s") . " but " .
-                  ($got ? "only $got follow" : "none follow") .
-                  " in the form ORCA reads.$why");
-          $bad++;
-          #  Resynchronise on the next header or end.
-          $i++ while ($i <= $#L && $L[$i] !~ $hdr && $L[$i] !~ /^\s*end\s*$/i);
-        } else {
-          if ($kind eq "ECP") { $ecpRows += $got } else { $gtoRows += $got }
-          #  One row too many is the next header's problem, but say so.
-          if ($i <= $#L && $L[$i] =~ $row) {
-            finding("BAD", $i + 1, "basis",
-                    "This row follows a $kind shell on $el that declared " .
-                    "only $n.");
-            $bad++;
-            $i++ while ($i <= $#L && $L[$i] =~ $row);
-          }
-        }
-        next;
-      }
-      finding("BAD", $i + 1, "basis",
-              "This line inside the New$kind block for $el is neither a " .
-              "shell header nor one of its rows.");
-      $bad++;
-      $i++;
-    }
-    if (!$closed) {
-      finding("BAD", $at, "basis",
-              "The New$kind block for $el is never closed by an 'end'.");
-      $bad++;
-      next;
-    }
-    $last = $closed;
-    if ($kind eq "ECP") {
-      if (!defined($ncore)) {
-        finding("BAD", $at, "basis", "The NewECP block for $el has no N_core line.");
-        $bad++;
-      }
-      if (!defined($lmax)) {
-        finding("BAD", $at, "basis", "The NewECP block for $el has no lmax line.");
-        $bad++;
-      } elsif (!exists $seen{$lmax}) {
-        finding("BAD", $at, "basis",
-                "The NewECP block for $el declares lmax $lmax but lists " .
-                "no '$lmax' shell. ORCA accepts this and silently runs " .
-                "with a different potential from the one intended.");
-        $bad++;
-      }
-    }
-  }
-  if ($first > 0 && !$bad) {
-    finding("GOOD", "$first-$last", "basis",
-            "Every NewGTO/NewECP shell lists the rows it declares " .
-            "($gtoRows basis, $ecpRows ECP), in the column layout ORCA reads.");
-  }
-}
-
-
-#  ====================================================================
-#  NWChem
-#
-#  Block structured: `geometry ... end`, `basis ... end`, `dft ... end`,
-#  and a `task` directive that actually asks for something to be done.
-#  A deck with no task is read in full and then does nothing at all,
-#  which looks like a silent failure and is not one.
-#  ====================================================================
-sub nwchem
-{
-  my @L = @stripped;
-
-  my %blocks;
-  my @unclosed;
-  my $depth = 0;
-  my $openedAt = 0;
-  my $openName = "";
-
-  for my $i (0 .. $#L) {
-    my $line = $L[$i];
-    next if ($line =~ /^\s*#/);
-
-    if (!$depth &&
-        $line =~ /^\s*(geometry|basis|dft|scf|mp2|ccsd|tce|property|cosmo|driver|md|set|constraints|ecp|relativistic)\b/i) {
-      #  A one-line `set` directive opens nothing.
-      next if ($line =~ /^\s*set\b/i);
-      $depth = 1;
-      $openedAt = $i + 1;
-      $openName = lc($1);
-      $blocks{$openName} = 1;
-      next;
-    }
-    if ($depth && $line =~ /^\s*end\s*$/i) { $depth = 0; next; }
-  }
-  push(@unclosed, "$openName (line $openedAt)") if ($depth);
-
-  if (exists($blocks{"geometry"})) {
-    finding("GOOD", 0, "geometry", "A geometry block is present.");
-
-    #  Directives NWChem accepts inside a geometry block, so they are
-    #  not mistaken for stray text.
-    my $ok = qr/^\s*(end|units?|angstroms?|au|bohr|nm|pm|nocenter|center|
-                      noautoz|autoz|noautosym|autosym|symmetry|zcoord|
-                      zmatrix|variables|constants|load|print|adjust|
-                      system|bqbq)\b/x;
-    for my $i (0 .. $#L) {
-      if ($L[$i] =~ /^\s*geometry\b/i) {
-        my $close = $#L;
-        for my $j ($i + 1 .. $#L) {
-          if ($L[$j] =~ /^\s*end\s*$/i) { $close = $j - 1; last; }
-        }
-        geometryLines($i + 1, $close, $ok, "geometry block");
-        last;
-      }
-    }
-  } else {
-    finding("BAD", 0, "geometry", "There is no geometry block.");
-  }
-
-  if (@unclosed) {
-    finding("BAD", $openedAt, "sections",
-            "The $openName block is never closed by an 'end'. NWChem " .
-            "reads to the end of the file looking for it.");
-  } else {
-    finding("GOOD", 0, "sections", "Every block is closed by an 'end'.");
-  }
-
-  #  NWChem spells these as a top-level `charge` directive and a
-  #  `mult` (or `nopen`) inside the method block, so they have to be
-  #  gathered before the arithmetic can be done.  Both have defaults,
-  #  and the defaults are what a deck means when it omits them.
-  my $charge = ($whole =~ /^\s*charge\s+(-?\d+)/mi) ? $1 : 0;
-  my $mult   = 1;
-  my $assumed = 1;
-  if    ($whole =~ /^\s*mult(?:iplicity)?\s+(\d+)/mi) { $mult = $1; $assumed = 0; }
-  elsif ($whole =~ /^\s*nopen\s+(\d+)/mi)          { $mult = $1 + 1; $assumed = 0; }
-  finding("GOOD", 0, "charge", "Charge $charge, multiplicity $mult" .
-          ($assumed ? " (assumed: the deck does not say)" : "") . ".");
-  electronCount($charge, $mult, \@atomSymbols, $assumed);
-
-  #  Found by running NWChem 7.2.3 (#297): the ccsd and mp2 modules stop
-  #  on an open-shell reference, the tensor contraction engine does not.
-  if ($mult > 1) {
-    if ($whole =~ /^\s*task\s+ccsd(?:\(t\)|\+t\(ccsd\))?\s/mi) {
-      finding("BAD", 0, "openshell",
-              "The multiplicity is $mult, but NWChem's ccsd module is " .
-              "closed-shell only and stops with 'nopen is not zero'. " .
-              "Use UCCSD or ROCCSD (tensor contraction engine) instead.");
-    }
-    if ($whole =~ /^\s*task\s+mp2\s/mi && $whole !~ /^\s*uhf\b/mi) {
-      finding("BAD", 0, "openshell",
-              "The multiplicity is $mult, but NWChem's mp2 module needs " .
-              "a UHF reference for an open shell and stops with " .
-              "'unknown SCFTYPE'. Use UMP2.");
-    }
-  }
-
-  #  Found by running NWChem 7.2.3 (#306): zcoord needs autoz (with noautoz
-  #  it is ignored without a word), and fixed atoms cannot be used with
-  #  autoz ("cartesian constraints+internals").
-  if ($whole =~ /^\s*zcoord\b/mi) {
-    if ($whole =~ /^\s*fix\s+atom\b/mi) {
-      finding("BAD", 0, "constraints",
-              "Fixed atoms cannot be combined with bond, angle or torsion " .
-              "constraints in NWChem: the optimizer stops with 'cartesian " .
-              "constraints+internals'. Use either fixed atoms, or the " .
-              "internal-coordinate constraints (a restraint may be combined " .
-              "with the latter).");
-    } elsif ($whole =~ /^\s*geometry\b[^\n]*\bnoautoz\b/mi) {
-      finding("BAD", 0, "constraints",
-              "The geometry has noautoz, and NWChem then ignores the zcoord " .
-              "bond, angle and torsion constraints without a message.");
-    }
-  }
-
-  if ($whole =~ /^\s*task\b/mi) {
-    finding("GOOD", 0, "task", "A task directive is present.");
-  } else {
-    finding("BAD", 0, "task",
-            "There is no task directive, so NWChem will read this file " .
-            "and then do nothing.");
-  }
-}
-
-
-#  ====================================================================
-#  MOPAC
-#
-#  Strictly positional, and the positions are the whole format:
-#
-#      line 1    keywords
-#      line 2    a description
-#      line 3    a second comment line
-#      line 4+   the geometry
-#
-#  There are no blank-line delimiters to get wrong, which makes the
-#  one thing that can go wrong -- the geometry starting on the wrong
-#  line -- worth stating plainly.  A keyword line continued with '+'
-#  or '&' shifts everything down, so that case is not judged.
-#  ====================================================================
-sub mopac
-{
-  my @L = @stripped;
-
-  if (!@L || $L[0] !~ /\S/) {
-    finding("BAD", 1, "keywords",
-            "The first line is empty. MOPAC reads its keywords from " .
-            "it, so the job has no instructions.");
-    return;
-  }
-  finding("GOOD", 1, "keywords", "A keyword line is present.");
-  unknownWords($code, $L[0], 1, "keyword line");
-
-  if ($L[0] =~ /[+&]\s*$/) {
-    finding("UNSURE", 1, "sections",
-            "The keyword line is continued onto the next line, which " .
-            "moves the geometry down; the layout was not checked.");
-    return;
-  }
-
-  #  MOPAC puts both on the keyword line, the multiplicity as a word.
-  {
-    my $charge = ($L[0] =~ /\bCHARGE\s*=\s*(-?\d+)/i) ? $1 : 0;
-    my %words = (SINGLET => 1, DOUBLET => 2, TRIPLET => 3, QUARTET => 4,
-                 QUINTET => 5, SEXTET => 6, SEPTET => 7, OCTET => 8);
-    my $mult = 1;
-    my $assumed = 1;
-    foreach my $word (keys %words) {
-      if ($L[0] =~ /\b$word\b/i) { $mult = $words{$word}; $assumed = 0; last; }
-    }
-    finding("GOOD", 1, "charge", "Charge $charge, multiplicity $mult" .
-            ($assumed ? " (assumed: no spin keyword)" : "") . ".");
-    electronCount($charge, $mult, \@atomSymbols, $assumed);
-  }
-
-  if (scalar(@L) < 4) {
-    finding("BAD", scalar(@L), "sections",
-            "A MOPAC deck needs a keyword line, two comment lines and " .
-            "then the geometry; this file has only " . scalar(@L) .
-            " lines.");
-    return;
-  }
-
-  #  The geometry must begin on line 4, not before it: a comment line
-  #  that looks like an atom is read as one.
-  if ($L[3] =~ /^\s*([A-Z][a-z]?)\d*\s+$NUM/) {
-    finding("GOOD", "1-3", "sections",
-            "The keyword line, two comment lines and then the geometry.");
-    #  The geometry ends at the first blank line; a following block is
-    #  a second job (ECCE writes FORCE OLDGEO for a vibrational analysis
-    #  after an optimisation), which reads the geometry the first left.
-    my $end = 3;
-    $end++ while ($end + 1 <= $#L && $L[$end + 1] =~ /\S/);
-    finding("GOOD", "4-" . ($end + 1), "geometry",
-            ($end - 2) . " lines of geometry.");
-    my $next = $end + 1;
-    $next++ while ($next <= $#L && $L[$next] !~ /\S/);
-    if ($next <= $#L) {
-      my $ln = $next + 1;
-      unknownWords($code, $L[$next], $ln, "second keyword line");
-      if ($L[$next] =~ /\bOLDGEO\b/i && $#L - $next <= 2) {
-        finding("GOOD", ($end + 2) . "-" . ($#L + 1), "sections",
-                "A second job on the geometry the first one ends with " .
-                "(OLDGEO): a keyword line and two comment lines.");
-      } else {
-        finding("UNSURE", "$ln-" . ($#L + 1), "sections",
-                "More input follows the geometry; a second job without " .
-                "OLDGEO, or with its own geometry, is not checked.");
-      }
-    }
-  } else {
-    finding("BAD", 4, "sections",
-            "Line 4 should be the first atom of the geometry -- MOPAC " .
-            "expects keywords, two comment lines, then atoms -- and it " .
-            "does not look like one.");
-  }
-}
-
-
-#  ====================================================================
-#  CP2K
-#
-#  Sections opened with &NAME and closed with &END; the deck is judged by
-#  its shape and by its parts agreeing with each other (every element has
-#  a kind with a basis and a potential, a spin state needs UKS), never by
-#  whether CP2K accepts a keyword.
-#  ====================================================================
-#  The 1-based line of the first line matching a pattern, 0 if none.  A
-#  GOOD finding with a line (range) is what marks the deck in the dialog's
-#  lower pane, so each check should point at what it examined.
-sub lineOf
-{
-  my ($re) = @_;
-  for my $i (0 .. $#stripped) {
-    return $i + 1 if ($stripped[$i] =~ $re);
-  }
-  return 0;
-}
-
-sub cp2k
-{
-  my @L = @stripped;
-  my %range;
-
-  my @stack;
-  my $bad = 0;
-  for my $i (0 .. $#L) {
-    my $line = $L[$i];
-    $line =~ s/[#!].*//;
-    if ($line =~ /^\s*&END\b\s*(\w*)/i) {
-      my $name = uc($1);
-      my $top = pop(@stack);
-      $range{uc($top->[0])} ||= $top->[1] . "-" . ($i + 1) if (defined($top));
-      if (!defined($top) || ($name ne "" && uc($top->[0]) ne $name)) {
-        finding("BAD", $i + 1, "sections",
-                "This &END does not close the section open at that point" .
-                (defined($top) ? " (&" . $top->[0] . " from line " .
-                 $top->[1] . ")." : "."));
-        $bad++;
-        last;
-      }
-    } elsif ($line =~ /^\s*&(\w+)/) {
-      push(@stack, [$1, $i + 1]);
-    }
-  }
-  if (!$bad && @stack) {
-    finding("BAD", $stack[-1][1], "sections",
-            "The &" . $stack[-1][0] . " section opened here is never closed " .
-            "by &END.");
-  } elsif (!$bad) {
-    finding("GOOD", "1-" . scalar(@L), "sections",
-            "Every section is closed by &END.");
-  }
-
-  foreach my $required (["global", "&GLOBAL"], ["force_eval", "&FORCE_EVAL"],
-                        ["subsys", "&SUBSYS"], ["cell", "&CELL"],
-                        ["coord", "&COORD"]) {
-    my ($name, $shown) = @$required;
-    if ($whole =~ /^\s*&$name\b/mi) {
-      finding("GOOD", $range{uc($name)} || lineOf(qr/^\s*&$name\b/i), $name,
-              "The $shown section is present.");
-    } else {
-      finding("BAD", 0, $name, "There is no $shown section.");
-    }
-  }
-
-  my ($run) = ($whole =~ /^\s*RUN_TYPE\s+(\S+)/mi);
-  if (!defined($run)) {
-    finding("UNSURE", 0, "run", "RUN_TYPE is not set, so CP2K runs its " .
-            "default (ENERGY).");
-  } elsif (uc($run) =~ /^(GEO_OPT|CELL_OPT)$/ &&
-           $whole !~ /^\s*&MOTION\b/mi) {
-    finding("BAD", 0, "run", "RUN_TYPE $run needs a &MOTION section with " .
-            "its own subsection; CP2K stops without it.");
-  } else {
-    finding("GOOD", lineOf(qr/^\s*RUN_TYPE\s/i), "run",
-            "RUN_TYPE " . uc($run) . ".");
-  }
-
-  #  Every element of &COORD needs a &KIND with a basis and a potential.
-  my (%kind, %atoms, $cur, $inCoord);
-  for my $i (0 .. $#L) {
-    my $line = $L[$i];
-    $line =~ s/[#!].*//;
-    if ($line =~ /^\s*&COORD\b/i)     { $inCoord = 1; next; }
-    if ($line =~ /^\s*&END\s+COORD\b/i) { $inCoord = 0; next; }
-    #  The label (Nb_e, Fe1) names its &KIND; the element is the fallback.
-    if ($inCoord && $line =~ /^\s*(([A-Z][a-z]?)\w*)\s+$NUM\s+$NUM\s+$NUM/) {
-      $atoms{$1} = $2;
-      next;
-    }
-    if ($line =~ /^\s*&KIND\s+(\S+)/i) { $cur = $1; $kind{$cur} = {}; next; }
-    if ($line =~ /^\s*&END\s+KIND\b/i) { undef $cur; next; }
-    if (defined($cur) && $line =~ /^\s*(BASIS_SET|POTENTIAL|ELEMENT)\s+(\S+)/i) {
-      $kind{$cur}{uc($1)} = $2;
-    }
-  }
-  my @missing;
-  my $full = sub { my $k = $kind{$_[0]};
-                   $k && exists($k->{BASIS_SET}) && exists($k->{POTENTIAL}) };
-  foreach my $label (sort keys %atoms) {
-    push(@missing, $label)
-      if (!$full->($label) && !$full->($atoms{$label}));
-  }
-  if (@missing) {
-    finding("BAD", 0, "kinds", "No &KIND with both a BASIS_SET and a " .
-            "POTENTIAL for: " . join(", ", @missing) . ". CP2K stops " .
-            "without them.");
-  } elsif (%atoms) {
-    my ($k1, $k2) = (lineOf(qr/^\s*&KIND\b/i), 0);
-    for my $i (0 .. $#L) { $k2 = $i + 1 if ($L[$i] =~ /^\s*&END\s+KIND\b/i); }
-    finding("GOOD", ($k1 && $k2 >= $k1) ? "$k1-$k2" : $k1, "kinds",
-            "Every element (" . join(", ", sort keys %atoms) .
-            ") has a basis set and a potential.");
-  }
-
-  my ($mult) = ($whole =~ /^\s*MULTIPLICITY\s+(\d+)/mi);
-  if (defined($mult) && $mult > 1 && $whole !~ /^\s*(UKS|LSD|UNRESTRICTED_KOHN_SHAM)\b/mi) {
-    finding("BAD", 0, "spin", "MULTIPLICITY $mult is set without UKS, so " .
-            "CP2K runs a restricted calculation and stops on the spin " .
-            "state.");
-  } elsif (defined($mult)) {
-    finding("GOOD", lineOf(qr/^\s*MULTIPLICITY\s/i), "spin",
-            "Multiplicity $mult.");
-  }
-
-  if ($whole =~ /^\s*&DFT_PLUS_U\b/mi && !%kind) {
-    finding("BAD", 0, "plus_u", "&DFT_PLUS_U is outside any &KIND.");
-  } elsif ($whole =~ /^\s*&DFT_PLUS_U\b/mi) {
-    finding("GOOD", lineOf(qr/^\s*&DFT_PLUS_U\b/i), "plus_u",
-            "DFT+U is set on a kind.");
-  }
-}
-
-#  ====================================================================
-#  Quantum ESPRESSO
-#
-#  Fortran namelists, each opened with & and closed with a '/' on a
-#  line of its own, then card blocks.  Checked more lightly than the
-#  rest: QE support here is experimental, and these rules come from
-#  documentation rather than from decks that have been run, which is
-#  the weakest evidence this checker uses anywhere.
-#  ====================================================================
-#  The lines of a QE card: its header and the lines under it, up to the
-#  next card, namelist or '/'.
-sub cardRange
-{
-  my ($re) = @_;
-  my $first = lineOf($re);
-  return 0 unless ($first);
-  my $last = $first;
-  for my $i ($first .. $#stripped) {
-    last if ($stripped[$i] =~ /^\s*(&\w+|\/\s*$|(ATOMIC_SPECIES|ATOMIC_POSITIONS|K_POINTS|CELL_PARAMETERS|OCCUPATIONS|CONSTRAINTS|ATOMIC_FORCES|ADDITIONAL_K_POINTS|HUBBARD)\b)/i);
-    $last = $i + 1 if ($stripped[$i] =~ /\S/);
-  }
-  return $last > $first ? "$first-$last" : $first;
-}
-
-sub espresso
-{
-  my @L = @stripped;
-
-  #  Namelist name => first-last line.
-  my (%nlRange, $nlName, $nlStart);
-  for my $i (0 .. $#L) {
-    if ($L[$i] =~ /^\s*&(\w+)/)  { $nlName = lc($1); $nlStart = $i + 1; next; }
-    if ($L[$i] =~ /^\s*\/\s*$/ && defined($nlName)) {
-      $nlRange{$nlName} ||= $nlStart . "-" . ($i + 1);
-      undef $nlName;
-    }
-  }
-
-  foreach my $required (["control", "&CONTROL"],
-                        ["system",  "&SYSTEM"],
-                        ["electrons", "&ELECTRONS"]) {
-    my ($name, $shown) = @$required;
-    if ($whole =~ /^\s*&$name\b/mi) {
-      finding("GOOD", $nlRange{$name} || lineOf(qr/^\s*&$name\b/i), $name,
-              "The $shown namelist is present.");
-    } else {
-      finding("BAD", 0, $name, "There is no $shown namelist.");
-    }
-  }
-
-  #  Every namelist opened must be closed by a bare '/'.
-  my $open = 0;
-  my $openAt = 0;
-  for my $i (0 .. $#L) {
-    if ($L[$i] =~ /^\s*&\w+/)      { $open++; $openAt = $i + 1; next; }
-    if ($L[$i] =~ /^\s*\/\s*$/)    { $open--; next; }
-  }
-  if ($open > 0) {
-    finding("BAD", $openAt, "sections",
-            "A namelist opened here is never closed by a '/' on a line " .
-            "of its own.");
-  } elsif ($open == 0) {
-    finding("GOOD", "1-" . scalar(@L), "sections",
-            "Every namelist is closed by a '/'.");
-  }
-
-  if ($whole =~ /^\s*ATOMIC_POSITIONS/mi) {
-    finding("GOOD", cardRange(qr/^\s*ATOMIC_POSITIONS/i), "positions",
-            "An ATOMIC_POSITIONS block is present.");
-  } else {
-    finding("BAD", 0, "positions", "There is no ATOMIC_POSITIONS block.");
-  }
-
-  if ($whole =~ /^\s*ATOMIC_SPECIES/mi) {
-    finding("GOOD", cardRange(qr/^\s*ATOMIC_SPECIES/i), "species",
-            "An ATOMIC_SPECIES block is present.");
-  } else {
-    finding("BAD", 0, "species",
-            "There is no ATOMIC_SPECIES block, so no pseudopotential is " .
-            "named for any element.");
-  }
-
-  espressoOptions(\@L);
-}
-
-#  The functional in each pseudopotential's UPF header, against each
-#  other and against input_dft.  A mix stops pw.x ("conflicting values
-#  for icorr"); input_dft over different pseudopotentials runs but mixes
-#  two functionals.  Files that are not here (pseudo_dir on the compute
-#  host) are not judged.
-sub espressoFunctional
-{
-  my ($Lref, $inputDft) = @_;
-  my ($dir) = ($whole =~ /^\s*pseudo_dir\s*=\s*['"]([^'"]*)['"]/mi);
-  return unless (defined($dir) && $dir ne "");
-  $dir =~ s{/+$}{};
-  if ($dir !~ m{^/}) {
-    my ($deckDir) = ($opt_f =~ m{^(.*)/[^/]*$});
-    $dir = (defined($deckDir) ? $deckDir : ".") . "/$dir";
-  }
-
-  my (%fun, @order, $inSpecies);
-  foreach my $line (@$Lref) {
-    if ($line =~ /^\s*ATOMIC_SPECIES/i) { $inSpecies = 1; next; }
-    if ($inSpecies && $line =~ /^\s*([A-Za-z]\w*)\s+\S+\s+(\S+)/) {
-      my $f = QEFunctional::ofFile("$dir/$2");
-      if ($f ne "") { $fun{$1} = $f; push(@order, $1); }
-      next;
-    }
-    $inSpecies = 0 if ($inSpecies && $line =~ /\S/);
-  }
-  return unless (@order);
-
-  my $at = cardRange(qr/^\s*ATOMIC_SPECIES/i);
-  my %distinct = map { $fun{$_} => 1 } @order;
-  if (keys(%distinct) > 1) {
-    finding("BAD", $at, "functional",
-            "The pseudopotentials were generated with different " .
-            "functionals (" . join(", ", map { "$_: $fun{$_}" } @order) .
-            "); pw.x stops with \"conflicting values for icorr\".  " .
-            "Use pseudopotentials of one functional.");
-    return;
-  }
-  my $pp = $fun{$order[0]};
-  my $dft = defined($inputDft) ? QEFunctional::canonical($inputDft->[0]) : "";
-  if ($dft ne "" && $dft ne $pp) {
-    finding("UNSURE", $inputDft->[1], "functional",
-            "input_dft = '" . uc($inputDft->[0]) . "' differs from $pp, the " .
-            "functional the pseudopotentials were generated with; pw.x " .
-            "runs, but the result mixes two functionals.");
-  } else {
-    finding("GOOD", $at, "functional",
-            "The pseudopotentials were all generated with $pp.");
-  }
-}
-
-#  Molecular dynamics, dispersion and DFT+U.  What is checked is that the
-#  parts agree with each other and with the species list; whether pw.x
-#  accepts a keyword is for pw.x to say.
-sub espressoOptions
-{
-  my ($Lref) = @_;
-  my @L = @$Lref;
-
-  #  Namelist variables, lower-cased, per namelist.
-  my (%nl, $cur);
-  for my $i (0 .. $#L) {
-    my $line = $L[$i];
-    $line =~ s/!.*//;
-    if ($line =~ /^\s*&(\w+)/)    { $cur = lc($1); next; }
-    if ($line =~ /^\s*\/\s*$/)    { undef $cur; next; }
-    next unless (defined($cur));
-    foreach my $item (split(/,/, $line)) {
-      if ($item =~ /^\s*([\w()]+)\s*=\s*(.+?)\s*$/) {
-        my ($k, $v) = (lc($1), $2);
-        $v =~ s/^['"]|['"]$//g;
-        $nl{$cur}{$k} = [lc($v), $i + 1];
-      }
-    }
-  }
-  my $calc = exists($nl{control}{calculation})
-           ? $nl{control}{calculation}[0] : "scf";
-
-  if (exists($nl{ions}) && $calc eq "scf") {
-    finding("BAD", 0, "ions",
-            "An &IONS namelist is present in a calculation = 'scf' run; " .
-            "pw.x stops with \"namelist &IONS not needed\".");
-  }
-
-  if ($calc eq "md") {
-    my $ions = $nl{ions} || {};
-    my $dt = $nl{control}{dt};
-    if (!defined($dt) || $dt->[0] !~ /^[-+]?\d/ || $dt->[0] + 0 <= 0) {
-      finding("BAD", 0, "md", "A molecular dynamics run needs a positive " .
-              "time step (dt, in Rydberg atomic units) in &CONTROL.");
-    } else {
-      finding("GOOD", $dt->[1], "md", "The time step dt is set " .
-              "(Rydberg atomic units; 20 is about 1 fs).");
-    }
-    if (!exists($nl{control}{nstep})) {
-      finding("UNSURE", 0, "md", "nstep is not set, so pw.x runs its own " .
-              "default number of steps (50).");
-    }
-    my $it = exists($ions->{ion_temperature}) ? $ions->{ion_temperature}[0]
-                                              : "not_controlled";
-    if ($it ne "not_controlled" && !exists($ions->{tempw})) {
-      finding("UNSURE", 0, "md", "ion_temperature = '$it' but tempw (the " .
-              "target temperature) is not set; pw.x then uses its default.");
-    } elsif (exists($ions->{ion_temperature})) {
-      finding("GOOD", $ions->{ion_temperature}[1], "md",
-              "ion_temperature = '$it' in the &IONS namelist.");
-    }
-  }
-
-  if (exists($nl{system}{vdw_corr})) {
-    finding("GOOD", $nl{system}{vdw_corr}[1], "dispersion",
-            "A dispersion correction (vdw_corr = '" .
-            $nl{system}{vdw_corr}[0] . "') is requested.");
-  }
-
-  #  DFT+U, in either syntax.
-  my %species;
-  my @speciesOrder;
-  my $inSpecies = 0;
-  foreach my $line (@L) {
-    if ($line =~ /^\s*ATOMIC_SPECIES/i) { $inSpecies = 1; next; }
-    if ($inSpecies && $line =~ /^\s*([A-Za-z][A-Za-z0-9]*)\s+[-+0-9.]/) {
-      $species{$1} = 1;
-      push(@speciesOrder, $1);
-      next;
-    }
-    $inSpecies = 0 if ($inSpecies && $line =~ /\S/);
-  }
-  espressoFunctional(\@L, $nl{system}{input_dft});
-
-  my %transition = map { $_ => 1 }
-    qw(Sc Ti V Cr Mn Fe Co Ni Cu Zn Y Zr Nb Mo Tc Ru Rh Pd Ag Cd
-       La Ce Pr Nd Pm Sm Eu Gd Tb Dy Ho Er Tm Yb Lu Hf Ta W Re Os Ir Pt Au Hg
-       Ac Th Pa U Np Pu);
-  my @uElements;
-
-  my $hubbardAt = 0;
-  for my $i (0 .. $#L) {
-    if ($L[$i] =~ /^\s*HUBBARD\b/i) { $hubbardAt = $i + 1; last; }
-  }
-  if ($hubbardAt) {
-    my $rows = 0;
-    for my $i ($hubbardAt .. $#L) {
-      my $line = $L[$i];
-      $line =~ s/!.*//;
-      next unless ($line =~ /\S/);
-      last if ($line =~ /^\s*[A-Z_]+\b/ && $line !~ /^\s*(U|J0|J|B|E2|E3|alpha)\s/i);
-      if ($line =~ /^\s*U\s+(\S+?)-(\d[spdf])\s+([-+]?\d*\.?\d+([EeDd][-+]?\d+)?)\s*$/) {
-        my ($el) = ($1);
-        $rows++;
-        push(@uElements, $el);
-        if (!$species{$el}) {
-          finding("BAD", $i + 1, "hubbard",
-                  "The HUBBARD card names '$el', which is not a species in " .
-                  "ATOMIC_SPECIES.");
-        }
-      } elsif ($line =~ /^\s*\S+\s+\S+/) {
-        finding("BAD", $i + 1, "hubbard",
-                "This HUBBARD line is not 'U <species>-<orbital> <value>'.");
-      }
-    }
-    if ($rows) {
-      finding("GOOD", $hubbardAt, "hubbard",
-              "A HUBBARD card with $rows U value" . ($rows == 1 ? "" : "s") .
-              " is present.");
-    }
-  }
-  if (exists($nl{system}{lda_plus_u}) &&
-      $nl{system}{lda_plus_u}[0] =~ /^\.?t/) {
-    my $n = 0;
-    foreach my $k (keys %{$nl{system}}) {
-      next unless ($k =~ /^hubbard_u\((\d+)\)$/);
-      $n++;
-      my $idx = $1;
-      if ($idx < 1 || $idx > @speciesOrder) {
-        finding("BAD", $nl{system}{$k}[1], "hubbard",
-                "$k refers to a species that does not exist (there are " .
-                scalar(@speciesOrder) . ").");
-      } else {
-        push(@uElements, $speciesOrder[$idx - 1]);
-      }
-    }
-    finding("GOOD", $nl{system}{lda_plus_u}[1], "hubbard",
-            "lda_plus_u is on with $n Hubbard_U value" . ($n == 1 ? "" : "s") .
-            ".") if ($n);
-  }
-  if (@uElements) {
-    my $nspin = exists($nl{system}{nspin}) ? $nl{system}{nspin}[0] : 1;
-    my @tm = grep { my $e = $_; $e =~ s/\d+$//; $transition{ucfirst(lc($e))} }
-             @uElements;
-    if (@tm && $nspin !~ /^[24]/) {
-      finding("UNSURE", 0, "hubbard",
-              "U is set on " . join(", ", @tm) . " without spin " .
-              "polarisation (nspin = 2).  DFT+U on a transition metal " .
-              "usually needs it, with a starting magnetisation.");
-    }
-  }
-}
-
-
-#  ====================================================================
-#  ECCE-QM
-#
-#  The input of the engine bundled with ECCE (src/qm, `ecce-qm`): one
-#  keyword per line, `geometry` ... `end` and `basis_data` ... `end`
-#  blocks.  Unlike the codes above, the engine is part of this tree, so
-#  its parser is not somebody's manual: anything it throws on is BAD
-#  here, and tests/verify runs ecce-qm over the fixtures to keep the two
-#  from drifting.  What the engine would accept but cannot compute (a
-#  basis the library lacks) is UNSURE, because the library is not
-#  visible from here.
-#  ====================================================================
-sub ecceqm
-{
-  my @L = @stripped;
-
-  my %keyword = map { $_ => 1 }
-    qw(title charge multiplicity method basis spherical grid grid_prune
-       charges localise localize units maxiter conv_energy conv_grad molden runtype maxsteps opt_conv
-       hessian_step temperature pressure symmetry_number
-       polarizability polarisability raman field_step parallel_points guess_mix
-       numeric_hessian ts_hessian_every ts_mode ts_follow irc_step irc_max_points irc_direction irc_hessian_every point_orbitals read_orbitals write_orbitals virtuals solvent epsilon cavity_scale dispersion);
-  my %functional = map { $_ => 1 } qw(hf svwn lda pbe b3lyp pbe0);
-  my $INT = qr/[-+]?\d+/;
-
-  my ($charge, $mult, $method) = (0, 1, "hf");
-  my $multGiven = 0;
-  my ($geomOpen, $geomClose, $basisOpen, $basisClose) = (0, 0, 0, 0);
-  my ($inGeom, $inBasis, $shells, $primitives, $curShell) = (0, 0, 0, 0, 0);
-  my ($inCons, $consOpen, $consClose) = (0, 0, 0);
-  my $inScan = 0;
-  my @consAtoms;     # [line, atom number] to check against the geometry
-  my %covered;
-  my ($bad, $geomAtoms, $basisName) = (0, 0, "");
-  my $badKeyword = 0;
-  my ($wantsRaman, $runtypeGiven) = (0, "energy");
-  my @kwLines;
-
-  for my $i (0 .. $#L) {
-    my $line = $L[$i];
-    $line =~ s/#.*//;
-    next unless ($line =~ /\S/);
-    my ($key, $rest) = ($line =~ /^\s*(\S+)\s*(.*?)\s*$/);
-    my $k = lc($key);
-    my $n = $i + 1;
-
-    if ($inGeom) {
-      if ($k eq "end") { $inGeom = 0; $geomClose = $n; next; }
-      if ($line =~ /^\s*([A-Za-z]+)\s+$NUM\s+$NUM\s+$NUM(\s|$)/) {
-        if ($1 !~ /^[Xx]$/ && !exists($Z{ucfirst(lc($1))})) {
-          finding("BAD", $n, "geometry",
-                  "\"$1\" is not an element symbol ecce-qm knows.");
-          $bad++;
-        }
-        $geomAtoms++;
-      } else {
-        my $shown = $line; $shown =~ s/^\s+//; $shown =~ s/\s+$//;
-        $shown = substr($shown, 0, 40) . "..." if (length($shown) > 43);
-        finding("BAD", $n, "geometry",
-                "This line is inside the geometry block but is not an " .
-                "atom (element and three coordinates): \"$shown\". " .
-                "ecce-qm stops on it.");
-        $bad++;
-      }
-      next;
-    }
-
-    if ($inScan) {
-      if ($k eq "end") { $inScan = 0; next; }
-      my %need = (bond => 2, angle => 3, torsion => 4, dihedral => 4);
-      my @w = split(' ', $rest);
-      if (!exists($need{$k})) {
-        finding("BAD", $n, "scan",
-                "\"$key\" is not a coordinate ecce-qm can scan (bond, " .
-                "angle or torsion); ecce-qm stops on it.");
-        $bad++;
-      } elsif (@w != $need{$k} + 3 ||
-               grep { $_ !~ /^\d+$/ } @w[0 .. $need{$k} - 1, $need{$k} + 2] ||
-               grep { $_ !~ /^$NUM$/ } @w[$need{$k}, $need{$k} + 1]) {
-        finding("BAD", $n, "scan",
-                "'$k' in a scan needs $need{$k} atom numbers, a start value, " .
-                "an end value and the number of points; ecce-qm stops on " .
-                "this line.");
-        $bad++;
-      }
-      next;
-    }
-    if ($inCons) {
-      if ($k eq "end") { $inCons = 0; $consClose = $n; next; }
-      my %need = (bond => 2, angle => 3, torsion => 4, dihedral => 4, fix => 1);
-      my @w = split(' ', $rest);
-      if (!exists($need{$k})) {
-        finding("BAD", $n, "constraints",
-                "\"$key\" is not a constraint ecce-qm knows (bond, " .
-                "angle, torsion or fix); ecce-qm stops on it.");
-        $bad++;
-      } elsif (@w < $need{$k} || @w > $need{$k} + ($k eq "fix" ? 0 : 1) ||
-               grep { $_ !~ /^\d+$/ } @w[0 .. $need{$k} - 1]) {
-        finding("BAD", $n, "constraints",
-                "'$k' needs $need{$k} atom numbers" .
-                ($k eq "fix" ? "" : " and an optional value") .
-                "; ecce-qm stops on this line.");
-        $bad++;
-      } elsif (@w > $need{$k} && $w[$need{$k}] !~ /^$NUM$/) {
-        finding("BAD", $n, "constraints",
-                "The value of a '$k' constraint must be a number, and " .
-                "this reads \"$w[$need{$k}]\".");
-        $bad++;
-      } else {
-        push(@consAtoms, [$n, $_]) for (@w[0 .. $need{$k} - 1]);
-      }
-      next;
-    }
-
-    if ($inBasis && $k eq "geometry") {
-      finding("BAD", $basisOpen, "basis",
-              "The basis_data block is never closed by an 'end'; ecce-qm " .
-              "reads the geometry keyword as part of it and stops.");
-      $bad++;
-      $inBasis = 0;
-      $basisClose = -1;
-    }
-    if ($inBasis) {
-      if ($k eq "end") { $inBasis = 0; $basisClose = $n; $curShell = 0; next; }
-      if ($k eq "shell") {
-        my ($el, $letter) = ($rest =~ /^([A-Za-z]+)\s+([A-Za-z])(?:\s|$)/);
-        if (defined($el) && lc($letter) =~ /^[spdfghi]$/ &&
-            exists($Z{ucfirst(lc($el))})) {
-          $covered{ucfirst(lc($el))} = 1;
-          $shells++;
-          $curShell = $n;
-        } else {
-          finding("BAD", $n, "basis",
-                  "A shell line needs an element and one angular " .
-                  "momentum letter (S, P, D, F, G, H or I): " .
-                  "\"shell $rest\".");
-          $bad++;
-        }
-        next;
-      }
-      if ($curShell && $line =~ /^\s*$NUM\s+$NUM(\s|$)/) {
-        $primitives++;
-        next;
-      }
-      finding("BAD", $n, "basis",
-              "Inside basis_data only 'shell <element> <letter>' lines " .
-              "and 'exponent coefficient' rows are allowed, and this is " .
-              "neither. ecce-qm stops on it.");
-      $bad++;
-      next;
-    }
-
-    if ($k eq "geometry")   { $inGeom = 1; $geomOpen = $n; next; }
-    if ($k eq "scan")       { $inScan = 1; next; }
-    if ($k eq "constraints") { $inCons = 1; $consOpen = $n; next; }
-    if ($k eq "basis_data") { $inBasis = 1; $basisOpen = $n; next; }
-
-    push(@kwLines, $n) if ($keyword{$k});
-    if (!$keyword{$k}) {
-      finding("BAD", $n, "keywords",
-              "\"$key\" is not an ecce-qm keyword; ecce-qm stops with " .
-              "'unknown keyword' on it.");
-      $bad++;
-      $badKeyword++;
-      next;
-    }
-    if ($k eq "runtype" || $k eq "opt_conv") {
-      my $ok = $k eq "runtype" ? qr/(energy|gradient|optimize|opt|frequency|freq|optfreq|ts|irc)/i : qr/(normal|tight)/i;
-      if ($rest !~ /^$ok$/) {
-        finding("BAD", $n, "keywords",
-                "'$k' takes " . ($k eq "runtype" ? "energy, gradient, optimize, frequency, " .
-                "optfreq, ts or irc" : "normal or tight") . ", and this reads " .
-                "\"$rest\"; ecce-qm stops on it.");
-        $bad++;
-      } elsif ($k eq "runtype") {
-        $runtypeGiven = lc($rest);
-      }
-      next;
-    }
-    if ($k eq "charge" || $k eq "multiplicity" || $k eq "maxiter" || $k eq "maxsteps" || $k eq "ts_hessian_every" || $k eq "ts_mode" || $k eq "irc_max_points" || $k eq "irc_hessian_every") {
-      if ($rest !~ /^$INT\b/) {
-        finding("BAD", $n, ($k eq "charge" || $k eq "multiplicity") ? "charge" : "keywords",
-                "'$k' needs a whole number, and this reads \"$rest\".");
-        $bad++;
-        next;
-      }
-      ($charge) = ($rest =~ /^($INT)/) if ($k eq "charge");
-      if ($k eq "multiplicity") { ($mult) = ($rest =~ /^($INT)/); $multGiven = 1; }
-      $charge += 0; $mult += 0;
-    } elsif ($k eq "method") {
-      $method = lc($rest);
-    } elsif ($k eq "basis") {
-      $basisName = $rest;
-    } elsif ($k eq "charges") {
-      for my $w (split(' ', lc($rest))) {
-        next if ($w =~ /^(loewdin|lowdin|chelpg|mk|merz-kollman|none)$/);
-        finding("BAD", $n, "keywords",
-                "'charges' takes loewdin, chelpg, mk (or merz-kollman) " .
-                "and none, and \"$w\" is none of them; ecce-qm stops on it.");
-        $bad++;
-      }
-    } elsif ($k eq "grid") {
-      if ($rest !~ /^\d+\s+\d+(\s|$)/) {
-        finding("BAD", $n, "keywords",
-                "'grid' needs two whole numbers (radial and angular " .
-                "points), and this reads \"$rest\".");
-        $bad++;
-      }
-    } elsif ($k eq "polarizability" || $k eq "polarisability" || $k eq "raman") {
-      if ($rest !~ /^(true|false|yes|no|on|off|1|0)$/i) {
-        finding("BAD", $n, "keywords",
-                "'$k' takes true or false, and this reads \"$rest\".");
-        $bad++;
-      } elsif ($k eq "raman" && $rest =~ /^(true|yes|on|1)$/i) {
-        $wantsRaman = $n;
-      }
-    } elsif ($k eq "irc_direction") {
-      if ($rest !~ /^(both|forward|backward)$/i) {
-        finding("BAD", $n, "keywords", "'irc_direction' takes both, forward or backward, " .
-                "and this reads \"$rest\"; ecce-qm stops on it.");
-        $bad++;
-      }
-    } elsif ($k eq "field_step" || $k eq "conv_energy" || $k eq "conv_grad" || $k eq "irc_step") {
-      if ($rest !~ /^$NUM(\s|$)/) {
-        finding("BAD", $n, "keywords", "'$k' needs a number, and this " .
-                "reads \"$rest\".");
-        $bad++;
-      }
-    }
-  }
-
-  if ($wantsRaman && $runtypeGiven !~ /^(frequency|freq|optfreq|ts)$/) {
-    finding("BAD", $wantsRaman, "keywords",
-            "'raman' needs runtype frequency, optfreq or ts; ecce-qm stops on it.");
-    $bad++;
-  }
-  if ($runtypeGiven =~ /^(ts|irc)$/ && $consOpen) {
-    finding("BAD", $consOpen, "constraints",
-            "A transition-state search or IRC (runtype ts, irc) takes no constraints; " .
-            "ecce-qm stops on it.");
-    $bad++;
-  }
-  finding("GOOD", 0, "keywords", "Every keyword is one ecce-qm reads.")
-    if (!$badKeyword);
-
-  #  The method: optional prefix r, u or ro, then the functional.
-  {
-    my $m = $method;
-    $m =~ s/^(ro|r|u)(?=.)//;
-    if ($functional{$m}) {
-      my $ref = ($method =~ /^u./ && $method ne $m)  ? "unrestricted"
-              : ($method =~ /^ro./ && $method ne $m) ? "restricted open-shell"
-              : ($method =~ /^r./ && $method ne $m)  ? "restricted"
-              : ($mult == 1 ? "restricted" : "restricted open-shell");
-      finding("GOOD", 0, "method",
-              ($m eq "hf" ? "Hartree-Fock" : uc($m)) . ", $ref" .
-              ($method eq $m ? " (taken from the multiplicity)" : "") . ".");
-      if ($method =~ /^r./ && $method ne $m && $method !~ /^ro/ &&
-          $mult != 1) {
-        finding("UNSURE", 0, "method",
-                "A closed-shell (restricted) reference was asked for with " .
-                "multiplicity $mult; use an open-shell reference (u or " .
-                "ro) for that.");
-      }
-    } else {
-      finding("BAD", 0, "method",
-              "\"$method\" is not a method ecce-qm has. It takes hf, " .
-              "svwn, pbe, b3lyp or pbe0, optionally with r, u or ro in " .
-              "front.");
-    }
-  }
-
-  #  Geometry.
-  if (!$geomOpen) {
-    finding("BAD", 0, "geometry",
-            "There is no geometry block, so ecce-qm stops with 'no " .
-            "geometry given'.");
-  } elsif (!$geomClose) {
-    finding("BAD", $geomOpen, "geometry",
-            "The geometry block is never closed by an 'end'; everything " .
-            "after it is read as atoms.");
-  } elsif (!$geomAtoms) {
-    finding("BAD", $geomOpen, "geometry", "The geometry block is empty.");
-  } else {
-    finding("GOOD", "$geomOpen-$geomClose", "geometry",
-            "$geomAtoms atoms in the geometry block.")
-      unless (grep { /^BAD\|\d+\|geometry\|/ } @findings);
-  }
-  # Mark the keyword lines that passed, a run of lines per finding, so the
-  # report shows which lines were examined rather than leaving them blank.
-  my %flagged = map { (split(/\|/))[1] => 1 } grep { /^(BAD|UNSURE)\|\d+\|/ } @findings;
-  my @ok = grep { !$flagged{$_} } @kwLines;
-  while (@ok) {
-    my ($first, $last) = (shift(@ok)) x 2;
-    $last = shift(@ok) while (@ok && $ok[0] == $last + 1);
-    finding("GOOD", $first == $last ? $first : "$first-$last", "keywords",
-            ($first == $last ? "An ecce-qm keyword" : "ecce-qm keywords") .
-            ", with a value ecce-qm accepts.");
-  }
-
-  #  Constraints: closed, and naming atoms the geometry has.
-  if ($consOpen && !$consClose) {
-    finding("BAD", $consOpen, "constraints",
-            "The constraints block is never closed by an 'end'.");
-  } elsif ($consOpen) {
-    for my $c (@consAtoms) {
-      if ($c->[1] < 1 || $c->[1] > $geomAtoms) {
-        finding("BAD", $c->[0], "constraints",
-                "Atom $c->[1] is not in the geometry, which has " .
-                "$geomAtoms atoms (dummy atoms count).");
-      }
-    }
-    finding("GOOD", "$consOpen-$consClose", "constraints",
-            "Every constrained atom is in the geometry.")
-      unless (grep { /^BAD\|\d+\|constraints\|/ } @findings);
-  }
-
-  #  Basis: ECCE always writes it out, so its absence is a hand edit.
-  if ($basisOpen && !$basisClose) {
-    finding("BAD", $basisOpen, "basis",
-            "The basis_data block is never closed by an 'end'.");
-  } elsif ($basisClose < 0) {
-    #  Already reported where the geometry keyword turned up.
-  } elsif ($basisOpen) {
-    my @missing = grep { !$covered{$_} } @elements;
-    if (!$shells || !$primitives) {
-      finding("BAD", $basisOpen, "basis",
-              "The basis_data block holds no shells.");
-    } elsif (@missing) {
-      finding("UNSURE", $basisOpen . "-" . $basisClose, "basis",
-              "basis_data gives no shell for " . join(", ", @missing) .
-              ". ecce-qm then looks for " .
-              ($basisName ne "" ? "\"$basisName\"" : "its default basis") .
-              " in its basis library, which cannot be seen from here.");
-    } else {
-      finding("GOOD", $basisOpen . "-" . $basisClose, "basis",
-              "$shells shells cover every element in the geometry (" .
-              join(", ", @elements) . ").")
-        unless (grep { /^BAD\|\d+(-\d+)?\|basis\|/ } @findings);
-    }
-  } else {
-    finding("UNSURE", 0, "basis",
-            "There is no basis_data block, so ecce-qm reads " .
-            ($basisName ne "" ? "\"$basisName\"" : "its default (STO-3G)") .
-            " from its basis library; whether the library has it for " .
-            "every element cannot be judged here.");
-  }
-
-  finding("GOOD", 0, "charge", "Charge $charge, multiplicity $mult" .
-          ($multGiven ? "" : " (assumed: the deck does not say)") . ".");
-  electronCount($charge, $mult, \@atomSymbols, !$multGiven);
-}
-
-
-#  ====================================================================
-#  Vina
-#
-#  Vina's configuration file: receptor, ligand, the search box and the
-#  search settings, plus "#|" lines with the receptor and ligand atoms
-#  (read by gensub; the structure is the auxiliary input vina.vinafrag).  Only the keys are judged; the PDBQT files do not exist yet.
-#  ====================================================================
-sub vina
-{
-  my %have;
-  my $n = 0;
-  foreach my $line (@stripped) {
-    $n++;
-    next if ($line =~ /^\s*(#|$)/);
-    if ($line =~ /^\s*(\w+)\s*=\s*(\S+)/) {
-      my ($key, $value) = ($1, $2);
-      $have{$key} = $value;
-      if ($key =~ /^size_[xyz]$/ && $value <= 0) {
-        finding("BAD", $n, "box", "$key is $value; the search box needs " .
-                "a positive size in every direction.");
-      }
-    }
-  }
-  my @missing = grep { !defined($have{$_}) }
-      qw(receptor ligand center_x center_y center_z size_x size_y size_z);
-  if (@missing) {
-    finding("BAD", 1, "options", "The configuration lacks " .
-            join(", ", @missing) . ", which Vina needs.");
-  } else {
-    finding("GOOD", 1, "options",
-            "Receptor, ligand and the search box are given.");
-  }
-  #  The structure itself is the auxiliary input vina.vinafrag.
-  foreach my $part ("LIGAND", "RECEPTOR") {
-    finding("BAD", 1, "structure", "The deck names no " . lc($part) .
-            " atoms for the PDBQT preparation (no \"#| ${part}_ATOMS=\" line).")
-        unless (grep { /^#\| ${part}_ATOMS=\d/ } @stripped);
-  }
-
-  #  Together the two lists must cover every atom of the calculation once.
-  my (%seen, %lists, $bad);
-  foreach my $part ("LIGAND", "RECEPTOR") {
-    my ($line) = grep { /^#\| ${part}_ATOMS=\d/ } @stripped;
-    next unless (defined($line));
-    $line =~ /_ATOMS=(\S*)/;
-    foreach my $r (split(/,/, $1)) {
-      my ($lo, $hi) = $r =~ /^(\d+)(?:-(\d+))?$/ ? ($1, defined($2) ? $2 : $1) : ();
-      if (!defined($lo) || $lo > $hi) {
-        finding("BAD", 1, "structure", "$part\_ATOMS has '$r', which is not " .
-                "an atom number or a range.");
-        $bad = 1;
-        next;
-      }
-      push(@{$lists{$_}}, $part) foreach ($lo .. $hi);
-    }
-  }
-  return if ($bad || keys(%lists) == 0);
-  my $total = (defined($opt_a) && $opt_a =~ /^\d+$/ && $opt_a > 0) ? $opt_a : 0;
-  my (@dup, @gap, @out);
-  foreach my $i (sort { $a <=> $b } keys %lists) {
-    push(@dup, $i) if (@{$lists{$i}} > 1);
-    push(@out, $i) if ($total && $i > $total);
-  }
-  if ($total) {
-    foreach my $i (1 .. $total) { push(@gap, $i) if (!$lists{$i}); }
-  }
-  my $show = sub { my @a = @_; my $t = join(",", @a[0 .. ($#a < 9 ? $#a : 9)]);
-                   $t .= ",... (" . scalar(@a) . " in all)" if (@a > 10); $t };
-  finding("BAD", 1, "structure", "Atoms in both the ligand and the receptor " .
-          "lists: " . $show->(@dup) . ".") if (@dup);
-  finding("BAD", 1, "structure", "Atoms in neither list: " . $show->(@gap) .
-          ".") if (@gap);
-  finding("BAD", 1, "structure", "Atom numbers beyond the calculation's " .
-          "$total atoms: " . $show->(@out) . ".") if (@out);
-  finding("GOOD", 1, "structure", ($total ? "All $total atoms" : "The atoms") .
-          " are in exactly one of the ligand and receptor lists.")
-      if (!@dup && !@gap && !@out);
-}
-
-
-#  ====================================================================
-#  xtb
-#
-#  One file in two parts: line 1 is "xtb" and the command-line options
-#  (--chrg, --uhf ...), then an xyz file -- the atom count, a title line,
-#  and that many atom lines.  scripts/gensub splits it before the run.
-#  Options are never judged, only that the line is there and the xyz
-#  part agrees with its own count.
-#  ====================================================================
-sub xtb
-{
-  #  crest decks have the same two-part shape; $prog is the word on line 1.
-  my $prog = shift || "xtb";
-  my @L = @stripped;
-
-  if (!@L || $L[0] !~ /^\s*\Q$prog\E\b/) {
-    finding("BAD", 1, "options",
-            "Line 1 should start with \"$prog\" followed by the options; " .
-            "it is what the launch script runs $prog with.");
-    return;
-  }
-  finding("GOOD", 1, "options", "An option line is present.");
-
-  # The potential has no charge or spin, so there is no electron count to check.
-  if ($prog ne "mlp") {
-    my $charge = ($L[0] =~ /--chrg\s+(-?\d+)/) ? $1 : 0;
-    my $unpaired = ($L[0] =~ /--uhf\s+(\d+)/) ? $1 : 0;
-    my $assumed = ($L[0] =~ /--uhf\s/) ? 0 : 1;
-    finding("GOOD", 1, "charge", "Charge $charge, multiplicity " .
-            ($unpaired + 1) . ($assumed ? " (assumed: no --uhf)" : "") . ".");
-    electronCount($charge, $unpaired + 1, \@atomSymbols, $assumed);
-  }
-
-  # A docking deck is blocks ($order, $receptor, $ligand), not one xyz part.
-  return if ($L[0] =~ /^\s*xtb\s+dock\b/ && $L[1] =~ /^\s*[\$]order/);
-
-  my $c = 1;    # index of the atom-count line
-  $c++ while ($c <= $#L && $solventLine{$c});
-  if ($c > 1) {
-    finding("GOOD", "2-$c", "solvent",
-            "The solvent molecule (\$solvent block) is present.");
-  }
-  if (scalar(@L) < $c + 2 || $L[$c] !~ /^\s*(\d+)\s*$/) {
-    finding("BAD", $c + 1, "sections",
-            "Line " . ($c + 1) . " should be the number of atoms, the " .
-            "first line of the xyz part.");
-    return;
-  }
-  my $count = $1;
-  my $atoms = 0;
-  for my $i ($c + 2 .. $#L) {
-    last if ($L[$i] !~ /^\s*[A-Za-z]{1,2}\d*\s+$NUM\s+$NUM\s+$NUM/);
-    $atoms++;
-  }
-  if ($atoms == $count) {
-    finding("GOOD", ($c + 1) . "-" . ($c + 2 + $atoms), "geometry",
-            "$count atoms, as the count on line " . ($c + 1) . " says.");
-  } else {
-    finding("BAD", $c + 1, "geometry",
-            "Line " . ($c + 1) . " says $count atoms but $atoms atom lines " .
-            "follow the title line, which $prog refuses.");
-  }
-}
-
-#  ------------------------------------------------------- which code
-if    ($code =~ /^Gaussian/)          { gaussian();  }
-elsif ($code eq "ORCA")               { orca();      }
-elsif ($code eq "NWChem")             { nwchem();    }
-elsif ($code eq "MOPAC")              { mopac();     }
-elsif ($code eq "QuantumESPRESSO")    { espresso();  }
-elsif ($code eq "CP2K")               { cp2k();      }
-elsif ($code eq "xTB")                { xtb();       }
-elsif ($code eq "CREST")              { xtb("crest"); }
-elsif ($code eq "Vina")               { vina();      }
-elsif ($code eq "MLP")                { xtb("mlp"); }
-elsif ($code eq "ECCE-QM")            { ecceqm();    }
-elsif ($code ne "") {
-  finding("UNSURE", 0, "code",
-          "There are no structural checks for $code yet, so only the " .
-          "code-independent ones above were applied.");
-} else {
-  finding("UNSURE", 0, "code",
-          "No code was named, so only the code-independent checks above " .
-          "were applied.");
-}
-
-print "$_\n" foreach (@findings);
-
-#  Exit status: 1 if anything is BAD, 0 otherwise.  The caller shows the
-#  light; this only reports.
-exit((grep { /^BAD\|/ } @findings) ? 1 : 0);
+_QE_ALIAS = {"LDA": "PZ", "SLA PZ": "PZ"}
+
+
+def qeCanonical(s):
+    if s is None:
+        return ""
+    t = re.findall(r'\S+', s.upper(), re.ASCII)
+    if not t:
+        return ""
+    if len(t) >= 4:
+        if t[2] == 'PBE':
+            t[2] = 'PBX'
+        if t[3] == 'PBE':
+            t[3] = 'PBC'
+        four = ' '.join(t[:4])
+        return _QE_FOUR.get(four, four)
+    name = ' '.join(t)
+    return _QE_ALIAS.get(name, name)
+
+
+def qeFunctionalOfFile(path):
+    found = ""
+    try:
+        with open(path, 'rb') as handle:
+            for n, raw in enumerate(handle):
+                if n >= 400:
+                    break
+                line = raw.decode('ascii', 'surrogateescape')
+                m = re.search(r'\bfunctional\s*=\s*"([^"]*)"', line, re.I | re.ASCII)
+                if not m:
+                    m = re.search(r'^\s*(.*?)\s+Exchange-Correlation functional', line, re.I | re.ASCII)
+                if m:
+                    found = m.group(1)
+                    break
+    except OSError:
+        return ""
+    return qeCanonical(found)
+
+
+def espressoFunctional(Lref, inputDft):
+    m = re.search(r'''^\s*pseudo_dir\s*=\s*['"]([^'"]*)['"]''', whole, re.M | re.I | re.ASCII)
+    if not m or m.group(1) == "":
+        return
+    directory = re.sub(r'/+$', '', m.group(1), flags=re.ASCII)
+    if not directory.startswith('/'):
+        deckDir = re.search(r'^(.*)/[^/]*$', opt_f, re.ASCII)
+        directory = (deckDir.group(1) if deckDir else '.') + '/' + directory
+    fun, order, inSpecies = {}, [], False
+    for line in Lref:
+        if re.search(r'^\s*ATOMIC_SPECIES', line, re.I | re.ASCII):
+            inSpecies = True
+            continue
+        m = re.search(r'^\s*([A-Za-z]\w*)\s+\S+\s+(\S+)', line, re.ASCII)
+        if inSpecies and m:
+            f = qeFunctionalOfFile(directory + '/' + m.group(2))
+            if f:
+                fun[m.group(1)] = f
+                order.append(m.group(1))
+            continue
+        if inSpecies and re.search(r'\S', line, re.ASCII):
+            inSpecies = False
+    if not order:
+        return
+    at = cardRange(re.compile(r'^\s*ATOMIC_SPECIES', re.I | re.ASCII))
+    if len(set(fun[e] for e in order)) > 1:
+        finding("BAD", at, "functional",
+                "The pseudopotentials were generated with different functionals (" +
+                ', '.join('{}: {}'.format(e, fun[e]) for e in order) +
+                '); pw.x stops with "conflicting values for icorr".  Use pseudopotentials of one functional.')
+        return
+    pp = fun[order[0]]
+    dft = qeCanonical(inputDft[0]) if inputDft is not None else ""
+    if dft and dft != pp:
+        finding("UNSURE", inputDft[1], "functional",
+                "input_dft = '{}' differs from {}, the functional the pseudopotentials were generated with; pw.x "
+                "runs, but the result mixes two functionals.".format(inputDft[0].upper(), pp))
+    else:
+        finding("GOOD", at, "functional", "The pseudopotentials were all generated with {}.".format(pp))
+
+
+def espressoOptions(Lref):
+    L = Lref
+    nl, cur = {}, None
+    for i, line in enumerate(L):
+        line = re.sub(r'!.*', '', line, flags=re.ASCII)
+        m = re.search(r'^\s*&(\w+)', line, re.ASCII)
+        if m:
+            cur = m.group(1).lower()
+            continue
+        if re.search(r'^\s*/\s*$', line, re.ASCII):
+            cur = None
+            continue
+        if cur is None:
+            continue
+        for item in line.split(','):
+            m = re.search(r'^\s*([\w()]+)\s*=\s*(.+?)\s*$', item, re.ASCII)
+            if m:
+                k, v = m.group(1).lower(), m.group(2)
+                v = re.sub(r'''^['"]|['"]$''', '', v, flags=re.ASCII)
+                nl.setdefault(cur, {})[k] = [v.lower(), i + 1]
+    control = nl.setdefault('control', {})
+    system = nl.setdefault('system', {})
+    calc = control.get('calculation', ['scf'])[0]
+    if 'ions' in nl and calc == 'scf':
+        finding("BAD", 0, "ions", "An &IONS namelist is present in a calculation = 'scf' run; "
+                'pw.x stops with "namelist &IONS not needed".')
+    if calc == 'md':
+        ions = nl.get('ions', {})
+        dt = control.get('dt')
+        # Fortran D exponents are accepted as numeric prefixes, with a
+        # diagnostic, rather than evaluated as powers of ten.
+        numeric = re.search(r'^\s*([-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?)', dt[0], re.ASCII) if dt else None
+        startsNumeric = dt is not None and re.search(r'^[-+]?\d', dt[0], re.ASCII)
+        if startsNumeric and not re.search(r'^[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?\s*$', dt[0], re.ASCII):
+            diagnostic('Argument "{}" isn\'t numeric in addition (+) at keywords line 396.\n'.format(dt[0]))
+        if not startsNumeric or not numeric or float(numeric.group(1)) <= 0:
+            finding("BAD", 0, "md", "A molecular dynamics run needs a positive time step (dt, in Rydberg atomic units) in &CONTROL.")
+        else:
+            finding("GOOD", dt[1], "md", "The time step dt is set (Rydberg atomic units; 20 is about 1 fs).")
+        if 'nstep' not in control:
+            finding("UNSURE", 0, "md", "nstep is not set, so pw.x runs its own default number of steps (50).")
+        it = ions.get('ion_temperature', ['not_controlled'])[0]
+        if it != 'not_controlled' and 'tempw' not in ions:
+            finding("UNSURE", 0, "md", "ion_temperature = '{}' but tempw (the target temperature) is not set; pw.x then uses its default.".format(it))
+        elif 'ion_temperature' in ions:
+            finding("GOOD", ions['ion_temperature'][1], "md", "ion_temperature = '{}' in the &IONS namelist.".format(it))
+    if 'vdw_corr' in system:
+        finding("GOOD", system['vdw_corr'][1], "dispersion", "A dispersion correction (vdw_corr = '{}') is requested.".format(system['vdw_corr'][0]))
+    species, speciesOrder, inSpecies = set(), [], False
+    for line in L:
+        if re.search(r'^\s*ATOMIC_SPECIES', line, re.I | re.ASCII):
+            inSpecies = True
+            continue
+        m = re.search(r'^\s*([A-Za-z][A-Za-z0-9]*)\s+[-+0-9.]', line, re.ASCII)
+        if inSpecies and m:
+            species.add(m.group(1))
+            speciesOrder.append(m.group(1))
+            continue
+        if inSpecies and re.search(r'\S', line, re.ASCII):
+            inSpecies = False
+    espressoFunctional(L, system.get('input_dft'))
+    transition = set('Sc Ti V Cr Mn Fe Co Ni Cu Zn Y Zr Nb Mo Tc Ru Rh Pd Ag Cd La Ce Pr Nd Pm Sm Eu Gd Tb Dy Ho Er Tm Yb Lu Hf Ta W Re Os Ir Pt Au Hg Ac Th Pa U Np Pu'.split())
+    uElements = []
+    hubbardAt = 0
+    for i, line in enumerate(L):
+        if re.search(r'^\s*HUBBARD\b', line, re.I | re.ASCII):
+            hubbardAt = i + 1
+            break
+    if hubbardAt:
+        rows = 0
+        for i in range(hubbardAt, len(L)):
+            line = re.sub(r'!.*', '', L[i], flags=re.ASCII)
+            if not re.search(r'\S', line, re.ASCII):
+                continue
+            if (re.search(r'^\s*[A-Z_]+\b', line, re.ASCII) and
+                    not re.search(r'^\s*(U|J0|J|B|E2|E3|alpha)\s', line, re.I | re.ASCII)):
+                break
+            m = re.search(r'^\s*U\s+(\S+?)-(\d[spdf])\s+([-+]?\d*\.?\d+([EeDd][-+]?\d+)?)\s*$', line, re.ASCII)
+            if m:
+                el = m.group(1)
+                rows += 1
+                uElements.append(el)
+                if el not in species:
+                    finding("BAD", i + 1, "hubbard", "The HUBBARD card names '{}', which is not a species in ATOMIC_SPECIES.".format(el))
+            elif re.search(r'^\s*\S+\s+\S+', line, re.ASCII):
+                finding("BAD", i + 1, "hubbard", "This HUBBARD line is not 'U <species>-<orbital> <value>'.")
+        if rows:
+            finding("GOOD", hubbardAt, "hubbard", "A HUBBARD card with {} U value{} is present.".format(rows, '' if rows == 1 else 's'))
+    if 'lda_plus_u' in system and re.search(r'^\.?t', system['lda_plus_u'][0], re.ASCII):
+        n = 0
+        for k in system:
+            m = re.search(r'^hubbard_u\((\d+)\)$', k, re.ASCII)
+            if not m:
+                continue
+            n += 1
+            idx = int(m.group(1))
+            if idx < 1 or idx > len(speciesOrder):
+                finding("BAD", system[k][1], "hubbard", "{} refers to a species that does not exist (there are {}).".format(k, len(speciesOrder)))
+            else:
+                uElements.append(speciesOrder[idx - 1])
+        if n:
+            finding("GOOD", system['lda_plus_u'][1], "hubbard", "lda_plus_u is on with {} Hubbard_U value{}.".format(n, '' if n == 1 else 's'))
+    if uElements:
+        nspin = system.get('nspin', [1])[0]
+        tm = [e for e in uElements if re.sub(r'\d+$', '', e, flags=re.ASCII).capitalize() in transition]
+        if tm and not re.search(r'^[24]', str(nspin), re.ASCII):
+            finding("UNSURE", 0, "hubbard", "U is set on " + ', '.join(tm) + " without spin polarisation (nspin = 2).  DFT+U on a transition metal usually needs it, with a starting magnetisation.")
+
+
+def mopac():
+    L = stripped
+    if not L or not re.search(r'\S', L[0], re.ASCII):
+        finding('BAD', 1, 'keywords', 'The first line is empty. MOPAC reads its keywords from '
+                'it, so the job has no instructions.')
+        return
+    finding('GOOD', 1, 'keywords', 'A keyword line is present.')
+    unknownWords(code, L[0], 1, 'keyword line')
+    if re.search(r'[+&]\s*$', L[0], re.ASCII):
+        finding('UNSURE', 1, 'sections', 'The keyword line is continued onto the next line, which '
+                'moves the geometry down; the layout was not checked.')
+        return
+    m = re.search(r'\bCHARGE\s*=\s*(-?\d+)', L[0], re.I | re.ASCII)
+    charge = m.group(1) if m else 0
+    words = {'SINGLET': 1, 'DOUBLET': 2, 'TRIPLET': 3, 'QUARTET': 4,
+             'QUINTET': 5, 'SEXTET': 6, 'SEPTET': 7, 'OCTET': 8}
+    mult, assumed = 1, True
+    for word in words:
+        if re.search(r'\b' + word + r'\b', L[0], re.I | re.ASCII):
+            mult, assumed = words[word], False
+            break
+    finding('GOOD', 1, 'charge', 'Charge {}, multiplicity {}{}.'.format(
+        charge, mult, ' (assumed: no spin keyword)' if assumed else ''))
+    electronCount(charge, mult, atomSymbols, assumed)
+    if len(L) < 4:
+        finding('BAD', len(L), 'sections', 'A MOPAC deck needs a keyword line, two comment lines and '
+                'then the geometry; this file has only {} lines.'.format(len(L)))
+        return
+    if re.search(r'^\s*([A-Z][a-z]?)\d*\s+' + NUM, L[3], re.ASCII):
+        finding('GOOD', '1-3', 'sections', 'The keyword line, two comment lines and then the geometry.')
+        end = 3
+        while end + 1 < len(L) and re.search(r'\S', L[end + 1], re.ASCII):
+            end += 1
+        finding('GOOD', '4-{}'.format(end + 1), 'geometry', '{} lines of geometry.'.format(end - 2))
+        nxt = end + 1
+        while nxt < len(L) and not re.search(r'\S', L[nxt], re.ASCII):
+            nxt += 1
+        if nxt < len(L):
+            ln = nxt + 1
+            unknownWords(code, L[nxt], ln, 'second keyword line')
+            if re.search(r'\bOLDGEO\b', L[nxt], re.I | re.ASCII) and len(L) - 1 - nxt <= 2:
+                finding('GOOD', '{}-{}'.format(end + 2, len(L)), 'sections',
+                        'A second job on the geometry the first one ends with '
+                        '(OLDGEO): a keyword line and two comment lines.')
+            else:
+                finding('UNSURE', '{}-{}'.format(ln, len(L)), 'sections',
+                        'More input follows the geometry; a second job without '
+                        'OLDGEO, or with its own geometry, is not checked.')
+    else:
+        finding('BAD', 4, 'sections', 'Line 4 should be the first atom of the geometry -- MOPAC '
+                'expects keywords, two comment lines, then atoms -- and it '
+                'does not look like one.')
+
+
+ECCEQM_KEYWORDS = set(('title charge multiplicity method basis spherical grid grid_prune '
+                   'charges localise localize units maxiter conv_energy conv_grad molden runtype maxsteps opt_conv '
+                   'hessian_step temperature pressure symmetry_number '
+                   'polarizability polarisability raman field_step parallel_points guess_mix '
+                   'numeric_hessian ts_hessian_every ts_mode ts_follow irc_step irc_max_points irc_direction irc_hessian_every point_orbitals read_orbitals write_orbitals virtuals solvent epsilon cavity_scale dispersion').split())
+
+
+def ecceqm():
+    L = stripped
+    keyword = ECCEQM_KEYWORDS
+    functional = set('hf svwn lda pbe b3lyp pbe0'.split())
+    INT = r'[-+]?\d+'
+    charge, mult, method = 0, 1, 'hf'
+    multGiven = False
+    geomOpen = geomClose = basisOpen = basisClose = 0
+    inGeom = inBasis = shells = primitives = curShell = 0
+    inCons = consOpen = consClose = 0
+    inScan = 0
+    consAtoms, covered = [], set()
+    bad, geomAtoms, basisName = 0, 0, ''
+    badKeyword = 0
+    wantsRaman, runtypeGiven = 0, 'energy'
+    kwLines = []
+    for i, original in enumerate(L):
+        line = re.sub(r'#.*', '', original, flags=re.ASCII)
+        if not re.search(r'\S', line, re.ASCII):
+            continue
+        key, rest = re.search(r'^\s*(\S+)\s*(.*?)\s*$', line, re.ASCII).groups()
+        k, n = key.lower(), i + 1
+        if inGeom:
+            if k == 'end':
+                inGeom, geomClose = 0, n
+                continue
+            m = re.search(r'^\s*([A-Za-z]+)\s+' + NUM + r'\s+' + NUM + r'\s+' + NUM + r'(\s|$)', line, re.ASCII)
+            if m:
+                symbol = m.group(1)
+                if not re.search(r'^[Xx]$', symbol, re.ASCII) and symbol.capitalize() not in Z:
+                    finding('BAD', n, 'geometry', '"{}" is not an element symbol ecce-qm knows.'.format(symbol))
+                    bad += 1
+                geomAtoms += 1
+            else:
+                shown = line.strip(' \t\n\r\f\v')
+                if len(shown) > 43:
+                    shown = shown[:40] + '...'
+                finding('BAD', n, 'geometry', 'This line is inside the geometry block but is not an '
+                        'atom (element and three coordinates): "{}". '
+                        'ecce-qm stops on it.'.format(shown))
+                bad += 1
+            continue
+        if inScan:
+            if k == 'end':
+                inScan = 0
+                continue
+            need = {'bond': 2, 'angle': 3, 'torsion': 4, 'dihedral': 4}
+            w = rest.split()
+            if k not in need:
+                finding('BAD', n, 'scan', '"{}" is not a coordinate ecce-qm can scan (bond, '
+                        'angle or torsion); ecce-qm stops on it.'.format(key))
+                bad += 1
+            # Perl's grep consumes the following ||: only the point count is
+            # checked unless it is zero, when the two numeric values are checked.
+            elif (len(w) != need[k] + 3 or
+                  (not re.search(r'^\d+$', w[need[k] + 2], re.ASCII)
+                   if w[need[k] + 2] not in ('', '0') else
+                   any(not re.search('^' + NUM + '$', w[j], re.ASCII) for j in [need[k], need[k] + 1]))):
+                finding('BAD', n, 'scan', "'{}' in a scan needs {} atom numbers, a start value, "
+                        'an end value and the number of points; ecce-qm stops on '
+                        'this line.'.format(k, need[k]))
+                bad += 1
+            continue
+        if inCons:
+            if k == 'end':
+                inCons, consClose = 0, n
+                continue
+            need = {'bond': 2, 'angle': 3, 'torsion': 4, 'dihedral': 4, 'fix': 1}
+            w = rest.split()
+            if k not in need:
+                finding('BAD', n, 'constraints', '"{}" is not a constraint ecce-qm knows (bond, '
+                        'angle, torsion or fix); ecce-qm stops on it.'.format(key))
+                bad += 1
+            elif (len(w) < need[k] or len(w) > need[k] + (0 if k == 'fix' else 1) or
+                  any(not re.search(r'^\d+$', word, re.ASCII) for word in w[:need[k]])):
+                finding('BAD', n, 'constraints', "'{}' needs {} atom numbers{}; ecce-qm stops on this line.".format(
+                    k, need[k], '' if k == 'fix' else ' and an optional value'))
+                bad += 1
+            elif len(w) > need[k] and not re.search('^' + NUM + '$', w[need[k]], re.ASCII):
+                finding('BAD', n, 'constraints', "The value of a '{}' constraint must be a number, and "
+                        'this reads "{}".'.format(k, w[need[k]]))
+                bad += 1
+            else:
+                consAtoms.extend((n, word) for word in w[:need[k]])
+            continue
+        if inBasis and k == 'geometry':
+            finding('BAD', basisOpen, 'basis', "The basis_data block is never closed by an 'end'; ecce-qm "
+                    'reads the geometry keyword as part of it and stops.')
+            bad += 1
+            inBasis, basisClose = 0, -1
+        if inBasis:
+            if k == 'end':
+                inBasis, basisClose, curShell = 0, n, 0
+                continue
+            if k == 'shell':
+                m = re.search(r'^([A-Za-z]+)\s+([A-Za-z])(?:\s|$)', rest, re.ASCII)
+                if m and re.search(r'^[spdfghi]$', m.group(2).lower(), re.ASCII) and m.group(1).capitalize() in Z:
+                    covered.add(m.group(1).capitalize())
+                    shells += 1
+                    curShell = n
+                else:
+                    finding('BAD', n, 'basis', 'A shell line needs an element and one angular '
+                            'momentum letter (S, P, D, F, G, H or I): '
+                            '"shell {}".'.format(rest))
+                    bad += 1
+                continue
+            if curShell and re.search(r'^\s*' + NUM + r'\s+' + NUM + r'(\s|$)', line, re.ASCII):
+                primitives += 1
+                continue
+            finding('BAD', n, 'basis', "Inside basis_data only 'shell <element> <letter>' lines "
+                    "and 'exponent coefficient' rows are allowed, and this is "
+                    'neither. ecce-qm stops on it.')
+            bad += 1
+            continue
+        if k == 'geometry':
+            inGeom, geomOpen = 1, n
+            continue
+        if k == 'scan':
+            inScan = 1
+            continue
+        if k == 'constraints':
+            inCons, consOpen = 1, n
+            continue
+        if k == 'basis_data':
+            inBasis, basisOpen = 1, n
+            continue
+        if k in keyword:
+            kwLines.append(n)
+        else:
+            finding('BAD', n, 'keywords', '"{}" is not an ecce-qm keyword; ecce-qm stops with '
+                    "'unknown keyword' on it.".format(key))
+            bad += 1
+            badKeyword += 1
+            continue
+        if k in ('runtype', 'opt_conv'):
+            ok = r'(energy|gradient|optimize|opt|frequency|freq|optfreq|ts|irc)' if k == 'runtype' else r'(normal|tight)'
+            if not re.search('^' + ok + '$', rest, re.I | re.ASCII):
+                finding('BAD', n, 'keywords', "'{}' takes {}, and this reads "
+                        '"{}"; ecce-qm stops on it.'.format(k, 'energy, gradient, optimize, frequency, optfreq, ts or irc'
+                                                         if k == 'runtype' else 'normal or tight', rest))
+                bad += 1
+            elif k == 'runtype':
+                runtypeGiven = rest.lower()
+            continue
+        if k in ('charge', 'multiplicity', 'maxiter', 'maxsteps', 'ts_hessian_every', 'ts_mode', 'irc_max_points', 'irc_hessian_every'):
+            m = re.search('^' + INT + r'\b', rest, re.ASCII)
+            if not m:
+                finding('BAD', n, 'charge' if k in ('charge', 'multiplicity') else 'keywords',
+                        "'{}' needs a whole number, and this reads \"{}\".".format(k, rest))
+                bad += 1
+                continue
+            if k == 'charge':
+                charge = int(re.search('^(' + INT + ')', rest, re.ASCII).group(1))
+            if k == 'multiplicity':
+                mult = int(re.search('^(' + INT + ')', rest, re.ASCII).group(1))
+                multGiven = True
+        elif k == 'method':
+            method = rest.lower()
+        elif k == 'basis':
+            basisName = rest
+        elif k == 'charges':
+            for word in rest.lower().split():
+                if re.search(r'^(loewdin|lowdin|chelpg|mk|merz-kollman|none)$', word, re.ASCII):
+                    continue
+                finding('BAD', n, 'keywords', "'charges' takes loewdin, chelpg, mk (or merz-kollman) "
+                        'and none, and "{}" is none of them; ecce-qm stops on it.'.format(word))
+                bad += 1
+        elif k == 'grid':
+            if not re.search(r'^\d+\s+\d+(\s|$)', rest, re.ASCII):
+                finding('BAD', n, 'keywords', "'grid' needs two whole numbers (radial and angular "
+                        'points), and this reads "{}".'.format(rest))
+                bad += 1
+        elif k in ('polarizability', 'polarisability', 'raman'):
+            if not re.search(r'^(true|false|yes|no|on|off|1|0)$', rest, re.I | re.ASCII):
+                finding('BAD', n, 'keywords', "'{}' takes true or false, and this reads \"{}\".".format(k, rest))
+                bad += 1
+            elif k == 'raman' and re.search(r'^(true|yes|on|1)$', rest, re.I | re.ASCII):
+                wantsRaman = n
+        elif k == 'irc_direction':
+            if not re.search(r'^(both|forward|backward)$', rest, re.I | re.ASCII):
+                finding('BAD', n, 'keywords', "'irc_direction' takes both, forward or backward, "
+                        'and this reads "{}"; ecce-qm stops on it.'.format(rest))
+                bad += 1
+        elif k in ('field_step', 'conv_energy', 'conv_grad', 'irc_step'):
+            if not re.search('^' + NUM + r'(\s|$)', rest, re.ASCII):
+                finding('BAD', n, 'keywords', "'{}' needs a number, and this reads \"{}\".".format(k, rest))
+                bad += 1
+    if wantsRaman and not re.search(r'^(frequency|freq|optfreq|ts)$', runtypeGiven, re.ASCII):
+        finding('BAD', wantsRaman, 'keywords', "'raman' needs runtype frequency, optfreq or ts; ecce-qm stops on it.")
+        bad += 1
+    if re.search(r'^(ts|irc)$', runtypeGiven, re.ASCII) and consOpen:
+        finding('BAD', consOpen, 'constraints', 'A transition-state search or IRC (runtype ts, irc) takes no constraints; '
+                'ecce-qm stops on it.')
+        bad += 1
+    if not badKeyword:
+        finding('GOOD', 0, 'keywords', 'Every keyword is one ecce-qm reads.')
+    m = re.sub(r'^(ro|r|u)(?=.)', '', method, flags=re.ASCII)
+    if m in functional:
+        ref = ('unrestricted' if re.search(r'^u.', method, re.ASCII) and method != m else
+               'restricted open-shell' if re.search(r'^ro.', method, re.ASCII) and method != m else
+               'restricted' if re.search(r'^r.', method, re.ASCII) and method != m else
+               'restricted' if mult == 1 else 'restricted open-shell')
+        finding('GOOD', 0, 'method', ('Hartree-Fock' if m == 'hf' else m.upper()) + ', ' + ref +
+                (' (taken from the multiplicity)' if method == m else '') + '.')
+        if re.search(r'^r.', method, re.ASCII) and method != m and not re.search(r'^ro', method, re.ASCII) and mult != 1:
+            finding('UNSURE', 0, 'method', 'A closed-shell (restricted) reference was asked for with '
+                    'multiplicity {}; use an open-shell reference (u or '
+                    'ro) for that.'.format(mult))
+    else:
+        finding('BAD', 0, 'method', '"{}" is not a method ecce-qm has. It takes hf, '
+                'svwn, pbe, b3lyp or pbe0, optionally with r, u or ro in '
+                'front.'.format(method))
+    if not geomOpen:
+        finding('BAD', 0, 'geometry', "There is no geometry block, so ecce-qm stops with 'no "
+                "geometry given'.")
+    elif not geomClose:
+        finding('BAD', geomOpen, 'geometry', "The geometry block is never closed by an 'end'; everything "
+                'after it is read as atoms.')
+    elif not geomAtoms:
+        finding('BAD', geomOpen, 'geometry', 'The geometry block is empty.')
+    elif not any(re.search(r'^BAD\|\d+\|geometry\|', f, re.ASCII) for f in findings):
+        finding('GOOD', '{}-{}'.format(geomOpen, geomClose), 'geometry', '{} atoms in the geometry block.'.format(geomAtoms))
+    flagged = {f.split('|')[1] for f in findings if re.search(r'^(BAD|UNSURE)\|\d+\|', f, re.ASCII)}
+    ok = [n for n in kwLines if str(n) not in flagged]
+    while ok:
+        first = last = ok.pop(0)
+        while ok and ok[0] == last + 1:
+            last = ok.pop(0)
+        finding('GOOD', first if first == last else '{}-{}'.format(first, last), 'keywords',
+                ('An ecce-qm keyword' if first == last else 'ecce-qm keywords') + ', with a value ecce-qm accepts.')
+    if consOpen and not consClose:
+        finding('BAD', consOpen, 'constraints', "The constraints block is never closed by an 'end'.")
+    elif consOpen:
+        for ln, atom in consAtoms:
+            if int(atom) < 1 or int(atom) > geomAtoms:
+                finding('BAD', ln, 'constraints', 'Atom {} is not in the geometry, which has '
+                        '{} atoms (dummy atoms count).'.format(atom, geomAtoms))
+        if not any(re.search(r'^BAD\|\d+\|constraints\|', f, re.ASCII) for f in findings):
+            finding('GOOD', '{}-{}'.format(consOpen, consClose), 'constraints', 'Every constrained atom is in the geometry.')
+    if basisOpen and not basisClose:
+        finding('BAD', basisOpen, 'basis', "The basis_data block is never closed by an 'end'.")
+    elif basisClose < 0:
+        pass
+    elif basisOpen:
+        missing = [element for element in elements if element not in covered]
+        if not shells or not primitives:
+            finding('BAD', basisOpen, 'basis', 'The basis_data block holds no shells.')
+        elif missing:
+            finding('UNSURE', '{}-{}'.format(basisOpen, basisClose), 'basis',
+                    'basis_data gives no shell for ' + ', '.join(missing) + '. ecce-qm then looks for ' +
+                    ('"{}"'.format(basisName) if basisName != '' else 'its default basis') +
+                    ' in its basis library, which cannot be seen from here.')
+        elif not any(re.search(r'^BAD\|\d+(-\d+)?\|basis\|', f, re.ASCII) for f in findings):
+            finding('GOOD', '{}-{}'.format(basisOpen, basisClose), 'basis',
+                    '{} shells cover every element in the geometry ({}).'.format(shells, ', '.join(elements)))
+    else:
+        finding('UNSURE', 0, 'basis', 'There is no basis_data block, so ecce-qm reads ' +
+                ('"{}"'.format(basisName) if basisName != '' else 'its default (STO-3G)') +
+                ' from its basis library; whether the library has it for every element cannot be judged here.')
+    finding('GOOD', 0, 'charge', 'Charge {}, multiplicity {}{}.'.format(
+        charge, mult, '' if multGiven else ' (assumed: the deck does not say)'))
+    electronCount(charge, mult, atomSymbols, not multGiven)
+
+
+def vina():
+    have = {}
+    for n, line in enumerate(stripped, 1):
+        if re.search(r'^\s*(#|$)', line, re.ASCII):
+            continue
+        m = re.search(r'^\s*(\w+)\s*=\s*(\S+)', line, re.ASCII)
+        if m:
+            key, value = m.groups()
+            have[key] = value
+            # Perl numerically compares a leading numeric prefix, or zero.
+            number = re.search(r'^\s*([-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?)', value, re.ASCII)
+            special = re.fullmatch(r'[-+]?(?:inf(?:inity)?|nan)', value, re.I | re.ASCII)
+            numeric = float(value) if special else (float(number.group(1)) if number else 0)
+            if (re.search(r'^size_[xyz]$', key, re.ASCII) and not special and
+                    not re.fullmatch(r'[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?', value, re.ASCII)):
+                diagnostic('Argument "{}" isn\'t numeric in numeric le (<=) at keywords line 880.\n'.format(value))
+            if re.search(r'^size_[xyz]$', key, re.ASCII) and numeric <= 0:
+                finding('BAD', n, 'box', '{} is {}; the search box needs '
+                        'a positive size in every direction.'.format(key, value))
+    missing = [k for k in 'receptor ligand center_x center_y center_z size_x size_y size_z'.split() if k not in have]
+    if missing:
+        finding('BAD', 1, 'options', 'The configuration lacks ' + ', '.join(missing) + ', which Vina needs.')
+    else:
+        finding('GOOD', 1, 'options', 'Receptor, ligand and the search box are given.')
+    for part in ('LIGAND', 'RECEPTOR'):
+        if not any(re.search(r'^#\| ' + part + r'_ATOMS=\d', line, re.ASCII) for line in stripped):
+            finding('BAD', 1, 'structure', 'The deck names no ' + part.lower() +
+                    ' atoms for the PDBQT preparation (no "#| ' + part + '_ATOMS=" line).')
+    lists, bad = {}, False
+    for part in ('LIGAND', 'RECEPTOR'):
+        line = next((line for line in stripped if re.search(r'^#\| ' + part + r'_ATOMS=\d', line, re.ASCII)), None)
+        if line is None:
+            continue
+        ranges = re.search(r'_ATOMS=(\S*)', line, re.ASCII).group(1).split(',')
+        while ranges and ranges[-1] == '':
+            ranges.pop()
+        for r in ranges:
+            m = re.search(r'^(\d+)(?:-(\d+))?$', r, re.ASCII)
+            lo = int(m.group(1)) if m else None
+            hi = int(m.group(2) or m.group(1)) if m else None
+            if lo is None or lo > hi:
+                finding('BAD', 1, 'structure', "{}_ATOMS has '{}', which is not an atom number or a range.".format(part, r))
+                bad = True
+                continue
+            for atom in range(lo, hi + 1):
+                lists.setdefault(atom, []).append(part)
+    if bad or not lists:
+        return
+    total = int(opt_a) if opt_a and re.search(r'^\d+$', opt_a, re.ASCII) and int(opt_a) > 0 else 0
+    dup, gap, out = [], [], []
+    for i in sorted(lists):
+        if len(lists[i]) > 1:
+            dup.append(i)
+        if total and i > total:
+            out.append(i)
+    if total:
+        gap = [i for i in range(1, total + 1) if i not in lists]
+    def show(a):
+        text = ','.join(str(i) for i in a[:10])
+        return text + (',... ({} in all)'.format(len(a)) if len(a) > 10 else '')
+    if dup:
+        finding('BAD', 1, 'structure', 'Atoms in both the ligand and the receptor lists: ' + show(dup) + '.')
+    if gap:
+        finding('BAD', 1, 'structure', 'Atoms in neither list: ' + show(gap) + '.')
+    if out:
+        finding('BAD', 1, 'structure', "Atom numbers beyond the calculation's {} atoms: {}.".format(total, show(out)))
+    if not dup and not gap and not out:
+        finding('GOOD', 1, 'structure', ('All {} atoms'.format(total) if total else 'The atoms') +
+                ' are in exactly one of the ligand and receptor lists.')
+
+
+def xtb(prog='xtb'):
+    L = stripped
+    if not L or not re.search(r'^\s*' + re.escape(prog) + r'\b', L[0], re.ASCII):
+        finding('BAD', 1, 'options', 'Line 1 should start with "{0}" followed by the options; '
+                'it is what the launch script runs {0} with.'.format(prog))
+        return
+    finding('GOOD', 1, 'options', 'An option line is present.')
+    if prog != 'mlp':
+        m = re.search(r'--chrg\s+(-?\d+)', L[0], re.ASCII)
+        charge = m.group(1) if m else 0
+        m = re.search(r'--uhf\s+(\d+)', L[0], re.ASCII)
+        unpaired = int(m.group(1)) if m else 0
+        assumed = not re.search(r'--uhf\s', L[0], re.ASCII)
+        finding('GOOD', 1, 'charge', 'Charge {}, multiplicity {}{}.'.format(
+            charge, unpaired + 1, ' (assumed: no --uhf)' if assumed else ''))
+        electronCount(charge, unpaired + 1, atomSymbols, assumed)
+    if re.search(r'^\s*xtb\s+dock\b', L[0], re.ASCII) and len(L) > 1 and re.search(r'^\s*[$]order', L[1], re.ASCII):
+        return
+    c = 1
+    while c < len(L) and c in solventLine:
+        c += 1
+    if c > 1:
+        finding('GOOD', '2-{}'.format(c), 'solvent', 'The solvent molecule ($solvent block) is present.')
+    m = re.search(r'^\s*(\d+)\s*$', L[c], re.ASCII) if c < len(L) else None
+    if len(L) < c + 2 or not m:
+        finding('BAD', c + 1, 'sections', 'Line {} should be the number of atoms, the '
+                'first line of the xyz part.'.format(c + 1))
+        return
+    count, atoms = m.group(1), 0
+    for i in range(c + 2, len(L)):
+        if not re.search(r'^\s*[A-Za-z]{1,2}\d*\s+' + NUM + r'\s+' + NUM + r'\s+' + NUM, L[i], re.ASCII):
+            break
+        atoms += 1
+    if atoms == int(count):
+        finding('GOOD', '{}-{}'.format(c + 1, c + 2 + atoms), 'geometry',
+                '{} atoms, as the count on line {} says.'.format(count, c + 1))
+    else:
+        finding('BAD', c + 1, 'geometry', 'Line {} says {} atoms but {} atom lines '
+                'follow the title line, which {} refuses.'.format(c + 1, count, atoms, prog))
+
+
+def options(argv):
+    # Getopt::Std stops at the first operand and permits attached values.
+    opts = {}
+    args = list(argv)
+    while args and len(args[0]) > 1 and args[0].startswith('-'):
+        arg = args.pop(0)
+        if arg == '--':
+            break
+        option, rest = arg[1], arg[2:]
+        if option in 'fca':
+            opts[option] = rest if rest else (args.pop(0) if args else None)
+        else:
+            if option == 'h':
+                opts[option] = True
+            else:
+                diagnostic('Unknown option: {}\n'.format(option))
+            if rest:
+                args.insert(0, '-' + rest)
+    return opts
+
+
+def report():
+    # Nontext bytes quoted from the deck must survive without transcoding.
+    output = ('\n'.join(findings) + '\n').replace('\n', os.linesep)
+    sys.stdout.buffer.write(output.encode('utf-8', 'surrogateescape'))
+    return int(any(row.startswith('BAD|') for row in findings))
+
+
+def main(argv):
+    global code, opt_a, opt_f, stripped, whole, atomSymbols, elements, solventLine, qstWanted
+    findings[:] = []
+    opts = options(argv)
+    if opts.get('h') or opts.get('f') is None:
+        diagnostic('usage: verifyinput -f <input file> -c <code> [-a <atoms>]\n')
+        return 0 if opts.get('h') else 2
+    opt_f, opt_a = opts['f'], opts.get('a')
+    code = opts.get('c') if opts.get('c') is not None else ''
+    if not os.path.exists(opt_f):
+        finding('BAD', 0, 'file', 'There is no input file at {}.'.format(opt_f))
+        return report()
+    try:
+        with open(opt_f, 'rb') as handle:
+            lines = [line.decode('ascii', 'surrogateescape') for line in handle.readlines()]
+    except IsADirectoryError:
+        # The original reader treats an opened directory as an empty deck.
+        lines = []
+    except OSError as error:
+        finding('BAD', 0, 'file', 'The input file could not be read: {}'.format(error.strerror))
+        return report()
+    if not lines:
+        finding('BAD', 0, 'file', 'The input file is empty.')
+        return report()
+    finding('GOOD', 0, 'file', '{} lines.'.format(len(lines)))
+    binary = 0
+    for i, line in enumerate(lines):
+        match = re.search(r'([^\x09\x0a\x0d\x20-\x7e])', line)
+        if match:
+            byte = ord(match.group(1)) & 255
+            finding('BAD', i + 1, 'readable',
+                    'This line contains a byte that is not text (0x{:02x}). '
+                    'That is not something a person typed, and the code will refuse the file.'.format(byte))
+            binary += 1
+            if binary >= 5:
+                break
+    if not binary:
+        finding('GOOD', 0, 'readable', 'Every byte is printable text.')
+    whole = ''.join(lines)
+    solventLine = {}
+    if code == 'CREST':
+        inside = False
+        for i, line in enumerate(lines):
+            if re.search(r'^\s*\$solvent\b', line, re.I | re.ASCII):
+                inside = True
+            if inside:
+                solventLine[i] = 1
+            if inside and re.search(r'^\s*\$end\b', line, re.I | re.ASCII):
+                inside = False
+    atoms = firstAtom = lastAtom = prevAtom = 0
+    runs = []
+    atomPattern = r'^\s*([A-Z][a-z]?|x)\d*(?:_\w+)?\s+' + NUM + r'\s+' + NUM + r'\s+' + NUM + r'(\s|$)'
+    for i, line in enumerate(lines):
+        if i in solventLine:
+            continue
+        if re.search(atomPattern, line, re.ASCII):
+            if re.search(r'^\s*[BADLX]\s+\d+\s+\d+(\s+\d+){0,2}(\s+[A-Z]\b|\s+[-+]?\d*\.\d+|\s*$)', line, re.ASCII):
+                continue
+            atoms += 1
+            if not firstAtom:
+                firstAtom = i + 1
+            lastAtom = i + 1
+            if prevAtom == i:
+                if not runs:
+                    # Preserve the original failure when the very first line
+                    # is an atom, including its diagnostic and exit status.
+                    diagnostic('Modification of non-creatable array value attempted, subscript -1 at {} line 142.\n'.format(sys.argv[0]))
+                    return 255
+                runs[-1] += 1
+            else:
+                runs.append(1)
+            prevAtom = i + 1
+    rc = ' '.join(line for line in lines if re.search(r'^\s*#', line, re.ASCII))
+    match = re.search(r'\bqst([23])\b', rc, re.I | re.ASCII)
+    qstWanted = int(match.group(1)) if match else 0
+    toldAtoms = opt_a is not None and re.search(r'^\d+$', opt_a, re.ASCII) and int(opt_a) > 0
+    if code == 'Vina':
+        pass
+    elif not atoms and re.search(r'geom\s*=\s*\(?[^)\n]*check', whole, re.I | re.ASCII):
+        finding('UNSURE', 0, 'geometry',
+                'There is no geometry in this file, but the route card reads '
+                'it from the checkpoint file. Whether that checkpoint holds '
+                'what you expect cannot be judged from here.')
+    elif not atoms:
+        finding('BAD', 0, 'geometry',
+                'No geometry was found: no line holds an element symbol and '
+                'three coordinates. The calculation has nothing to run on.')
+    elif qstWanted:
+        ref = opt_a if toldAtoms else runs[0]
+        if len(runs) != qstWanted:
+            finding('BAD', firstAtom, 'geometry',
+                    'Opt=QST{} needs {} structures, one after another, but the deck has {}.'.format(qstWanted, qstWanted, len(runs)))
+        elif any(n != int(ref) for n in runs):
+            finding('BAD', firstAtom, 'geometry',
+                    'The structures have {} atoms; the calculation says it has {}. '
+                    'Each one must have the same atoms.'.format(', '.join(str(n) for n in runs), ref))
+        else:
+            finding('GOOD', firstAtom, 'geometry', '{} structures of {} atoms each.'.format(qstWanted, ref))
+    elif toldAtoms and atoms != int(opt_a):
+        finding('BAD', firstAtom, 'geometry',
+                'The geometry has {} atoms; the calculation says it has {}. One of them is wrong.'.format(atoms, opt_a))
+    else:
+        finding('GOOD', '{}-{}'.format(firstAtom, lastAtom) if lastAtom > firstAtom else firstAtom,
+                'geometry', '{} atoms.'.format(atoms))
+    stripped = [line[:-1] if line.endswith('\n') else line for line in lines]
+    seen = set()
+    elements, atomSymbols = [], []
+    for i, line in enumerate(stripped):
+        if qstWanted and runs and i + 1 >= firstAtom + runs[0]:
+            break
+        if i in solventLine:
+            continue
+        match = re.search(atomPattern, line, re.ASCII)
+        if match:
+            element = match.group(1).lower().capitalize()
+            if element.lower() == 'x':
+                continue
+            atomSymbols.append(element)
+            if element not in seen:
+                seen.add(element)
+                elements.append(element)
+    if code.startswith('Gaussian'):
+        gaussian()
+    elif code == 'ORCA':
+        orca()
+    elif code == 'NWChem':
+        nwchem()
+    elif code == 'MOPAC':
+        mopac()
+    elif code == 'QuantumESPRESSO':
+        espresso()
+    elif code == 'CP2K':
+        cp2k()
+    elif code == 'xTB':
+        xtb()
+    elif code == 'CREST':
+        xtb('crest')
+    elif code == 'Vina':
+        vina()
+    elif code == 'MLP':
+        xtb('mlp')
+    elif code == 'ECCE-QM':
+        ecceqm()
+    elif code:
+        finding('UNSURE', 0, 'code',
+                'There are no structural checks for {} yet, so only the code-independent ones above were applied.'.format(code))
+    else:
+        finding('UNSURE', 0, 'code',
+                'No code was named, so only the code-independent checks above were applied.')
+    return report()
+
+
+if __name__ == '__main__':
+    sys.exit(main(sys.argv[1:]))

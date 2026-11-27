@@ -59,7 +59,7 @@ def run_ai(d, with_pdb, extra=""):
 def verify(d, deck_text, atoms_n, code="Vina"):
     f = os.path.join(d, "deck.in")
     open(f, "w").write(deck_text)
-    p = subprocess.run(["perl", os.path.join(PARSERS, "verifyinput"), "-f", f,
+    p = subprocess.run([sys.executable, os.path.join(PARSERS, "verifyinput"), "-f", f,
                         "-c", code, "-a", str(atoms_n)], capture_output=True, text=True)
     return p.stdout
 
