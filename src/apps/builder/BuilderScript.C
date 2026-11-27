@@ -1442,7 +1442,12 @@ void Builder::runBuilderScript(const std::string& file)
         }
         if (dd && err.empty())
           fprintf(stderr, "BUILDER: calcdiffraction pattern: %s\n",
-                  dd->singleCrystal() ? "single" : dd->powder() ? "powder" : "fibre");
+                  // Every view has to be named here: powder() is false in
+                  // Debye mode, so without it a Debye view reported "fibre".
+                  dd->singleCrystal() ? "single" :
+                  dd->detectorFrame() ? "frame" :
+                  dd->debye() ? "debye" :
+                  dd->powder() ? "powder" : "fibre");
         fprintf(stderr, "BUILDER: calcdiffraction: %s\n", err.empty() ? "done" : ("refused: " + err).c_str());
         if (dd) dd->Destroy();
       } else if (w[0] == "calcpowder" && w.size() >= 5) {
