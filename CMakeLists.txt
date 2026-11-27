@@ -1476,6 +1476,13 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/tools/offload_ctest_empty_test.py)
 endif()
 
+# gbsDAVConverter against its captured Perl run (#868).
+if(PYTHON3_EXECUTABLE)
+  add_test(NAME tools_gbsdav_converter
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/tools/gbsdav_converter_test.py)
+endif()
+
 # ecce-contacts (#693, #708): coordination shells, H-bonds, ensemble patterns.
 install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/ecce_contacts.py
         DESTINATION bin RENAME ecce-contacts
