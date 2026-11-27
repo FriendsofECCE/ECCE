@@ -10,7 +10,7 @@ On demand only (slow: a few minutes per code per hundred sets); it is not
 part of the fast run.  SKIPs (exit 0) when the code, apache2 or a build
 tree (ECCE_TEST_BUILD) is missing.
 
-wrORCAGBS.pm and wrGaussian16GBS.pm write a basis by name when ECCE's name
+wrORCAGBS.pm and wrGaussian16GBS.py write a basis by name when ECCE's name
 is in %NameToBasis.  An entry belongs there only if the code accepts the
 keyword AND the keyword is the same basis ECCE holds -- neither is
 implied by the spelling (Gaussian's def2SVPP is def2-SV(P), not def2-SVPP).
@@ -31,6 +31,7 @@ not /tmp: that is RAM on some machines) and is removed at the end.
 """
 
 import argparse
+import ast
 import concurrent.futures
 import glob
 import json
@@ -110,7 +111,15 @@ def variants(name):
 
 def tableValues(code):
     path = os.path.join(PARSERS, {"orca": "wrORCAGBS.pm",
-                                  "gaussian": "wrGaussian16GBS.pm"}[code])
+                                  "gaussian": "wrGaussian16GBS.py"}[code])
+    if path.endswith('.py'):
+        tree = ast.parse(open(path).read())
+        for node in tree.body:
+            if (isinstance(node, ast.Assign) and
+                    any(isinstance(t, ast.Name) and t.id == 'NameToBasis'
+                        for t in node.targets)):
+                return ast.literal_eval(node.value)
+        return {}
     return dict((k, v) for k, v in re.findall(
         r'\$NameToBasis\{"([^"]+)"\}\s*=\s*"([^"]+)"', open(path).read()))
 

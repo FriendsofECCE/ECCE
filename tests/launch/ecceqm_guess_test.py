@@ -66,7 +66,7 @@ def makeDeck(work, name, mol, mult, guess):
     qt.writeGbs(os.path.join(folder, "w.gbs"), sorted({a[0] for a in atoms}), BASIS)
     env = dict(os.environ, ECCE_HOME=REPO)
     with open(os.path.join(folder, "w.gbs")) as gbs:
-        out = subprocess.run(["perl", os.path.join(PARSERS, "std2ECCEQM")], stdin=gbs,
+        out = subprocess.run([sys.executable, os.path.join(PARSERS, "std2ECCEQM")], stdin=gbs,
                              env=env, capture_output=True, check=True).stdout
     open(os.path.join(folder, "w.basis"), "wb").write(out)
     deck = os.path.join(folder, "deck")

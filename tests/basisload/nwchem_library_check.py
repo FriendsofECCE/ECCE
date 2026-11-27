@@ -9,7 +9,7 @@ Is a basis set written by name the same basis as the one ECCE holds?
 On demand only; it is not part of the fast test run.  SKIPs (exit 0) when
 there is no nwchem, no apache2 or no build tree (ECCE_TEST_BUILD).
 
-wrNWChemGBS.pm forces explicit exponents and coefficients for the whole
+wrNWChemGBS.py forces explicit exponents and coefficients for the whole
 calculation when any element's basis name matches its blocklist.  Whether a
 name belongs on that list is not "does NWChem accept it" but "is NWChem's
 set of that name the same basis ECCE holds under it" -- ECCE may have merged
@@ -49,7 +49,7 @@ REPO = R.REPO
 INDEXDIR = os.path.join(REPO, "data", "admin", "basissets")
 ORBITAL_TYPES = ["pople", "correlation_consistent", "other_generally_contracted",
                  "other_segmented", "ECPOrbital", "DFTOrbital"]
-#  The rule being tested, as it stands in wrNWChemGBS.pm.
+#  The rule being tested, as it stands in wrNWChemGBS.py.
 BLOCKLIST = [r'^\s*"\s*aug', r'^\s*"\s*d-aug', r'-pcv', r'IGLO-II']
 
 #  element -> (molecule, geometry in angstrom)
@@ -117,7 +117,7 @@ def blocked(libname):
 
 
 def patchedHome(state, home):
-    """A second ECCE_HOME whose wrNWChemGBS.pm never forces explicit output."""
+    """A second ECCE_HOME whose wrNWChemGBS.py never forces explicit output."""
     home2 = os.path.join(state, "ecce-home-named")
     os.makedirs(os.path.join(home2, "scripts"))
     shutil.copytree(os.path.join(REPO, "scripts", "parsers"),
@@ -126,13 +126,14 @@ def patchedHome(state, home):
     for name in os.listdir(home):
         if name != "scripts" and not os.path.exists(os.path.join(home2, name)):
             os.symlink(os.path.join(home, name), os.path.join(home2, name))
-    path = os.path.join(home2, "scripts", "parsers", "wrNWChemGBS.pm")
+    path = os.path.join(home2, "scripts", "parsers", "wrNWChemGBS.py")
     with open(path) as handle:
         text = handle.read()
-    text, n = re.subn(r"if \(\$gbs\{\$atom\} =~ .*?\) \{(\s*\$useExplicitBasis = 1;)",
-                      r"if (0) {\1", text, count=1, flags=re.S)
+    text, n = re.subn(r"    explicit = any\(.*?\n    if 'name_gbs'",
+                      "    explicit = False\n    if 'name_gbs'", text,
+                      count=1, flags=re.S)
     if n != 1:
-        sys.exit("wrNWChemGBS.pm: cannot find the blocklist test to disable")
+        sys.exit("wrNWChemGBS.py: cannot find the blocklist test to disable")
     with open(path, "w") as handle:
         handle.write(text)
     return home2

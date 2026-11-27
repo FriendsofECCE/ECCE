@@ -6,7 +6,7 @@ This directory contains the following categories of files.
 
  - scripts for basis set file translation from the NWChem format that is 
    output by ECCE to formats of other codes.  These have names like
-   "std2Gaussian-94".
+   "std2NWChem".
 
  - scripts and templates for input file generation.  The templates have 
    names like "nwch.tpl" and "g94.tpl", and the input generation scripts 
@@ -88,8 +88,6 @@ gus_enr_scf.tpl		- Input file template for GAMESS-US.
 include			- Directory containing Perl modules.
   rdGaussianGBS.pm	- Read a Gaussian-94 format GBS file.
   rdStandardGBS.pm	- Read a standard format GBS file.
-  wrGamesGBS.pm		- Write a GAMESS-US format GBS file.
-  wrGaussian94GBS.pm	- Write a Gaussian-94 format GBS file.
   wrNWChemGBS.pm	- Write an NWChem format GBS file.
 nwch.tpl		- Input file template for NWChem.
 nwch_geom_dft.tpl	- Link to nwch.tpl.
@@ -118,11 +116,6 @@ nwchem.te		- Script that parses named NWChem property.
 nwchem.vib		- Script that parses named NWChem property.
 nwchem.vibfreq		- Script that parses named NWChem property.
 nwchem.vibir		- Script that parses named NWChem property.
-std2GAMESS(US)		- Script that translates basis set from standard
-			  format to GAMESS-US format.
-std2Gaussian-92		- Identical to std2Gaussian-94.
-std2Gaussian-94		- Script that translates basis set from standard
-			  format to Gaussian-94 format.
 std2NWChem		- Script that translates basis set from standard
 			  format to NWChem format.
 submit			- Top-level script that controls execution of
