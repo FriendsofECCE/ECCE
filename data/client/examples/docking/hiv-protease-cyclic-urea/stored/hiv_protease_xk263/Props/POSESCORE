@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<tsvector name="POSESCORE" rowLabel="Geometry Step" rows="1" units="kcal/mol">
+
+  <step number="1">-14.558</step>
+  <step number="2">-14.477</step>
+
+</tsvector>
