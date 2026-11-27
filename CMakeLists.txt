@@ -3332,10 +3332,12 @@ if(PYTHON3_EXECUTABLE)
   foreach(_d orcatheory orcaruntype ged16theory ged16runtype ecceqmruntype
              xtbtheory xtbruntype mopactheory mopacruntype)
     set(_extra "")
-    set(_timeout 3600)   # ORCA runs ~25 min on an idle machine
+    # 7200, not the ~25 min an ORCA run takes on an idle machine: on a
+    # release host orcaruntype reached 46 of its 49 contexts in 3600 s and
+    # was killed, which reads as a failure although nothing had failed.
+    set(_timeout 7200)
     if(_d MATCHES "^ged16")
       set(_extra --dedupe --jobs 4)   # half of an 8-core desk machine
-      set(_timeout 7200)
     elseif(_d MATCHES "^mopac")
       set(_extra --dedupe --jobs 3)
     endif()
