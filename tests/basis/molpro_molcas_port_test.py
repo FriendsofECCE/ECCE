@@ -18,22 +18,9 @@ REFERENCE = HERE / 'molpro_molcas_reference.json'
 def run(case, seed=0):
     env = dict(os.environ, ECCE_HOME=str(ROOT), PERL_HASH_SEED=str(seed),
                PERL_PERTURB_KEYS='0', PYTHONDONTWRITEBYTECODE='1')
-    if case['code'] == 'molpro_int_lib':
-        if (PARSERS / 'wrmolpro_int_libGBS.pm').exists():
-            command = ['perl', '-I', str(PARSERS), '-e',
-                       'require "rdStandardGBS.pm"; '
-                       'require "wrmolpro_int_libGBS.pm"; '
-                       'writemolpro_int_lib(readStandardBS());']
-        else:
-            command = [sys.executable, '-c',
-                       'from rdStandardGBS import readStandardBS; '
-                       'from wrmolpro_int_libGBS import writemolpro_int_lib; '
-                       'writemolpro_int_lib(readStandardBS())']
-            env['PYTHONPATH'] = str(PARSERS)
-    else:
-        path = PARSERS / ('std2' + case['code'])
-        interpreter = 'perl' if b'perl' in path.read_bytes().splitlines()[0] else sys.executable
-        command = [interpreter, str(path)] + case.get('args', [])
+    path = PARSERS / ('std2' + case['code'])
+    interpreter = 'perl' if b'perl' in path.read_bytes().splitlines()[0] else sys.executable
+    command = [interpreter, str(path)] + case.get('args', [])
     proc = subprocess.run(command, input=case['input'].encode('ascii'),
                           stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                           timeout=20, env=env)

@@ -46,7 +46,7 @@ def generate(work, enabled=True, ids=(1, 2), states=((0, 1), (0, 1)),
         frag.write_text(s)
     env = dict(os.environ, ECCE_HOME=str(REPO))
     with (work / 'dimer.gbs').open() as inp:
-        basis = subprocess.run(['perl', str(PARSERS / 'std2Gaussian-16')],
+        basis = subprocess.run([sys.executable, str(PARSERS / 'std2Gaussian-16')],
                                stdin=inp, capture_output=True, env=env, check=True)
     (work / 'dimer.basis').write_bytes(basis.stdout)
     shutil.copy(PARSERS / 'g16.tpl', work / 'dimer.tpl')

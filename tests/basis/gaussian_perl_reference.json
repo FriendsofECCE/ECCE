@@ -1,0 +1,2014 @@
+[
+  {
+    "version": "16",
+    "name": "name-3-21+g",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"3-21+g\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard 3-21+g spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "16",
+    "name": "name-3-21+g*",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"3-21+g*\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard 3-21+g* spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "16",
+    "name": "name-3-21g",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"3-21g\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard 3-21g spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "16",
+    "name": "name-3-21g*",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"3-21g*\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard 3-21g* spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "16",
+    "name": "name-4-31g",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"4-31g\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard 4-31g spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "16",
+    "name": "name-6-21g",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"6-21g\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard 6-21G spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "16",
+    "name": "name-6-31++g",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"6-31++g\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard 6-31++g spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "16",
+    "name": "name-6-31++g*",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"6-31++g*\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard 6-31++G* spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "16",
+    "name": "name-6-31++g**",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"6-31++g**\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard 6-31++g** spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "16",
+    "name": "name-6-31+g*",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"6-31+g*\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard 6-31+G* spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "16",
+    "name": "name-6-311++g",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"6-311++g\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard 6-311++G spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "16",
+    "name": "name-6-311++g(2d,2p)",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"6-311++g(2d,2p)\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard 6-311++G(2d,2p) spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "16",
+    "name": "name-6-311++g(3df,3pd)",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"6-311++g(3df,3pd)\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard 6-311++G(3df,3pd) spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "16",
+    "name": "name-6-311++g**",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"6-311++g**\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard 6-311++G** spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "16",
+    "name": "name-6-311+g*",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"6-311+g*\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard 6-311+G* spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "16",
+    "name": "name-6-311g",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"6-311g\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard 6-311G spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "16",
+    "name": "name-6-311g(2df,2pd)",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"6-311g(2df,2pd)\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard 6-311G(2df,2pd) spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "16",
+    "name": "name-6-311g*",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"6-311g*\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard 6-311G* spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "16",
+    "name": "name-6-311g**",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"6-311g**\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard 6-311G** spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "16",
+    "name": "name-6-31g",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"6-31g\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard 6-31g spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "16",
+    "name": "name-6-31g*",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"6-31g*\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard 6-31G* spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "16",
+    "name": "name-6-31g**",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"6-31g**\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard 6-31G** spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "16",
+    "name": "name-ahlrichs pvdz",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"ahlrichs pvdz\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard SVP spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "16",
+    "name": "name-ahlrichs tzv",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"ahlrichs tzv\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard TZV spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "16",
+    "name": "name-ahlrichs tzvp",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"ahlrichs tzvp\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard TZVP spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "16",
+    "name": "name-ahlrichs vdz",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"ahlrichs vdz\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard SV spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "16",
+    "name": "name-aug-cc-pv5z",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"aug-cc-pv5z\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard aug-cc-pv5z spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "16",
+    "name": "name-aug-cc-pv6z",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"aug-cc-pv6z\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard aug-cc-pv6z spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "16",
+    "name": "name-aug-cc-pvdz",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"aug-cc-pvdz\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard aug-cc-pvdz spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "16",
+    "name": "name-aug-cc-pvqz",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"aug-cc-pvqz\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard aug-cc-pvqz spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "16",
+    "name": "name-aug-cc-pvtz",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"aug-cc-pvtz\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard aug-cc-pvtz spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "16",
+    "name": "name-cbsb7",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"cbsb7\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard CBSB7 spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "16",
+    "name": "name-cc-pv5z",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"cc-pv5z\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard cc-pv5z spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "16",
+    "name": "name-cc-pv6z",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"cc-pv6z\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard cc-pv6z spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "16",
+    "name": "name-cc-pvdz",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"cc-pvdz\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard cc-pvdz spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "16",
+    "name": "name-cc-pvqz",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"cc-pvqz\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard cc-pvqz spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "16",
+    "name": "name-cc-pvtz",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"cc-pvtz\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard cc-pvtz spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "16",
+    "name": "name-cep-121g",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"cep-121g\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard CEP-121G spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "16",
+    "name": "name-cep-31g",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"cep-31g\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard CEP-31G spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "16",
+    "name": "name-cep-4g",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"cep-4g\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard CEP-4G spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "16",
+    "name": "name-def2-qzv",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"def2-qzv\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard def2QZV spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "16",
+    "name": "name-def2-qzvp",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"def2-qzvp\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard def2QZVP spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "16",
+    "name": "name-def2-sv",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"def2-sv\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard def2SV spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "16",
+    "name": "name-def2-svp",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"def2-svp\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard def2SVP spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "16",
+    "name": "name-def2-svp(p)",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"def2-svp(p)\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard def2SVPP spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "16",
+    "name": "name-def2-tzv",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"def2-tzv\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard def2TZV spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "16",
+    "name": "name-def2-tzvp",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"def2-tzvp\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard def2TZVP spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "16",
+    "name": "name-def2-tzvpp",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"def2-tzvpp\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard def2TZVPP spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "16",
+    "name": "name-dz (dunning)",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"dz (dunning)\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard d95 spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "16",
+    "name": "name-dzp (dunning)",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"dzp (dunning)\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard D95** spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "16",
+    "name": "name-epr-ii",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"epr-ii\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard EPR-II spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "16",
+    "name": "name-epr-iii",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"epr-iii\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard EPR-III spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "16",
+    "name": "name-lanl2mb",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"lanl2mb\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard LanL2MB spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "16",
+    "name": "name-midi!",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"midi!\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard  spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "16",
+    "name": "name-sdd",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"sdd\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard SDD spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "16",
+    "name": "name-sto-2g",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"sto-2g\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard sto-2g spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "16",
+    "name": "name-sto-3g",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"sto-3g\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard sto-3g spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "16",
+    "name": "name-sto-3g*",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"sto-3g*\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard sto-3g* spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "16",
+    "name": "name-sto-6g",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"sto-6g\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard STO-6G spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "16",
+    "name": "name-sv (dunning-hay)",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"sv (dunning-hay)\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard d95v spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "16",
+    "name": "name-ugbs",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"ugbs\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard UGBS spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "16",
+    "name": "name-unknown",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"unknown\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": " H  0\n S   1  1.00\n       1.50000000      1.00000000\n ****\n\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "16",
+    "name": "ch3i_def2.gbs",
+    "input": "NumericalBasis\nbasis \"ao basis\" spherical print\nC S\n   1238.40169380   0.00545688\n   186.29004992   0.04063841\n   42.25117635   0.18025594\n   11.67655793   0.46315122\n   3.59305065   0.44087173\nC S\n   0.40245147   1.00000000\nC S\n   0.13090183   1.00000000\nC P\n   9.46809706   0.03838787\n   2.01035451   0.21117025\n   0.54771005   0.51328172\nC P\n   0.15268614   1.00000000\nC D\n   0.80000000   1.00000000\nH S\n   13.01070100   0.01968216\n   1.96225720   0.13796524\n   0.44453796   0.47831935\nH S\n   0.12194962   1.00000000\nH P\n   0.80000000   1.00000000\nI S\n   445.90489176   0.00200373\n   23.33684241   -0.14989397\n   19.58344610   0.36436475\n   8.51120892   -0.75538138\n   2.19961619   0.82816359\n   1.06689705   0.42161048\nI S\n   11.72054757   -0.01616023\n   1.76259864   0.35271525\nI S\n   0.28697476   1.00000000\nI S\n   0.11227610   1.00000000\nI P\n   20.49902725   0.07715934\n   10.55875458   -0.38370373\n   1.50158955   0.83554175\n   0.64597173   0.16787259\nI P\n   3.02886568   1.00000000\nI P\n   0.34506592   1.00000000\nI P\n   0.11134514   1.00000000\nI D\n   51.23535492   0.00403451\n   15.61623948   -0.00507681\n   4.52660021   0.29151065\n   2.05298088   0.51145784\n   0.87640282   0.31232025\nI D\n   0.30900000   1.00000000\nEND\n\nECP\nI nelec 28\nI ul\n2  19.45860900  -21.84204000\n2  19.34926000  -28.46819100\n2  4.82376700  -0.24371300\n2  4.88431500  -0.32080400\nI S\n2  40.01583500  49.99429300\n2  17.42974700  281.02531700\n2  9.00548400  61.57332600\n2  19.45860900  21.84204000\n2  19.34926000  28.46819100\n2  4.82376700  0.24371300\n2  4.88431500  0.32080400\nI P\n2  15.35546600  67.44284100\n2  14.97183300  134.88113700\n2  8.96016400  14.67505100\n2  8.25909600  29.37566600\n2  19.45860900  21.84204000\n2  19.34926000  28.46819100\n2  4.82376700  0.24371300\n2  4.88431500  0.32080400\nI D\n2  15.06890800  35.43952900\n2  14.55532200  53.17605700\n2  6.71864700  9.06719500\n2  6.45639300  13.20693700\n2  1.19177900  0.08933500\n2  1.29115700  0.05238000\n2  19.45860900  21.84204000\n2  19.34926000  28.46819100\n2  4.82376700  0.24371300\n2  4.88431500  0.32080400\nEND\nEndNumericalBasis\n",
+    "stdout": " C  0\n S   5  1.00\n    1238.40169380      0.00545688\n     186.29004992      0.04063841\n      42.25117635      0.18025594\n      11.67655793      0.46315122\n       3.59305065      0.44087173\n S   1  1.00\n       0.40245147      1.00000000\n S   1  1.00\n       0.13090183      1.00000000\n P   3  1.00\n       9.46809706      0.03838787\n       2.01035451      0.21117025\n       0.54771005      0.51328172\n P   1  1.00\n       0.15268614      1.00000000\n D   1  1.00\n       0.80000000      1.00000000\n ****\n H  0\n S   3  1.00\n      13.01070100      0.01968216\n       1.96225720      0.13796524\n       0.44453796      0.47831935\n S   1  1.00\n       0.12194962      1.00000000\n P   1  1.00\n       0.80000000      1.00000000\n ****\n I  0\n S   6  1.00\n     445.90489176      0.00200373\n      23.33684241     -0.14989397\n      19.58344610      0.36436475\n       8.51120892     -0.75538138\n       2.19961619      0.82816359\n       1.06689705      0.42161048\n S   2  1.00\n      11.72054757     -0.01616023\n       1.76259864      0.35271525\n S   1  1.00\n       0.28697476      1.00000000\n S   1  1.00\n       0.11227610      1.00000000\n P   4  1.00\n      20.49902725      0.07715934\n      10.55875458     -0.38370373\n       1.50158955      0.83554175\n       0.64597173      0.16787259\n P   1  1.00\n       3.02886568      1.00000000\n P   1  1.00\n       0.34506592      1.00000000\n P   1  1.00\n       0.11134514      1.00000000\n D   5  1.00\n      51.23535492      0.00403451\n      15.61623948     -0.00507681\n       4.52660021      0.29151065\n       2.05298088      0.51145784\n       0.87640282      0.31232025\n D   1  1.00\n       0.30900000      1.00000000\n ****\n\nI  0\nI-ECP   3   28\nf potential\n 4\n2       19.45860900    -21.84204000\n2       19.34926000    -28.46819100\n2        4.82376700     -0.24371300\n2        4.88431500     -0.32080400\ns-f potential\n 7\n2       40.01583500     49.99429300\n2       17.42974700    281.02531700\n2        9.00548400     61.57332600\n2       19.45860900     21.84204000\n2       19.34926000     28.46819100\n2        4.82376700      0.24371300\n2        4.88431500      0.32080400\np-f potential\n 8\n2       15.35546600     67.44284100\n2       14.97183300    134.88113700\n2        8.96016400     14.67505100\n2        8.25909600     29.37566600\n2       19.45860900     21.84204000\n2       19.34926000     28.46819100\n2        4.82376700      0.24371300\n2        4.88431500      0.32080400\nd-f potential\n 10\n2       15.06890800     35.43952900\n2       14.55532200     53.17605700\n2        6.71864700      9.06719500\n2        6.45639300     13.20693700\n2        1.19177900      0.08933500\n2        1.29115700      0.05238000\n2       19.45860900     21.84204000\n2       19.34926000     28.46819100\n2        4.82376700      0.24371300\n2        4.88431500      0.32080400\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "16",
+    "name": "pth_ecp.gbs",
+    "input": "NameBasis\nbasis \"ao basis\" cartesian print\nH library \"6-31G*\"\nPt library \"LANL2DZ\"\nEND\nEndNameBasis\n\n\nNumericalBasis\nbasis \"ao basis\" cartesian print\nH S\n     18.7311370              0.0334946\n      2.8253937              0.2347270\n      0.6401217              0.8137573\nPt S\n      2.6300000             -2.6087810\n      1.7200000              3.1670530\nEND\n\nECP\nPt nelec 60\nPt ul\n2     52.8680174           -298.3178135\nPt S\n0    409.4437358              2.7334218\nEND\nEndNumericalBasis\n",
+    "stdout": " H  0\n6-31G*\n ****\n PT  0\n S   2  1.00\n       2.63000000     -2.60878100\n       1.72000000      3.16705300\n ****\n\nPT  0\nPT-ECP   1   60\np potential\n 1\n2       52.86801740   -298.31781350\ns-p potential\n 1\n0      409.44373580      2.73342180\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "16",
+    "name": "water_aug_ccpvdz.gbs",
+    "input": "NameBasis\nbasis \"ao basis\" cartesian print\nO library \"aug-cc-pVDZ\"\nH library \"aug-cc-pVDZ\"\nEND\nEndNameBasis\n\n\nNumericalBasis\nbasis \"ao basis\" cartesian print\nO S\n   5484.6717000              0.0018311\n    825.2349500              0.0139501\n    188.0469600              0.0684451\nO SP\n     15.5396160             -0.1107775              0.0708743\n      3.5999336             -0.1480263              0.3397528\nO SP\n      0.2700058              1.0000000              1.0000000\nH S\n     18.7311370              0.0334946\n      2.8253937              0.2347270\n      0.6401217              0.8137573\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard aug-cc-pvdz cartesian\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "16",
+    "name": "water_aug_pwcvdz.gbs",
+    "input": "NameBasis\nbasis \"ao basis\" cartesian print\nO library \"aug-cc-pwCVDZ\"\nH library \"aug-cc-pwCVDZ\"\nEND\nEndNameBasis\n\n\nNumericalBasis\nbasis \"ao basis\" cartesian print\nO S\n   5484.6717000              0.0018311\n    825.2349500              0.0139501\n    188.0469600              0.0684451\nO SP\n     15.5396160             -0.1107775              0.0708743\n      3.5999336             -0.1480263              0.3397528\nO SP\n      0.2700058              1.0000000              1.0000000\nH S\n     18.7311370              0.0334946\n      2.8253937              0.2347270\n      0.6401217              0.8137573\nEND\nEndNumericalBasis\n",
+    "stdout": " H  0\n S   3  1.00\n      18.73113700      0.03349460\n       2.82539370      0.23472700\n       0.64012170      0.81375730\n ****\n O  0\n S   3  1.00\n    5484.67170000      0.00183110\n     825.23495000      0.01395010\n     188.04696000      0.06844510\n SP  2  1.00\n      15.53961600     -0.11077750      0.07087430\n       3.59993360     -0.14802630      0.33975280\n SP  1  1.00\n       0.27000580      1.00000000      1.00000000\n ****\n\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "16",
+    "name": "water_ccpvdz_explicit.gbs",
+    "input": "NumericalBasis\nbasis \"ao basis\" spherical print\nO S\n 11720.000000000000     0.000710000000    -0.000160000000\n  1759.000000000000     0.005470000000    -0.001263000000\n   400.800000000000     0.027837000000    -0.006267000000\n   113.700000000000     0.104800000000    -0.025716000000\n    37.030000000000     0.283062000000    -0.070924000000\n    13.270000000000     0.448719000000    -0.165411000000\n     5.025000000000     0.270952000000    -0.116955000000\n     1.013000000000     0.015458000000     0.557368000000\nO S\n     0.302300000000     1.000000000000\nO P\n    17.700000000000     0.043018000000\n     3.854000000000     0.228913000000\n     1.046000000000     0.508728000000\nO P\n     0.275300000000     1.000000000000\nO D\n     1.185000000000     1.000000000000\nH S\n     13.010000000000     0.019685000000\n      1.962000000000     0.137977000000\n      0.444600000000     0.478148000000\nH S\n      0.122000000000     1.000000000000\nH P\n      0.727000000000     1.000000000000\nEND\nEndNumericalBasis\n",
+    "stdout": " H  0\n S   3  1.00\n      13.01000000      0.01968500\n       1.96200000      0.13797700\n       0.44460000      0.47814800\n S   1  1.00\n       0.12200000      1.00000000\n P   1  1.00\n       0.72700000      1.00000000\n ****\n O  0\n S   8  1.00\n   11720.00000000      0.00071000\n    1759.00000000      0.00547000\n     400.80000000      0.02783700\n     113.70000000      0.10480000\n      37.03000000      0.28306200\n      13.27000000      0.44871900\n       5.02500000      0.27095200\n       1.01300000      0.01545800\n S   8  1.00\n   11720.00000000     -0.00016000\n    1759.00000000     -0.00126300\n     400.80000000     -0.00626700\n     113.70000000     -0.02571600\n      37.03000000     -0.07092400\n      13.27000000     -0.16541100\n       5.02500000     -0.11695500\n       1.01300000      0.55736800\n S   1  1.00\n       0.30230000      1.00000000\n P   3  1.00\n      17.70000000      0.04301800\n       3.85400000      0.22891300\n       1.04600000      0.50872800\n P   1  1.00\n       0.27530000      1.00000000\n D   1  1.00\n       1.18500000      1.00000000\n ****\n\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "16",
+    "name": "water_gencontr.gbs",
+    "input": "NumericalBasis\nbasis \"ao basis\" spherical print\nO S\n 11720.000000000000     0.000710000000    -0.000160000000\n  1759.000000000000     0.005470000000    -0.001263000000\n   400.800000000000     0.027837000000    -0.006267000000\n   113.700000000000     0.104800000000    -0.025716000000\n    37.030000000000     0.283062000000    -0.070924000000\n    13.270000000000     0.448719000000    -0.165411000000\n     5.025000000000     0.270952000000    -0.116955000000\n     1.013000000000     0.015458000000     0.557368000000\nO S\n     0.302300000000     1.000000000000\nH S\n     13.010000000000     0.019685000000\n      1.962000000000     0.137977000000\n      0.444600000000     0.478148000000\nEND\nEndNumericalBasis\n",
+    "stdout": " H  0\n S   3  1.00\n      13.01000000      0.01968500\n       1.96200000      0.13797700\n       0.44460000      0.47814800\n ****\n O  0\n S   8  1.00\n   11720.00000000      0.00071000\n    1759.00000000      0.00547000\n     400.80000000      0.02783700\n     113.70000000      0.10480000\n      37.03000000      0.28306200\n      13.27000000      0.44871900\n       5.02500000      0.27095200\n       1.01300000      0.01545800\n S   8  1.00\n   11720.00000000     -0.00016000\n    1759.00000000     -0.00126300\n     400.80000000     -0.00626700\n     113.70000000     -0.02571600\n      37.03000000     -0.07092400\n      13.27000000     -0.16541100\n       5.02500000     -0.11695500\n       1.01300000      0.55736800\n S   1  1.00\n       0.30230000      1.00000000\n ****\n\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "16",
+    "name": "water_mixed.gbs",
+    "input": "NameBasis\nbasis \"ao basis\" cartesian print\nO library \"6-31G*\"\nH library \"IGLO-II\"\nEND\nEndNameBasis\n\n\nNumericalBasis\nbasis \"ao basis\" cartesian print\nO S\n   5484.6717000              0.0018311\n    825.2349500              0.0139501\n    188.0469600              0.0684451\nO SP\n     15.5396160             -0.1107775              0.0708743\n      3.5999336             -0.1480263              0.3397528\nO SP\n      0.2700058              1.0000000              1.0000000\nH S\n     18.7311370              0.0334946\n      2.8253937              0.2347270\n      0.6401217              0.8137573\nEND\nEndNumericalBasis\n",
+    "stdout": " H  0\n S   3  1.00\n      18.73113700      0.03349460\n       2.82539370      0.23472700\n       0.64012170      0.81375730\n ****\n O  0\n6-31G*\n ****\n\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "16",
+    "name": "water_mixed_orca.gbs",
+    "input": "NameBasis\nbasis \"ao basis\" cartesian print\nO library \"6-31G*\"\nH library \"6-31++G\"\nEND\nEndNameBasis\n\n\nNumericalBasis\nbasis \"ao basis\" cartesian print\nO S\n   5484.6717000              0.0018311\n    825.2349500              0.0139501\n    188.0469600              0.0684451\nO SP\n     15.5396160             -0.1107775              0.0708743\n      3.5999336             -0.1480263              0.3397528\nO SP\n      0.2700058              1.0000000              1.0000000\nH S\n     18.7311370              0.0334946\n      2.8253937              0.2347270\n      0.6401217              0.8137573\nEND\nEndNumericalBasis\n",
+    "stdout": " H  0\n6-31++g\n ****\n O  0\n6-31G*\n ****\n\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "16",
+    "name": "water_numonly.gbs",
+    "input": "NumericalBasis\nbasis \"ao basis\" cartesian print\nO S\n   5484.6717000              0.0018311\n    825.2349500              0.0139501\n    188.0469600              0.0684451\nO SP\n     15.5396160             -0.1107775              0.0708743\n      3.5999336             -0.1480263              0.3397528\nO SP\n      0.2700058              1.0000000              1.0000000\nH S\n     18.7311370              0.0334946\n      2.8253937              0.2347270\n      0.6401217              0.8137573\nEND\nEndNumericalBasis\n",
+    "stdout": " H  0\n S   3  1.00\n      18.73113700      0.03349460\n       2.82539370      0.23472700\n       0.64012170      0.81375730\n ****\n O  0\n S   3  1.00\n    5484.67170000      0.00183110\n     825.23495000      0.01395010\n     188.04696000      0.06844510\n SP  2  1.00\n      15.53961600     -0.11077750      0.07087430\n       3.59993360     -0.14802630      0.33975280\n SP  1  1.00\n       0.27000580      1.00000000      1.00000000\n ****\n\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "16",
+    "name": "water_same.gbs",
+    "input": "NameBasis\nbasis \"ao basis\" cartesian print\nO library \"6-31G*\"\nH library \"6-31G*\"\nEND\nEndNameBasis\n\n\nNumericalBasis\nbasis \"ao basis\" cartesian print\nO S\n   5484.6717000              0.0018311\n    825.2349500              0.0139501\n    188.0469600              0.0684451\nO SP\n     15.5396160             -0.1107775              0.0708743\n      3.5999336             -0.1480263              0.3397528\nO SP\n      0.2700058              1.0000000              1.0000000\nH S\n     18.7311370              0.0334946\n      2.8253937              0.2347270\n      0.6401217              0.8137573\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard 6-31G* cartesian\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "16",
+    "name": "shell-S",
+    "input": "NumericalBasis\nbasis \"ao basis\" cartesian print\nH S\n 2.0 0 0.5\n 1.0 -0.25 0\nEND\nEndNumericalBasis\n",
+    "stdout": " H  0\n S   1  1.00\n       1.00000000     -0.25000000\n S   1  1.00\n       2.00000000      0.50000000\n ****\n\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "16",
+    "name": "shell-S",
+    "input": "NumericalBasis\nbasis \"ao basis\" cartesian print\nH S\n 2.0 0.5\n 1.0 0\nEND\nEndNumericalBasis\n",
+    "stdout": " H  0\n S   2  1.00\n       2.00000000      0.50000000\n       1.00000000\n ****\n\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "16",
+    "name": "shell-S",
+    "input": "NumericalBasis\nbasis \"ao basis\" cartesian print\nH S\n 2.0 1.0D-02\n 1.0 -2.5E-03\nEND\nEndNumericalBasis\n",
+    "stdout": " H  0\n S   2  1.00\n       2.00000000      1.00000000\n       1.00000000     -0.00250000\n ****\n\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "16",
+    "name": "shell-P",
+    "input": "NumericalBasis\nbasis \"ao basis\" cartesian print\nH P\n 2.0 0 0.5\n 1.0 -0.25 0\nEND\nEndNumericalBasis\n",
+    "stdout": " H  0\n P   1  1.00\n       1.00000000     -0.25000000\n P   1  1.00\n       2.00000000      0.50000000\n ****\n\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "16",
+    "name": "shell-P",
+    "input": "NumericalBasis\nbasis \"ao basis\" cartesian print\nH P\n 2.0 0.5\n 1.0 0\nEND\nEndNumericalBasis\n",
+    "stdout": " H  0\n P   2  1.00\n       2.00000000      0.50000000\n       1.00000000\n ****\n\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "16",
+    "name": "shell-P",
+    "input": "NumericalBasis\nbasis \"ao basis\" cartesian print\nH P\n 2.0 1.0D-02\n 1.0 -2.5E-03\nEND\nEndNumericalBasis\n",
+    "stdout": " H  0\n P   2  1.00\n       2.00000000      1.00000000\n       1.00000000     -0.00250000\n ****\n\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "16",
+    "name": "shell-SP",
+    "input": "NumericalBasis\nbasis \"ao basis\" cartesian print\nH SP\n 2.0 0 0.5\n 1.0 -0.25 0\nEND\nEndNumericalBasis\n",
+    "stdout": " H  0\n SP  2  1.00\n       2.00000000      0.50000000\n       1.00000000     -0.25000000\n ****\n\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "16",
+    "name": "shell-SP",
+    "input": "NumericalBasis\nbasis \"ao basis\" cartesian print\nH SP\n 2.0 0.5\n 1.0 0\nEND\nEndNumericalBasis\n",
+    "stdout": " H  0\n SP  2  1.00\n       2.00000000      0.50000000\n       1.00000000\n ****\n\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "16",
+    "name": "shell-SP",
+    "input": "NumericalBasis\nbasis \"ao basis\" cartesian print\nH SP\n 2.0 1.0D-02\n 1.0 -2.5E-03\nEND\nEndNumericalBasis\n",
+    "stdout": " H  0\n SP  2  1.00\n       2.00000000      1.00000000\n       1.00000000     -0.00250000\n ****\n\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "16",
+    "name": "shell-D",
+    "input": "NumericalBasis\nbasis \"ao basis\" cartesian print\nH D\n 2.0 0 0.5\n 1.0 -0.25 0\nEND\nEndNumericalBasis\n",
+    "stdout": " H  0\n D   1  1.00\n       1.00000000     -0.25000000\n D   1  1.00\n       2.00000000      0.50000000\n ****\n\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "16",
+    "name": "shell-D",
+    "input": "NumericalBasis\nbasis \"ao basis\" cartesian print\nH D\n 2.0 0.5\n 1.0 0\nEND\nEndNumericalBasis\n",
+    "stdout": " H  0\n D   2  1.00\n       2.00000000      0.50000000\n       1.00000000\n ****\n\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "16",
+    "name": "shell-D",
+    "input": "NumericalBasis\nbasis \"ao basis\" cartesian print\nH D\n 2.0 1.0D-02\n 1.0 -2.5E-03\nEND\nEndNumericalBasis\n",
+    "stdout": " H  0\n D   2  1.00\n       2.00000000      1.00000000\n       1.00000000     -0.00250000\n ****\n\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "16",
+    "name": "shell-F",
+    "input": "NumericalBasis\nbasis \"ao basis\" cartesian print\nH F\n 2.0 0 0.5\n 1.0 -0.25 0\nEND\nEndNumericalBasis\n",
+    "stdout": " H  0\n F   1  1.00\n       1.00000000     -0.25000000\n F   1  1.00\n       2.00000000      0.50000000\n ****\n\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "16",
+    "name": "shell-F",
+    "input": "NumericalBasis\nbasis \"ao basis\" cartesian print\nH F\n 2.0 0.5\n 1.0 0\nEND\nEndNumericalBasis\n",
+    "stdout": " H  0\n F   2  1.00\n       2.00000000      0.50000000\n       1.00000000\n ****\n\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "16",
+    "name": "shell-F",
+    "input": "NumericalBasis\nbasis \"ao basis\" cartesian print\nH F\n 2.0 1.0D-02\n 1.0 -2.5E-03\nEND\nEndNumericalBasis\n",
+    "stdout": " H  0\n F   2  1.00\n       2.00000000      1.00000000\n       1.00000000     -0.00250000\n ****\n\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "16",
+    "name": "shell-G",
+    "input": "NumericalBasis\nbasis \"ao basis\" cartesian print\nH G\n 2.0 0 0.5\n 1.0 -0.25 0\nEND\nEndNumericalBasis\n",
+    "stdout": " H  0\n G   1  1.00\n       1.00000000     -0.25000000\n G   1  1.00\n       2.00000000      0.50000000\n ****\n\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "16",
+    "name": "shell-G",
+    "input": "NumericalBasis\nbasis \"ao basis\" cartesian print\nH G\n 2.0 0.5\n 1.0 0\nEND\nEndNumericalBasis\n",
+    "stdout": " H  0\n G   2  1.00\n       2.00000000      0.50000000\n       1.00000000\n ****\n\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "16",
+    "name": "shell-G",
+    "input": "NumericalBasis\nbasis \"ao basis\" cartesian print\nH G\n 2.0 1.0D-02\n 1.0 -2.5E-03\nEND\nEndNumericalBasis\n",
+    "stdout": " H  0\n G   2  1.00\n       2.00000000      1.00000000\n       1.00000000     -0.00250000\n ****\n\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "16",
+    "name": "shell-H",
+    "input": "NumericalBasis\nbasis \"ao basis\" cartesian print\nH H\n 2.0 0 0.5\n 1.0 -0.25 0\nEND\nEndNumericalBasis\n",
+    "stdout": " H  0\n H   1  1.00\n       1.00000000     -0.25000000\n H   1  1.00\n       2.00000000      0.50000000\n ****\n\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "16",
+    "name": "shell-H",
+    "input": "NumericalBasis\nbasis \"ao basis\" cartesian print\nH H\n 2.0 0.5\n 1.0 0\nEND\nEndNumericalBasis\n",
+    "stdout": " H  0\n H   2  1.00\n       2.00000000      0.50000000\n       1.00000000\n ****\n\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "16",
+    "name": "shell-H",
+    "input": "NumericalBasis\nbasis \"ao basis\" cartesian print\nH H\n 2.0 1.0D-02\n 1.0 -2.5E-03\nEND\nEndNumericalBasis\n",
+    "stdout": " H  0\n H   2  1.00\n       2.00000000      1.00000000\n       1.00000000     -0.00250000\n ****\n\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "16",
+    "name": "shell-I",
+    "input": "NumericalBasis\nbasis \"ao basis\" cartesian print\nH I\n 2.0 0 0.5\n 1.0 -0.25 0\nEND\nEndNumericalBasis\n",
+    "stdout": " H  0\n I   1  1.00\n       1.00000000     -0.25000000\n I   1  1.00\n       2.00000000      0.50000000\n ****\n\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "16",
+    "name": "shell-I",
+    "input": "NumericalBasis\nbasis \"ao basis\" cartesian print\nH I\n 2.0 0.5\n 1.0 0\nEND\nEndNumericalBasis\n",
+    "stdout": " H  0\n I   2  1.00\n       2.00000000      0.50000000\n       1.00000000\n ****\n\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "16",
+    "name": "shell-I",
+    "input": "NumericalBasis\nbasis \"ao basis\" cartesian print\nH I\n 2.0 1.0D-02\n 1.0 -2.5E-03\nEND\nEndNumericalBasis\n",
+    "stdout": " H  0\n I   2  1.00\n       2.00000000      1.00000000\n       1.00000000     -0.00250000\n ****\n\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "16",
+    "name": "ecp-zero-0",
+    "input": "NumericalBasis\nbasis \"ao basis\" spherical print\nPt S\n 1.0 1.0\nEND\nECP\nPt nelec 60\nPt ul\n 2 3.0 0\nPt s\n 2 1.5 0.5\nEND\nEndNumericalBasis\n",
+    "stdout": " PT  0\n S   1  1.00\n       1.00000000      1.00000000\n ****\n\nPT  0\nPT-ECP   1   60\np potential\n 1\n2        3.00000000      0.00000000\ns-p potential\n 1\n2        1.50000000      0.50000000\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "16",
+    "name": "ecp-zero-0.0",
+    "input": "NumericalBasis\nbasis \"ao basis\" spherical print\nPt S\n 1.0 1.0\nEND\nECP\nPt nelec 60\nPt ul\n 2 3.0 0.0\nPt s\n 2 1.5 0.5\nEND\nEndNumericalBasis\n",
+    "stdout": " PT  0\n S   1  1.00\n       1.00000000      1.00000000\n ****\n\nPT  0\nPT-ECP   1   60\np potential\n 1\n2        3.00000000      0.00000000\ns-p potential\n 1\n2        1.50000000      0.50000000\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "16",
+    "name": "ecp-zero--0.0",
+    "input": "NumericalBasis\nbasis \"ao basis\" spherical print\nPt S\n 1.0 1.0\nEND\nECP\nPt nelec 60\nPt ul\n 2 3.0 -0.0\nPt s\n 2 1.5 0.5\nEND\nEndNumericalBasis\n",
+    "stdout": " PT  0\n S   1  1.00\n       1.00000000      1.00000000\n ****\n\nPT  0\nPT-ECP   1   60\np potential\n 1\n2        3.00000000     -0.00000000\ns-p potential\n 1\n2        1.50000000      0.50000000\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "16",
+    "name": "cli-[]",
+    "input": "",
+    "args": [],
+    "stdout": "\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "16",
+    "name": "cli-['-h']",
+    "input": "",
+    "args": [
+      "-h"
+    ],
+    "stdout": "Usage: std2gaus16\nOptions:    -h        this help\n            -v        version\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "16",
+    "name": "cli-['-v']",
+    "input": "",
+    "args": [
+      "-v"
+    ],
+    "stdout": "Revision: 22972 \n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "16",
+    "name": "cli-['-hv']",
+    "input": "",
+    "args": [
+      "-hv"
+    ],
+    "stdout": "Usage: std2gaus16\nOptions:    -h        this help\n            -v        version\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "16",
+    "name": "cli-['-x']",
+    "input": "",
+    "args": [
+      "-x"
+    ],
+    "stdout": "\n",
+    "stderr": "Unknown option: x\n",
+    "status": 0
+  },
+  {
+    "version": "16",
+    "name": "cli-['--']",
+    "input": "",
+    "args": [
+      "--"
+    ],
+    "stdout": "\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "16",
+    "name": "cli-['unused', '-h']",
+    "input": "",
+    "args": [
+      "unused",
+      "-h"
+    ],
+    "stdout": "\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "09",
+    "name": "name-3-21+g",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"3-21+g\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard 3-21+g spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "09",
+    "name": "name-3-21+g*",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"3-21+g*\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard 3-21+g* spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "09",
+    "name": "name-3-21g",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"3-21g\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard 3-21g spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "09",
+    "name": "name-3-21g*",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"3-21g*\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard 3-21g* spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "09",
+    "name": "name-4-31g",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"4-31g\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard 4-31g spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "09",
+    "name": "name-6-31++g",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"6-31++g\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard 6-31++g spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "09",
+    "name": "name-6-31++g**",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"6-31++g**\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard 6-31++g** spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "09",
+    "name": "name-6-311++g",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"6-311++g\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard 6-311++G spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "09",
+    "name": "name-6-311++g(3df,3pd)",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"6-311++g(3df,3pd)\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard 6-311++G(3df,3pd) spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "09",
+    "name": "name-6-311g",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"6-311g\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard 6-311G spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "09",
+    "name": "name-6-31g",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"6-31g\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard 6-31g spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "09",
+    "name": "name-6-31g(3df,3pd)",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"6-31g(3df,3pd)\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard 6-31G(3df,3pd) spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "09",
+    "name": "name-6-31g*",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"6-31g*\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": " H  0\n S   1  1.00\n       1.50000000      1.00000000\n ****\n\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "09",
+    "name": "name-aug-cc-pv5z",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"aug-cc-pv5z\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard aug-cc-pv5z spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "09",
+    "name": "name-aug-cc-pv6z",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"aug-cc-pv6z\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard aug-cc-pv6z spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "09",
+    "name": "name-aug-cc-pvdz",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"aug-cc-pvdz\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard aug-cc-pvdz spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "09",
+    "name": "name-aug-cc-pvqz",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"aug-cc-pvqz\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard aug-cc-pvqz spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "09",
+    "name": "name-aug-cc-pvtz",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"aug-cc-pvtz\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard aug-cc-pvtz spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "09",
+    "name": "name-cc-pv5z",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"cc-pv5z\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard cc-pv5z spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "09",
+    "name": "name-cc-pv6z",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"cc-pv6z\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard cc-pv6z spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "09",
+    "name": "name-cc-pvdz",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"cc-pvdz\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard cc-pvdz spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "09",
+    "name": "name-cc-pvqz",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"cc-pvqz\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard cc-pvqz spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "09",
+    "name": "name-cc-pvtz",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"cc-pvtz\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard cc-pvtz spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "09",
+    "name": "name-dz (dunning)",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"dz (dunning)\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard d95 spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "09",
+    "name": "name-midi!",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"midi!\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard  spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "09",
+    "name": "name-sto-2g",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"sto-2g\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard sto-2g spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "09",
+    "name": "name-sto-3g",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"sto-3g\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard sto-3g spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "09",
+    "name": "name-sto-3g*",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"sto-3g*\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard sto-3g* spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "09",
+    "name": "name-sv (dunning-hay)",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"sv (dunning-hay)\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard d95v spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "09",
+    "name": "name-unknown",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"unknown\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": " H  0\n S   1  1.00\n       1.50000000      1.00000000\n ****\n\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "09",
+    "name": "ch3i_def2.gbs",
+    "input": "NumericalBasis\nbasis \"ao basis\" spherical print\nC S\n   1238.40169380   0.00545688\n   186.29004992   0.04063841\n   42.25117635   0.18025594\n   11.67655793   0.46315122\n   3.59305065   0.44087173\nC S\n   0.40245147   1.00000000\nC S\n   0.13090183   1.00000000\nC P\n   9.46809706   0.03838787\n   2.01035451   0.21117025\n   0.54771005   0.51328172\nC P\n   0.15268614   1.00000000\nC D\n   0.80000000   1.00000000\nH S\n   13.01070100   0.01968216\n   1.96225720   0.13796524\n   0.44453796   0.47831935\nH S\n   0.12194962   1.00000000\nH P\n   0.80000000   1.00000000\nI S\n   445.90489176   0.00200373\n   23.33684241   -0.14989397\n   19.58344610   0.36436475\n   8.51120892   -0.75538138\n   2.19961619   0.82816359\n   1.06689705   0.42161048\nI S\n   11.72054757   -0.01616023\n   1.76259864   0.35271525\nI S\n   0.28697476   1.00000000\nI S\n   0.11227610   1.00000000\nI P\n   20.49902725   0.07715934\n   10.55875458   -0.38370373\n   1.50158955   0.83554175\n   0.64597173   0.16787259\nI P\n   3.02886568   1.00000000\nI P\n   0.34506592   1.00000000\nI P\n   0.11134514   1.00000000\nI D\n   51.23535492   0.00403451\n   15.61623948   -0.00507681\n   4.52660021   0.29151065\n   2.05298088   0.51145784\n   0.87640282   0.31232025\nI D\n   0.30900000   1.00000000\nEND\n\nECP\nI nelec 28\nI ul\n2  19.45860900  -21.84204000\n2  19.34926000  -28.46819100\n2  4.82376700  -0.24371300\n2  4.88431500  -0.32080400\nI S\n2  40.01583500  49.99429300\n2  17.42974700  281.02531700\n2  9.00548400  61.57332600\n2  19.45860900  21.84204000\n2  19.34926000  28.46819100\n2  4.82376700  0.24371300\n2  4.88431500  0.32080400\nI P\n2  15.35546600  67.44284100\n2  14.97183300  134.88113700\n2  8.96016400  14.67505100\n2  8.25909600  29.37566600\n2  19.45860900  21.84204000\n2  19.34926000  28.46819100\n2  4.82376700  0.24371300\n2  4.88431500  0.32080400\nI D\n2  15.06890800  35.43952900\n2  14.55532200  53.17605700\n2  6.71864700  9.06719500\n2  6.45639300  13.20693700\n2  1.19177900  0.08933500\n2  1.29115700  0.05238000\n2  19.45860900  21.84204000\n2  19.34926000  28.46819100\n2  4.82376700  0.24371300\n2  4.88431500  0.32080400\nEND\nEndNumericalBasis\n",
+    "stdout": " C  0\n S   5  1.00\n    1238.40169380      0.00545688\n     186.29004992      0.04063841\n      42.25117635      0.18025594\n      11.67655793      0.46315122\n       3.59305065      0.44087173\n S   1  1.00\n       0.40245147      1.00000000\n S   1  1.00\n       0.13090183      1.00000000\n P   3  1.00\n       9.46809706      0.03838787\n       2.01035451      0.21117025\n       0.54771005      0.51328172\n P   1  1.00\n       0.15268614      1.00000000\n D   1  1.00\n       0.80000000      1.00000000\n ****\n H  0\n S   3  1.00\n      13.01070100      0.01968216\n       1.96225720      0.13796524\n       0.44453796      0.47831935\n S   1  1.00\n       0.12194962      1.00000000\n P   1  1.00\n       0.80000000      1.00000000\n ****\n I  0\n S   6  1.00\n     445.90489176      0.00200373\n      23.33684241     -0.14989397\n      19.58344610      0.36436475\n       8.51120892     -0.75538138\n       2.19961619      0.82816359\n       1.06689705      0.42161048\n S   2  1.00\n      11.72054757     -0.01616023\n       1.76259864      0.35271525\n S   1  1.00\n       0.28697476      1.00000000\n S   1  1.00\n       0.11227610      1.00000000\n P   4  1.00\n      20.49902725      0.07715934\n      10.55875458     -0.38370373\n       1.50158955      0.83554175\n       0.64597173      0.16787259\n P   1  1.00\n       3.02886568      1.00000000\n P   1  1.00\n       0.34506592      1.00000000\n P   1  1.00\n       0.11134514      1.00000000\n D   5  1.00\n      51.23535492      0.00403451\n      15.61623948     -0.00507681\n       4.52660021      0.29151065\n       2.05298088      0.51145784\n       0.87640282      0.31232025\n D   1  1.00\n       0.30900000      1.00000000\n ****\n\nI  0\nI-ECP   3   28\nf potential\n 4\n2       19.45860900    -21.84204000\n2       19.34926000    -28.46819100\n2        4.82376700     -0.24371300\n2        4.88431500     -0.32080400\ns-f potential\n 7\n2       40.01583500     49.99429300\n2       17.42974700    281.02531700\n2        9.00548400     61.57332600\n2       19.45860900     21.84204000\n2       19.34926000     28.46819100\n2        4.82376700      0.24371300\n2        4.88431500      0.32080400\np-f potential\n 8\n2       15.35546600     67.44284100\n2       14.97183300    134.88113700\n2        8.96016400     14.67505100\n2        8.25909600     29.37566600\n2       19.45860900     21.84204000\n2       19.34926000     28.46819100\n2        4.82376700      0.24371300\n2        4.88431500      0.32080400\nd-f potential\n 10\n2       15.06890800     35.43952900\n2       14.55532200     53.17605700\n2        6.71864700      9.06719500\n2        6.45639300     13.20693700\n2        1.19177900      0.08933500\n2        1.29115700      0.05238000\n2       19.45860900     21.84204000\n2       19.34926000     28.46819100\n2        4.82376700      0.24371300\n2        4.88431500      0.32080400\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "09",
+    "name": "pth_ecp.gbs",
+    "input": "NameBasis\nbasis \"ao basis\" cartesian print\nH library \"6-31G*\"\nPt library \"LANL2DZ\"\nEND\nEndNameBasis\n\n\nNumericalBasis\nbasis \"ao basis\" cartesian print\nH S\n     18.7311370              0.0334946\n      2.8253937              0.2347270\n      0.6401217              0.8137573\nPt S\n      2.6300000             -2.6087810\n      1.7200000              3.1670530\nEND\n\nECP\nPt nelec 60\nPt ul\n2     52.8680174           -298.3178135\nPt S\n0    409.4437358              2.7334218\nEND\nEndNumericalBasis\n",
+    "stdout": " H  0\n S   3  1.00\n      18.73113700      0.03349460\n       2.82539370      0.23472700\n       0.64012170      0.81375730\n ****\n PT  0\n S   2  1.00\n       2.63000000     -2.60878100\n       1.72000000      3.16705300\n ****\n\nPT  0\nPT-ECP   1   60\np potential\n 1\n2       52.86801740   -298.31781350\ns-p potential\n 1\n0      409.44373580      2.73342180\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "09",
+    "name": "water_aug_ccpvdz.gbs",
+    "input": "NameBasis\nbasis \"ao basis\" cartesian print\nO library \"aug-cc-pVDZ\"\nH library \"aug-cc-pVDZ\"\nEND\nEndNameBasis\n\n\nNumericalBasis\nbasis \"ao basis\" cartesian print\nO S\n   5484.6717000              0.0018311\n    825.2349500              0.0139501\n    188.0469600              0.0684451\nO SP\n     15.5396160             -0.1107775              0.0708743\n      3.5999336             -0.1480263              0.3397528\nO SP\n      0.2700058              1.0000000              1.0000000\nH S\n     18.7311370              0.0334946\n      2.8253937              0.2347270\n      0.6401217              0.8137573\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard aug-cc-pvdz cartesian\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "09",
+    "name": "water_aug_pwcvdz.gbs",
+    "input": "NameBasis\nbasis \"ao basis\" cartesian print\nO library \"aug-cc-pwCVDZ\"\nH library \"aug-cc-pwCVDZ\"\nEND\nEndNameBasis\n\n\nNumericalBasis\nbasis \"ao basis\" cartesian print\nO S\n   5484.6717000              0.0018311\n    825.2349500              0.0139501\n    188.0469600              0.0684451\nO SP\n     15.5396160             -0.1107775              0.0708743\n      3.5999336             -0.1480263              0.3397528\nO SP\n      0.2700058              1.0000000              1.0000000\nH S\n     18.7311370              0.0334946\n      2.8253937              0.2347270\n      0.6401217              0.8137573\nEND\nEndNumericalBasis\n",
+    "stdout": " H  0\n S   3  1.00\n      18.73113700      0.03349460\n       2.82539370      0.23472700\n       0.64012170      0.81375730\n ****\n O  0\n S   3  1.00\n    5484.67170000      0.00183110\n     825.23495000      0.01395010\n     188.04696000      0.06844510\n SP  2  1.00\n      15.53961600     -0.11077750      0.07087430\n       3.59993360     -0.14802630      0.33975280\n SP  1  1.00\n       0.27000580      1.00000000      1.00000000\n ****\n\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "09",
+    "name": "water_ccpvdz_explicit.gbs",
+    "input": "NumericalBasis\nbasis \"ao basis\" spherical print\nO S\n 11720.000000000000     0.000710000000    -0.000160000000\n  1759.000000000000     0.005470000000    -0.001263000000\n   400.800000000000     0.027837000000    -0.006267000000\n   113.700000000000     0.104800000000    -0.025716000000\n    37.030000000000     0.283062000000    -0.070924000000\n    13.270000000000     0.448719000000    -0.165411000000\n     5.025000000000     0.270952000000    -0.116955000000\n     1.013000000000     0.015458000000     0.557368000000\nO S\n     0.302300000000     1.000000000000\nO P\n    17.700000000000     0.043018000000\n     3.854000000000     0.228913000000\n     1.046000000000     0.508728000000\nO P\n     0.275300000000     1.000000000000\nO D\n     1.185000000000     1.000000000000\nH S\n     13.010000000000     0.019685000000\n      1.962000000000     0.137977000000\n      0.444600000000     0.478148000000\nH S\n      0.122000000000     1.000000000000\nH P\n      0.727000000000     1.000000000000\nEND\nEndNumericalBasis\n",
+    "stdout": " H  0\n S   3  1.00\n      13.01000000      0.01968500\n       1.96200000      0.13797700\n       0.44460000      0.47814800\n S   1  1.00\n       0.12200000      1.00000000\n P   1  1.00\n       0.72700000      1.00000000\n ****\n O  0\n S   8  1.00\n   11720.00000000      0.00071000\n    1759.00000000      0.00547000\n     400.80000000      0.02783700\n     113.70000000      0.10480000\n      37.03000000      0.28306200\n      13.27000000      0.44871900\n       5.02500000      0.27095200\n       1.01300000      0.01545800\n S   8  1.00\n   11720.00000000     -0.00016000\n    1759.00000000     -0.00126300\n     400.80000000     -0.00626700\n     113.70000000     -0.02571600\n      37.03000000     -0.07092400\n      13.27000000     -0.16541100\n       5.02500000     -0.11695500\n       1.01300000      0.55736800\n S   1  1.00\n       0.30230000      1.00000000\n P   3  1.00\n      17.70000000      0.04301800\n       3.85400000      0.22891300\n       1.04600000      0.50872800\n P   1  1.00\n       0.27530000      1.00000000\n D   1  1.00\n       1.18500000      1.00000000\n ****\n\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "09",
+    "name": "water_gencontr.gbs",
+    "input": "NumericalBasis\nbasis \"ao basis\" spherical print\nO S\n 11720.000000000000     0.000710000000    -0.000160000000\n  1759.000000000000     0.005470000000    -0.001263000000\n   400.800000000000     0.027837000000    -0.006267000000\n   113.700000000000     0.104800000000    -0.025716000000\n    37.030000000000     0.283062000000    -0.070924000000\n    13.270000000000     0.448719000000    -0.165411000000\n     5.025000000000     0.270952000000    -0.116955000000\n     1.013000000000     0.015458000000     0.557368000000\nO S\n     0.302300000000     1.000000000000\nH S\n     13.010000000000     0.019685000000\n      1.962000000000     0.137977000000\n      0.444600000000     0.478148000000\nEND\nEndNumericalBasis\n",
+    "stdout": " H  0\n S   3  1.00\n      13.01000000      0.01968500\n       1.96200000      0.13797700\n       0.44460000      0.47814800\n ****\n O  0\n S   8  1.00\n   11720.00000000      0.00071000\n    1759.00000000      0.00547000\n     400.80000000      0.02783700\n     113.70000000      0.10480000\n      37.03000000      0.28306200\n      13.27000000      0.44871900\n       5.02500000      0.27095200\n       1.01300000      0.01545800\n S   8  1.00\n   11720.00000000     -0.00016000\n    1759.00000000     -0.00126300\n     400.80000000     -0.00626700\n     113.70000000     -0.02571600\n      37.03000000     -0.07092400\n      13.27000000     -0.16541100\n       5.02500000     -0.11695500\n       1.01300000      0.55736800\n S   1  1.00\n       0.30230000      1.00000000\n ****\n\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "09",
+    "name": "water_mixed.gbs",
+    "input": "NameBasis\nbasis \"ao basis\" cartesian print\nO library \"6-31G*\"\nH library \"IGLO-II\"\nEND\nEndNameBasis\n\n\nNumericalBasis\nbasis \"ao basis\" cartesian print\nO S\n   5484.6717000              0.0018311\n    825.2349500              0.0139501\n    188.0469600              0.0684451\nO SP\n     15.5396160             -0.1107775              0.0708743\n      3.5999336             -0.1480263              0.3397528\nO SP\n      0.2700058              1.0000000              1.0000000\nH S\n     18.7311370              0.0334946\n      2.8253937              0.2347270\n      0.6401217              0.8137573\nEND\nEndNumericalBasis\n",
+    "stdout": " H  0\n S   3  1.00\n      18.73113700      0.03349460\n       2.82539370      0.23472700\n       0.64012170      0.81375730\n ****\n O  0\n S   3  1.00\n    5484.67170000      0.00183110\n     825.23495000      0.01395010\n     188.04696000      0.06844510\n SP  2  1.00\n      15.53961600     -0.11077750      0.07087430\n       3.59993360     -0.14802630      0.33975280\n SP  1  1.00\n       0.27000580      1.00000000      1.00000000\n ****\n\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "09",
+    "name": "water_mixed_orca.gbs",
+    "input": "NameBasis\nbasis \"ao basis\" cartesian print\nO library \"6-31G*\"\nH library \"6-31++G\"\nEND\nEndNameBasis\n\n\nNumericalBasis\nbasis \"ao basis\" cartesian print\nO S\n   5484.6717000              0.0018311\n    825.2349500              0.0139501\n    188.0469600              0.0684451\nO SP\n     15.5396160             -0.1107775              0.0708743\n      3.5999336             -0.1480263              0.3397528\nO SP\n      0.2700058              1.0000000              1.0000000\nH S\n     18.7311370              0.0334946\n      2.8253937              0.2347270\n      0.6401217              0.8137573\nEND\nEndNumericalBasis\n",
+    "stdout": " H  0\n S   3  1.00\n      18.73113700      0.03349460\n       2.82539370      0.23472700\n       0.64012170      0.81375730\n ****\n O  0\n S   3  1.00\n    5484.67170000      0.00183110\n     825.23495000      0.01395010\n     188.04696000      0.06844510\n SP  2  1.00\n      15.53961600     -0.11077750      0.07087430\n       3.59993360     -0.14802630      0.33975280\n SP  1  1.00\n       0.27000580      1.00000000      1.00000000\n ****\n\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "09",
+    "name": "water_numonly.gbs",
+    "input": "NumericalBasis\nbasis \"ao basis\" cartesian print\nO S\n   5484.6717000              0.0018311\n    825.2349500              0.0139501\n    188.0469600              0.0684451\nO SP\n     15.5396160             -0.1107775              0.0708743\n      3.5999336             -0.1480263              0.3397528\nO SP\n      0.2700058              1.0000000              1.0000000\nH S\n     18.7311370              0.0334946\n      2.8253937              0.2347270\n      0.6401217              0.8137573\nEND\nEndNumericalBasis\n",
+    "stdout": " H  0\n S   3  1.00\n      18.73113700      0.03349460\n       2.82539370      0.23472700\n       0.64012170      0.81375730\n ****\n O  0\n S   3  1.00\n    5484.67170000      0.00183110\n     825.23495000      0.01395010\n     188.04696000      0.06844510\n SP  2  1.00\n      15.53961600     -0.11077750      0.07087430\n       3.59993360     -0.14802630      0.33975280\n SP  1  1.00\n       0.27000580      1.00000000      1.00000000\n ****\n\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "09",
+    "name": "water_same.gbs",
+    "input": "NameBasis\nbasis \"ao basis\" cartesian print\nO library \"6-31G*\"\nH library \"6-31G*\"\nEND\nEndNameBasis\n\n\nNumericalBasis\nbasis \"ao basis\" cartesian print\nO S\n   5484.6717000              0.0018311\n    825.2349500              0.0139501\n    188.0469600              0.0684451\nO SP\n     15.5396160             -0.1107775              0.0708743\n      3.5999336             -0.1480263              0.3397528\nO SP\n      0.2700058              1.0000000              1.0000000\nH S\n     18.7311370              0.0334946\n      2.8253937              0.2347270\n      0.6401217              0.8137573\nEND\nEndNumericalBasis\n",
+    "stdout": " H  0\n S   3  1.00\n      18.73113700      0.03349460\n       2.82539370      0.23472700\n       0.64012170      0.81375730\n ****\n O  0\n S   3  1.00\n    5484.67170000      0.00183110\n     825.23495000      0.01395010\n     188.04696000      0.06844510\n SP  2  1.00\n      15.53961600     -0.11077750      0.07087430\n       3.59993360     -0.14802630      0.33975280\n SP  1  1.00\n       0.27000580      1.00000000      1.00000000\n ****\n\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "09",
+    "name": "shell-S",
+    "input": "NumericalBasis\nbasis \"ao basis\" cartesian print\nH S\n 2.0 0 0.5\n 1.0 -0.25 0\nEND\nEndNumericalBasis\n",
+    "stdout": " H  0\n S   1  1.00\n       1.00000000     -0.25000000\n S   1  1.00\n       2.00000000      0.50000000\n ****\n\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "09",
+    "name": "shell-S",
+    "input": "NumericalBasis\nbasis \"ao basis\" cartesian print\nH S\n 2.0 0.5\n 1.0 0\nEND\nEndNumericalBasis\n",
+    "stdout": " H  0\n S   2  1.00\n       2.00000000      0.50000000\n       1.00000000\n ****\n\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "09",
+    "name": "shell-S",
+    "input": "NumericalBasis\nbasis \"ao basis\" cartesian print\nH S\n 2.0 1.0D-02\n 1.0 -2.5E-03\nEND\nEndNumericalBasis\n",
+    "stdout": " H  0\n S   2  1.00\n       2.00000000      1.00000000\n       1.00000000     -0.00250000\n ****\n\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "09",
+    "name": "shell-P",
+    "input": "NumericalBasis\nbasis \"ao basis\" cartesian print\nH P\n 2.0 0 0.5\n 1.0 -0.25 0\nEND\nEndNumericalBasis\n",
+    "stdout": " H  0\n P   1  1.00\n       1.00000000     -0.25000000\n P   1  1.00\n       2.00000000      0.50000000\n ****\n\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "09",
+    "name": "shell-P",
+    "input": "NumericalBasis\nbasis \"ao basis\" cartesian print\nH P\n 2.0 0.5\n 1.0 0\nEND\nEndNumericalBasis\n",
+    "stdout": " H  0\n P   2  1.00\n       2.00000000      0.50000000\n       1.00000000\n ****\n\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "09",
+    "name": "shell-P",
+    "input": "NumericalBasis\nbasis \"ao basis\" cartesian print\nH P\n 2.0 1.0D-02\n 1.0 -2.5E-03\nEND\nEndNumericalBasis\n",
+    "stdout": " H  0\n P   2  1.00\n       2.00000000      1.00000000\n       1.00000000     -0.00250000\n ****\n\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "09",
+    "name": "shell-SP",
+    "input": "NumericalBasis\nbasis \"ao basis\" cartesian print\nH SP\n 2.0 0 0.5\n 1.0 -0.25 0\nEND\nEndNumericalBasis\n",
+    "stdout": " H  0\n SP  2  1.00\n       2.00000000      0.50000000\n       1.00000000     -0.25000000\n ****\n\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "09",
+    "name": "shell-SP",
+    "input": "NumericalBasis\nbasis \"ao basis\" cartesian print\nH SP\n 2.0 0.5\n 1.0 0\nEND\nEndNumericalBasis\n",
+    "stdout": " H  0\n SP  2  1.00\n       2.00000000      0.50000000\n       1.00000000\n ****\n\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "09",
+    "name": "shell-SP",
+    "input": "NumericalBasis\nbasis \"ao basis\" cartesian print\nH SP\n 2.0 1.0D-02\n 1.0 -2.5E-03\nEND\nEndNumericalBasis\n",
+    "stdout": " H  0\n SP  2  1.00\n       2.00000000      1.00000000\n       1.00000000     -0.00250000\n ****\n\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "09",
+    "name": "shell-D",
+    "input": "NumericalBasis\nbasis \"ao basis\" cartesian print\nH D\n 2.0 0 0.5\n 1.0 -0.25 0\nEND\nEndNumericalBasis\n",
+    "stdout": " H  0\n D   1  1.00\n       1.00000000     -0.25000000\n D   1  1.00\n       2.00000000      0.50000000\n ****\n\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "09",
+    "name": "shell-D",
+    "input": "NumericalBasis\nbasis \"ao basis\" cartesian print\nH D\n 2.0 0.5\n 1.0 0\nEND\nEndNumericalBasis\n",
+    "stdout": " H  0\n D   2  1.00\n       2.00000000      0.50000000\n       1.00000000\n ****\n\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "09",
+    "name": "shell-D",
+    "input": "NumericalBasis\nbasis \"ao basis\" cartesian print\nH D\n 2.0 1.0D-02\n 1.0 -2.5E-03\nEND\nEndNumericalBasis\n",
+    "stdout": " H  0\n D   2  1.00\n       2.00000000      1.00000000\n       1.00000000     -0.00250000\n ****\n\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "09",
+    "name": "shell-F",
+    "input": "NumericalBasis\nbasis \"ao basis\" cartesian print\nH F\n 2.0 0 0.5\n 1.0 -0.25 0\nEND\nEndNumericalBasis\n",
+    "stdout": " H  0\n F   1  1.00\n       1.00000000     -0.25000000\n F   1  1.00\n       2.00000000      0.50000000\n ****\n\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "09",
+    "name": "shell-F",
+    "input": "NumericalBasis\nbasis \"ao basis\" cartesian print\nH F\n 2.0 0.5\n 1.0 0\nEND\nEndNumericalBasis\n",
+    "stdout": " H  0\n F   2  1.00\n       2.00000000      0.50000000\n       1.00000000\n ****\n\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "09",
+    "name": "shell-F",
+    "input": "NumericalBasis\nbasis \"ao basis\" cartesian print\nH F\n 2.0 1.0D-02\n 1.0 -2.5E-03\nEND\nEndNumericalBasis\n",
+    "stdout": " H  0\n F   2  1.00\n       2.00000000      1.00000000\n       1.00000000     -0.00250000\n ****\n\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "09",
+    "name": "shell-G",
+    "input": "NumericalBasis\nbasis \"ao basis\" cartesian print\nH G\n 2.0 0 0.5\n 1.0 -0.25 0\nEND\nEndNumericalBasis\n",
+    "stdout": " H  0\n G   1  1.00\n       1.00000000     -0.25000000\n G   1  1.00\n       2.00000000      0.50000000\n ****\n\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "09",
+    "name": "shell-G",
+    "input": "NumericalBasis\nbasis \"ao basis\" cartesian print\nH G\n 2.0 0.5\n 1.0 0\nEND\nEndNumericalBasis\n",
+    "stdout": " H  0\n G   2  1.00\n       2.00000000      0.50000000\n       1.00000000\n ****\n\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "09",
+    "name": "shell-G",
+    "input": "NumericalBasis\nbasis \"ao basis\" cartesian print\nH G\n 2.0 1.0D-02\n 1.0 -2.5E-03\nEND\nEndNumericalBasis\n",
+    "stdout": " H  0\n G   2  1.00\n       2.00000000      1.00000000\n       1.00000000     -0.00250000\n ****\n\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "09",
+    "name": "shell-H",
+    "input": "NumericalBasis\nbasis \"ao basis\" cartesian print\nH H\n 2.0 0 0.5\n 1.0 -0.25 0\nEND\nEndNumericalBasis\n",
+    "stdout": " H  0\n H   1  1.00\n       1.00000000     -0.25000000\n H   1  1.00\n       2.00000000      0.50000000\n ****\n\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "09",
+    "name": "shell-H",
+    "input": "NumericalBasis\nbasis \"ao basis\" cartesian print\nH H\n 2.0 0.5\n 1.0 0\nEND\nEndNumericalBasis\n",
+    "stdout": " H  0\n H   2  1.00\n       2.00000000      0.50000000\n       1.00000000\n ****\n\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "09",
+    "name": "shell-H",
+    "input": "NumericalBasis\nbasis \"ao basis\" cartesian print\nH H\n 2.0 1.0D-02\n 1.0 -2.5E-03\nEND\nEndNumericalBasis\n",
+    "stdout": " H  0\n H   2  1.00\n       2.00000000      1.00000000\n       1.00000000     -0.00250000\n ****\n\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "09",
+    "name": "shell-I",
+    "input": "NumericalBasis\nbasis \"ao basis\" cartesian print\nH I\n 2.0 0 0.5\n 1.0 -0.25 0\nEND\nEndNumericalBasis\n",
+    "stdout": " H  0\n I   1  1.00\n       1.00000000     -0.25000000\n I   1  1.00\n       2.00000000      0.50000000\n ****\n\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "09",
+    "name": "shell-I",
+    "input": "NumericalBasis\nbasis \"ao basis\" cartesian print\nH I\n 2.0 0.5\n 1.0 0\nEND\nEndNumericalBasis\n",
+    "stdout": " H  0\n I   2  1.00\n       2.00000000      0.50000000\n       1.00000000\n ****\n\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "09",
+    "name": "shell-I",
+    "input": "NumericalBasis\nbasis \"ao basis\" cartesian print\nH I\n 2.0 1.0D-02\n 1.0 -2.5E-03\nEND\nEndNumericalBasis\n",
+    "stdout": " H  0\n I   2  1.00\n       2.00000000      1.00000000\n       1.00000000     -0.00250000\n ****\n\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "09",
+    "name": "ecp-zero-0",
+    "input": "NumericalBasis\nbasis \"ao basis\" spherical print\nPt S\n 1.0 1.0\nEND\nECP\nPt nelec 60\nPt ul\n 2 3.0 0\nPt s\n 2 1.5 0.5\nEND\nEndNumericalBasis\n",
+    "stdout": " PT  0\n S   1  1.00\n       1.00000000      1.00000000\n ****\n\nPT  0\nPT-ECP   1   60\np potential\n 1\n2        3.00000000      0.00000000\ns-p potential\n 1\n2        1.50000000      0.50000000\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "09",
+    "name": "ecp-zero-0.0",
+    "input": "NumericalBasis\nbasis \"ao basis\" spherical print\nPt S\n 1.0 1.0\nEND\nECP\nPt nelec 60\nPt ul\n 2 3.0 0.0\nPt s\n 2 1.5 0.5\nEND\nEndNumericalBasis\n",
+    "stdout": " PT  0\n S   1  1.00\n       1.00000000      1.00000000\n ****\n\nPT  0\nPT-ECP   1   60\np potential\n 1\n2        3.00000000      0.00000000\ns-p potential\n 1\n2        1.50000000      0.50000000\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "09",
+    "name": "ecp-zero--0.0",
+    "input": "NumericalBasis\nbasis \"ao basis\" spherical print\nPt S\n 1.0 1.0\nEND\nECP\nPt nelec 60\nPt ul\n 2 3.0 -0.0\nPt s\n 2 1.5 0.5\nEND\nEndNumericalBasis\n",
+    "stdout": " PT  0\n S   1  1.00\n       1.00000000      1.00000000\n ****\n\nPT  0\nPT-ECP   1   60\np potential\n 1\n2        3.00000000     -0.00000000\ns-p potential\n 1\n2        1.50000000      0.50000000\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "09",
+    "name": "cli-[]",
+    "input": "",
+    "args": [],
+    "stdout": "\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "09",
+    "name": "cli-['-h']",
+    "input": "",
+    "args": [
+      "-h"
+    ],
+    "stdout": "Usage: std2gaus09\nOptions:    -h        this help\n            -v        version\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "09",
+    "name": "cli-['-v']",
+    "input": "",
+    "args": [
+      "-v"
+    ],
+    "stdout": "Revision: 22972 \n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "09",
+    "name": "cli-['-hv']",
+    "input": "",
+    "args": [
+      "-hv"
+    ],
+    "stdout": "Usage: std2gaus09\nOptions:    -h        this help\n            -v        version\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "09",
+    "name": "cli-['-x']",
+    "input": "",
+    "args": [
+      "-x"
+    ],
+    "stdout": "\n",
+    "stderr": "Unknown option: x\n",
+    "status": 0
+  },
+  {
+    "version": "09",
+    "name": "cli-['--']",
+    "input": "",
+    "args": [
+      "--"
+    ],
+    "stdout": "\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "09",
+    "name": "cli-['unused', '-h']",
+    "input": "",
+    "args": [
+      "unused",
+      "-h"
+    ],
+    "stdout": "\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "03",
+    "name": "name-3-21+g",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"3-21+g\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard 3-21+g spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "03",
+    "name": "name-3-21+g*",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"3-21+g*\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard 3-21+g* spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "03",
+    "name": "name-3-21g",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"3-21g\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard 3-21g spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "03",
+    "name": "name-3-21g*",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"3-21g*\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard 3-21g* spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "03",
+    "name": "name-4-31g",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"4-31g\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard 4-31g spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "03",
+    "name": "name-6-31++g",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"6-31++g\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard 6-31++g spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "03",
+    "name": "name-6-31++g**",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"6-31++g**\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard 6-31++g** spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "03",
+    "name": "name-6-311++g",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"6-311++g\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard 6-311++g spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "03",
+    "name": "name-6-311++g(3df,3pd)",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"6-311++g(3df,3pd)\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard 6-311++g(3df,3pd) spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "03",
+    "name": "name-6-311g",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"6-311g\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard 6-311g spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "03",
+    "name": "name-6-31g",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"6-31g\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard 6-31g spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "03",
+    "name": "name-6-31g(3df,3pd)",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"6-31g(3df,3pd)\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard 6-31g(3df,3pd) spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "03",
+    "name": "name-6-31g*",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"6-31g*\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": " H  0\n S   1  1.00\n       1.50000000      1.00000000\n ****\n\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "03",
+    "name": "name-aug-cc-pv5z",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"aug-cc-pv5z\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard aug-cc-pv5z spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "03",
+    "name": "name-aug-cc-pv6z",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"aug-cc-pv6z\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard aug-cc-pv6z spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "03",
+    "name": "name-aug-cc-pvdz",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"aug-cc-pvdz\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard aug-cc-pvdz spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "03",
+    "name": "name-aug-cc-pvqz",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"aug-cc-pvqz\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard aug-cc-pvqz spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "03",
+    "name": "name-aug-cc-pvtz",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"aug-cc-pvtz\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard aug-cc-pvtz spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "03",
+    "name": "name-cc-pv5z",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"cc-pv5z\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard cc-pv5z spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "03",
+    "name": "name-cc-pv6z",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"cc-pv6z\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard cc-pv6z spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "03",
+    "name": "name-cc-pvdz",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"cc-pvdz\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard cc-pvdz spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "03",
+    "name": "name-cc-pvqz",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"cc-pvqz\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard cc-pvqz spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "03",
+    "name": "name-cc-pvtz",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"cc-pvtz\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard cc-pvtz spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "03",
+    "name": "name-dz (dunning)",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"dz (dunning)\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard dz (dunning) spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "03",
+    "name": "name-midi!",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"midi!\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard  spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "03",
+    "name": "name-sto-2g",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"sto-2g\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard sto-2g spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "03",
+    "name": "name-sto-3g",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"sto-3g\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard sto-3g spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "03",
+    "name": "name-sto-3g*",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"sto-3g*\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard sto-3g* spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "03",
+    "name": "name-sv (dunning-hay)",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"sv (dunning-hay)\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": "useRouteCard sv (dunning-hay) spherical\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "03",
+    "name": "name-unknown",
+    "input": "NameBasis\nbasis \"ao basis\" spherical\n H library \"unknown\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1.5 1.0\nEND\nEndNumericalBasis\n",
+    "stdout": " H  0\n S   1  1.00\n       1.50000000      1.00000000\n ****\n\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "03",
+    "name": "shell-S",
+    "input": "NumericalBasis\nbasis \"ao basis\" cartesian print\nH S\n 2.0 0 0.5\n 1.0 -0.25 0\nEND\nEndNumericalBasis\n",
+    "stdout": " H  0\n S   1  1.00\n       1.00000000     -0.25000000\n S   1  1.00\n       2.00000000      0.50000000\n ****\n\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "03",
+    "name": "shell-S",
+    "input": "NumericalBasis\nbasis \"ao basis\" cartesian print\nH S\n 2.0 0.5\n 1.0 0\nEND\nEndNumericalBasis\n",
+    "stdout": " H  0\n S   2  1.00\n       2.00000000      0.50000000\n       1.00000000\n ****\n\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "03",
+    "name": "shell-S",
+    "input": "NumericalBasis\nbasis \"ao basis\" cartesian print\nH S\n 2.0 1.0D-02\n 1.0 -2.5E-03\nEND\nEndNumericalBasis\n",
+    "stdout": " H  0\n S   2  1.00\n       2.00000000      1.00000000\n       1.00000000     -0.00250000\n ****\n\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "03",
+    "name": "shell-P",
+    "input": "NumericalBasis\nbasis \"ao basis\" cartesian print\nH P\n 2.0 0 0.5\n 1.0 -0.25 0\nEND\nEndNumericalBasis\n",
+    "stdout": " H  0\n P   1  1.00\n       1.00000000     -0.25000000\n P   1  1.00\n       2.00000000      0.50000000\n ****\n\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "03",
+    "name": "shell-P",
+    "input": "NumericalBasis\nbasis \"ao basis\" cartesian print\nH P\n 2.0 0.5\n 1.0 0\nEND\nEndNumericalBasis\n",
+    "stdout": " H  0\n P   2  1.00\n       2.00000000      0.50000000\n       1.00000000\n ****\n\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "03",
+    "name": "shell-P",
+    "input": "NumericalBasis\nbasis \"ao basis\" cartesian print\nH P\n 2.0 1.0D-02\n 1.0 -2.5E-03\nEND\nEndNumericalBasis\n",
+    "stdout": " H  0\n P   2  1.00\n       2.00000000      1.00000000\n       1.00000000     -0.00250000\n ****\n\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "03",
+    "name": "shell-SP",
+    "input": "NumericalBasis\nbasis \"ao basis\" cartesian print\nH SP\n 2.0 0 0.5\n 1.0 -0.25 0\nEND\nEndNumericalBasis\n",
+    "stdout": " H  0\n SP  2  1.00\n       2.00000000      0.50000000\n       1.00000000     -0.25000000\n ****\n\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "03",
+    "name": "shell-SP",
+    "input": "NumericalBasis\nbasis \"ao basis\" cartesian print\nH SP\n 2.0 0.5\n 1.0 0\nEND\nEndNumericalBasis\n",
+    "stdout": " H  0\n SP  2  1.00\n       2.00000000      0.50000000\n       1.00000000\n ****\n\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "03",
+    "name": "shell-SP",
+    "input": "NumericalBasis\nbasis \"ao basis\" cartesian print\nH SP\n 2.0 1.0D-02\n 1.0 -2.5E-03\nEND\nEndNumericalBasis\n",
+    "stdout": " H  0\n SP  2  1.00\n       2.00000000      1.00000000\n       1.00000000     -0.00250000\n ****\n\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "03",
+    "name": "shell-D",
+    "input": "NumericalBasis\nbasis \"ao basis\" cartesian print\nH D\n 2.0 0 0.5\n 1.0 -0.25 0\nEND\nEndNumericalBasis\n",
+    "stdout": " H  0\n D   1  1.00\n       1.00000000     -0.25000000\n D   1  1.00\n       2.00000000      0.50000000\n ****\n\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "03",
+    "name": "shell-D",
+    "input": "NumericalBasis\nbasis \"ao basis\" cartesian print\nH D\n 2.0 0.5\n 1.0 0\nEND\nEndNumericalBasis\n",
+    "stdout": " H  0\n D   2  1.00\n       2.00000000      0.50000000\n       1.00000000\n ****\n\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "03",
+    "name": "shell-D",
+    "input": "NumericalBasis\nbasis \"ao basis\" cartesian print\nH D\n 2.0 1.0D-02\n 1.0 -2.5E-03\nEND\nEndNumericalBasis\n",
+    "stdout": " H  0\n D   2  1.00\n       2.00000000      1.00000000\n       1.00000000     -0.00250000\n ****\n\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "03",
+    "name": "shell-F",
+    "input": "NumericalBasis\nbasis \"ao basis\" cartesian print\nH F\n 2.0 0 0.5\n 1.0 -0.25 0\nEND\nEndNumericalBasis\n",
+    "stdout": " H  0\n F   1  1.00\n       1.00000000     -0.25000000\n F   1  1.00\n       2.00000000      0.50000000\n ****\n\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "03",
+    "name": "shell-F",
+    "input": "NumericalBasis\nbasis \"ao basis\" cartesian print\nH F\n 2.0 0.5\n 1.0 0\nEND\nEndNumericalBasis\n",
+    "stdout": " H  0\n F   2  1.00\n       2.00000000      0.50000000\n       1.00000000\n ****\n\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "03",
+    "name": "shell-F",
+    "input": "NumericalBasis\nbasis \"ao basis\" cartesian print\nH F\n 2.0 1.0D-02\n 1.0 -2.5E-03\nEND\nEndNumericalBasis\n",
+    "stdout": " H  0\n F   2  1.00\n       2.00000000      1.00000000\n       1.00000000     -0.00250000\n ****\n\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "03",
+    "name": "shell-G",
+    "input": "NumericalBasis\nbasis \"ao basis\" cartesian print\nH G\n 2.0 0 0.5\n 1.0 -0.25 0\nEND\nEndNumericalBasis\n",
+    "stdout": " H  0\n G   1  1.00\n       1.00000000     -0.25000000\n G   1  1.00\n       2.00000000      0.50000000\n ****\n\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "03",
+    "name": "shell-G",
+    "input": "NumericalBasis\nbasis \"ao basis\" cartesian print\nH G\n 2.0 0.5\n 1.0 0\nEND\nEndNumericalBasis\n",
+    "stdout": " H  0\n G   2  1.00\n       2.00000000      0.50000000\n       1.00000000\n ****\n\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "03",
+    "name": "shell-G",
+    "input": "NumericalBasis\nbasis \"ao basis\" cartesian print\nH G\n 2.0 1.0D-02\n 1.0 -2.5E-03\nEND\nEndNumericalBasis\n",
+    "stdout": " H  0\n G   2  1.00\n       2.00000000      1.00000000\n       1.00000000     -0.00250000\n ****\n\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "03",
+    "name": "shell-H",
+    "input": "NumericalBasis\nbasis \"ao basis\" cartesian print\nH H\n 2.0 0 0.5\n 1.0 -0.25 0\nEND\nEndNumericalBasis\n",
+    "stdout": " H  0\n H   1  1.00\n       1.00000000     -0.25000000\n H   1  1.00\n       2.00000000      0.50000000\n ****\n\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "03",
+    "name": "shell-H",
+    "input": "NumericalBasis\nbasis \"ao basis\" cartesian print\nH H\n 2.0 0.5\n 1.0 0\nEND\nEndNumericalBasis\n",
+    "stdout": " H  0\n H   2  1.00\n       2.00000000      0.50000000\n       1.00000000\n ****\n\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "03",
+    "name": "shell-H",
+    "input": "NumericalBasis\nbasis \"ao basis\" cartesian print\nH H\n 2.0 1.0D-02\n 1.0 -2.5E-03\nEND\nEndNumericalBasis\n",
+    "stdout": " H  0\n H   2  1.00\n       2.00000000      1.00000000\n       1.00000000     -0.00250000\n ****\n\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "03",
+    "name": "shell-I",
+    "input": "NumericalBasis\nbasis \"ao basis\" cartesian print\nH I\n 2.0 0 0.5\n 1.0 -0.25 0\nEND\nEndNumericalBasis\n",
+    "stdout": " H  0\n I   1  1.00\n       1.00000000     -0.25000000\n I   1  1.00\n       2.00000000      0.50000000\n ****\n\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "03",
+    "name": "shell-I",
+    "input": "NumericalBasis\nbasis \"ao basis\" cartesian print\nH I\n 2.0 0.5\n 1.0 0\nEND\nEndNumericalBasis\n",
+    "stdout": " H  0\n I   2  1.00\n       2.00000000      0.50000000\n       1.00000000\n ****\n\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "03",
+    "name": "shell-I",
+    "input": "NumericalBasis\nbasis \"ao basis\" cartesian print\nH I\n 2.0 1.0D-02\n 1.0 -2.5E-03\nEND\nEndNumericalBasis\n",
+    "stdout": " H  0\n I   2  1.00\n       2.00000000      1.00000000\n       1.00000000     -0.00250000\n ****\n\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "03",
+    "name": "ecp-zero-0",
+    "input": "NumericalBasis\nbasis \"ao basis\" spherical print\nPt S\n 1.0 1.0\nEND\nECP\nPt nelec 60\nPt ul\n 2 3.0 0\nPt s\n 2 1.5 0.5\nEND\nEndNumericalBasis\n",
+    "stdout": " PT  0\n S   1  1.00\n       1.00000000      1.00000000\n ****\n\nPT  0\nPT-ECP   1   60\np potential\n 1\ns-p potential\n 1\n2        1.50000000      0.50000000\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "03",
+    "name": "ecp-zero-0.0",
+    "input": "NumericalBasis\nbasis \"ao basis\" spherical print\nPt S\n 1.0 1.0\nEND\nECP\nPt nelec 60\nPt ul\n 2 3.0 0.0\nPt s\n 2 1.5 0.5\nEND\nEndNumericalBasis\n",
+    "stdout": " PT  0\n S   1  1.00\n       1.00000000      1.00000000\n ****\n\nPT  0\nPT-ECP   1   60\np potential\n 1\n2        3.00000000      0.00000000\ns-p potential\n 1\n2        1.50000000      0.50000000\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "03",
+    "name": "ecp-zero--0.0",
+    "input": "NumericalBasis\nbasis \"ao basis\" spherical print\nPt S\n 1.0 1.0\nEND\nECP\nPt nelec 60\nPt ul\n 2 3.0 -0.0\nPt s\n 2 1.5 0.5\nEND\nEndNumericalBasis\n",
+    "stdout": " PT  0\n S   1  1.00\n       1.00000000      1.00000000\n ****\n\nPT  0\nPT-ECP   1   60\np potential\n 1\n2        3.00000000     -0.00000000\ns-p potential\n 1\n2        1.50000000      0.50000000\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "03",
+    "name": "cli-[]",
+    "input": "",
+    "args": [],
+    "stdout": "\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "03",
+    "name": "cli-['-h']",
+    "input": "",
+    "args": [
+      "-h"
+    ],
+    "stdout": "Usage: std2gaus03\nOptions:    -h        this help\n            -v        version\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "03",
+    "name": "cli-['-v']",
+    "input": "",
+    "args": [
+      "-v"
+    ],
+    "stdout": "Revision: 22972 \n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "03",
+    "name": "cli-['-hv']",
+    "input": "",
+    "args": [
+      "-hv"
+    ],
+    "stdout": "Usage: std2gaus03\nOptions:    -h        this help\n            -v        version\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "03",
+    "name": "cli-['-x']",
+    "input": "",
+    "args": [
+      "-x"
+    ],
+    "stdout": "\n",
+    "stderr": "Unknown option: x\n",
+    "status": 0
+  },
+  {
+    "version": "03",
+    "name": "cli-['--']",
+    "input": "",
+    "args": [
+      "--"
+    ],
+    "stdout": "\n",
+    "stderr": "",
+    "status": 0
+  },
+  {
+    "version": "03",
+    "name": "cli-['unused', '-h']",
+    "input": "",
+    "args": [
+      "unused",
+      "-h"
+    ],
+    "stdout": "\n",
+    "stderr": "",
+    "status": 0
+  }
+]

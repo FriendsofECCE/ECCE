@@ -1,9 +1,0 @@
-#!/usr/bin/env python3
-"""Translate ECCE's standard basis dump on stdin to MOLPRO on stdout."""
-
-import sys
-from rdStandardGBS import translator_main
-from wrmolproGBS import writemolpro
-
-if __name__ == '__main__':
-    sys.exit(translator_main(writemolpro, 'molpro', '1326'))

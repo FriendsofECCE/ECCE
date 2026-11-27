@@ -1,0 +1,46 @@
+{
+  "help": {
+    "returncode": 0,
+    "stdout": "Usage: master2bas [-h] [-s sourceDir] [-d destDir]\n\t-h\tDisplay this message.\n\t-s\tSpecify the source directory for the data files\n\t\tThis defaults to /msrc/dist/gbasis-1.0\n\t-d\tSpecify the destination directory for the data files\n\t\tThis defaults to $ECCE_HOME/data/admin/basissets/testNewData\n",
+    "stderr": "",
+    "files": {}
+  },
+  "decline": {
+    "returncode": 0,
+    "stdout": "\nSource directory:\tsource\nDestination directory:\tdest\nOK? (y/n) ",
+    "stderr": "",
+    "files": {}
+  },
+  "convert": {
+    "returncode": 0,
+    "stdout": "\nSource directory:\tsource\nDestination directory:\tdest\nOK? (y/n) Reading from source/MASTER.TBL\nCreating dest/MASTER.TBL.....Done\nExtracting Revision Information from MASTER.TBL...Done\nGenerating namefile hash...mapping LOCAL.BAS to Local Basis\nmapping LOCALPS-AGG.BAS to Local (+*)\nNAME OF BASIS SET :: Local Basis\nBASIS SET : Local Basis\n FILE : source/LOCAL.BAS\nNAME OF BASIS SET :: Local (+*)\nBASIS SET : Local (+*)\n FILE : source/LOCAL.POT\nGenerating : dest/LOCAL.BAS.meta\nGenerating : dest/LOCAL.BAS\nGenerating : dest/LOCALPS-AGG.BAS.meta\nGenerating : dest/LOCALPS-AGG.BAS\nGenerating : dest/LOCAL.POT.meta\nGenerating : dest/LOCAL.POT\nHidden Basis Sets:\nHIDDEN.BAS\nEnd gbsDAVConverter\n",
+    "stderr": "",
+    "files": {
+      "LOCAL.BAS": "atom=H\ncontraction shell=S num_primitives=2 num_coefficients=1\n1.00D+00 0.5\n0.25 0.4\n",
+      "LOCAL.BAS.meta": "name\nLocal Basis\nname\ntype\npople\ntype\ncategory\nORBITAL\ncategory\nspherical\nN\nspherical\ncontraction_type\nSegmented\ncontraction_type\nreferences\nLocal reference\ncontinued\n\nreferences\ninfo\nLocal information\ncontinued    \n\ninfo\ncomments\n1/2/26  initial entry\ncomments\n",
+      "LOCAL.POT": "atom=H ncore=0 lmax=1\necp_potential%l=0%shell=S%num_exponents=1\n2 1.0 -0.5\n",
+      "LOCAL.POT.meta": "name\nLocal ECP\nname\ntype\necp\ntype\ncategory\nAUXILIARY\ncategory\nreferences\nPotential reference\ncontinued\n\nreferences\ncomments\ncomments\n",
+      "LOCALPS-AGG.BAS": "",
+      "LOCALPS-AGG.BAS.meta": "name\nLocal (+*)\nname\ntype\npople\ntype\ncategory\nORBITAL\ncategory\nspherical\nY\nspherical\ncontraction_type\nSegmented\ncontraction_type\nreferences\n\nreferences\ninfo\n\ninfo\ncomments\ncomments\n",
+      "MASTER.TBL": "NAME=\"Local Basis\"\nGENR=F\nSHARED=T\nCATEGORY=ORBITAL\nTYPE=\"MB\"\nSPHR=N\nINFO=\n\"Local information\ncontinued    \"\nFILE=\"LOCAL.BAS\"\nATMN=1 118 ENDATMNOS\n!\nNAME=\"Local (+*)\"\nGENR=F\nSHARED=T\nCATEGORY=ORBITAL\nTYPE=\"MB\"\nSPHR=Y\nFILE=\"LOCAL.BAS\"\nATMN=1 ENDATMNOS\nFIL1=\"HIDDEN.BAS\"\nATM1=1 ENDATMNOS\nECPFILE=\"LOCAL.POT\"\n! Revision History\n! heading one\n! heading two\n! heading three\n! heading four\n!  1/ 2/26 DFF EN Local revision\n! continuation\n",
+      "bsb.rev": "Local revision header\n\n\nDate:  1/ 2/26\nAuthor: 3e102\nType: EN\nDescription: Local revision\\\ncontinuation\n",
+      "gbsNameConv": "type= pople\nname= Local Basis\nfiles= LOCAL.BAS\natoms= H Og\n\nname= Local (+*)\nfiles= LOCALPS-AGG.BAS LOCAL.BAS HIDDEN.BAS LOCAL.POT\natoms= H\natoms= H\n\ntype= ecp\nname= Local ECP\nfiles= LOCAL.POT\natoms= H\n"
+    }
+  },
+  "cleanup": {
+    "returncode": 0,
+    "stdout": "\nSource directory:\tsource\nDestination directory:\tdest\nOK? (y/n) Deleting old files from dest...8 files deleted.\nReading from source/MASTER.TBL\nCreating dest/MASTER.TBL.....Done\nExtracting Revision Information from MASTER.TBL...Done\nGenerating namefile hash...mapping LOCAL.BAS to Local Basis\nmapping LOCALPS-AGG.BAS to Local (+*)\nNAME OF BASIS SET :: Local Basis\nBASIS SET : Local Basis\n FILE : source/LOCAL.BAS\nNAME OF BASIS SET :: Local (+*)\nBASIS SET : Local (+*)\n FILE : source/LOCAL.POT\nGenerating : dest/LOCAL.BAS.meta\nGenerating : dest/LOCAL.BAS\nGenerating : dest/LOCALPS-AGG.BAS.meta\nGenerating : dest/LOCALPS-AGG.BAS\nGenerating : dest/LOCAL.POT.meta\nGenerating : dest/LOCAL.POT\nHidden Basis Sets:\nHIDDEN.BAS\nEnd gbsDAVConverter\n",
+    "stderr": "",
+    "files": {
+      "LOCAL.BAS": "atom=H\ncontraction shell=S num_primitives=2 num_coefficients=1\n1.00D+00 0.5\n0.25 0.4\n",
+      "LOCAL.BAS.meta": "name\nLocal Basis\nname\ntype\npople\ntype\ncategory\nORBITAL\ncategory\nspherical\nN\nspherical\ncontraction_type\nSegmented\ncontraction_type\nreferences\nLocal reference\ncontinued\n\nreferences\ninfo\nLocal information\ncontinued    \n\ninfo\ncomments\n1/2/26  initial entry\ncomments\n",
+      "LOCAL.POT": "atom=H ncore=0 lmax=1\necp_potential%l=0%shell=S%num_exponents=1\n2 1.0 -0.5\n",
+      "LOCAL.POT.meta": "name\nLocal ECP\nname\ntype\necp\ntype\ncategory\nAUXILIARY\ncategory\nreferences\nPotential reference\ncontinued\n\nreferences\ncomments\ncomments\n",
+      "LOCALPS-AGG.BAS": "",
+      "LOCALPS-AGG.BAS.meta": "name\nLocal (+*)\nname\ntype\npople\ntype\ncategory\nORBITAL\ncategory\nspherical\nY\nspherical\ncontraction_type\nSegmented\ncontraction_type\nreferences\n\nreferences\ninfo\n\ninfo\ncomments\ncomments\n",
+      "MASTER.TBL": "NAME=\"Local Basis\"\nGENR=F\nSHARED=T\nCATEGORY=ORBITAL\nTYPE=\"MB\"\nSPHR=N\nINFO=\n\"Local information\ncontinued    \"\nFILE=\"LOCAL.BAS\"\nATMN=1 118 ENDATMNOS\n!\nNAME=\"Local (+*)\"\nGENR=F\nSHARED=T\nCATEGORY=ORBITAL\nTYPE=\"MB\"\nSPHR=Y\nFILE=\"LOCAL.BAS\"\nATMN=1 ENDATMNOS\nFIL1=\"HIDDEN.BAS\"\nATM1=1 ENDATMNOS\nECPFILE=\"LOCAL.POT\"\n! Revision History\n! heading one\n! heading two\n! heading three\n! heading four\n!  1/ 2/26 DFF EN Local revision\n! continuation\n",
+      "bsb.rev": "Local revision header\n\n\nDate:  1/ 2/26\nAuthor: 3e102\nType: EN\nDescription: Local revision\\\ncontinuation\n",
+      "gbsNameConv": "type= pople\nname= Local Basis\nfiles= LOCAL.BAS\natoms= H Og\n\nname= Local (+*)\nfiles= LOCALPS-AGG.BAS LOCAL.BAS HIDDEN.BAS LOCAL.POT\natoms= H\natoms= H\n\ntype= ecp\nname= Local ECP\nfiles= LOCAL.POT\natoms= H\n"
+    }
+  }
+}

@@ -224,6 +224,25 @@
 
 namespace {
 
+// "view=NAME" anywhere in a diffraction hook's words: taken out of the words,
+// so the positional arguments keep their meaning, and returned as the pattern
+// mode onPattern uses.  -1 if it was not given, -2 for an unknown name.
+int takeViewWord(std::vector<std::string>& w)
+{
+  static const std::map<std::string, int> modes = {
+    {"fibre", 0}, {"fiber", 0}, {"powder", 1}, {"single", 2},
+    {"frame", 3}, {"debye", 4}};
+  int mode = -1;
+  for (size_t i = 1; i < w.size(); ) {
+    if (w[i].compare(0, 5, "view=") == 0) {
+      const std::map<std::string, int>::const_iterator it = modes.find(w[i].substr(5));
+      mode = it == modes.end() ? -2 : it->second;
+      w.erase(w.begin() + i);
+    } else ++i;
+  }
+  return mode;
+}
+
 struct ScriptState {
   std::vector<std::string> lines;
   size_t next;
@@ -1389,17 +1408,22 @@ void Builder::runBuilderScript(const std::string& file)
       } else if (w[0] == "xrd") {
         fprintf(stderr, "BUILDER: xrd: %s\n", diffractionScript(w).ToUTF8().data());
       } else if (w[0] == "diffraction" && w.size() >= 3) {
-        //  diffraction OUT.png OUT.csv [XYZ]: Tools > Diffraction... with the
-        //  default fields; the structure it was given is kept as XYZ (#971).
+        //  diffraction OUT.png OUT.csv [XYZ] [view=NAME]: Tools > Diffraction...
+        //  with the default fields; the structure it was given is kept as XYZ
+        //  (#971).  view=fibre|powder|single|frame|debye picks the view instead
+        //  of the default for the structure (#1230).
+        std::vector<std::string> dw = w;
+        const int view = takeViewWord(dw);
         std::vector<int> sel;
-        const std::string xyz = w.size() > 3 ? w[3] : w[1] + ".xyz";
-        std::string err = writeStructureXyz(xyz, sel);
+        const std::string xyz = dw.size() > 3 ? dw[3] : dw[1] + ".xyz";
+        std::string err = view == -2 ? "unknown view" : writeStructureXyz(xyz, sel);
         std::string why;
         DiffractionDialog *dd = 0;
         if (err.empty()) {
           dd = new DiffractionDialog(this, xyz, sel);
-          if (!dd->calculate(why)) err = why;
-          else if (!dd->savePng(w[1], why) || !dd->saveCsv(w[2], why)) err = why;
+          if (view >= 0 && !dd->setPattern(view, why)) err = why;
+          else if (!dd->calculate(why)) err = why;
+          else if (!dd->savePng(dw[1], why) || !dd->saveCsv(dw[2], why)) err = why;
         }
         fprintf(stderr, "BUILDER: diffraction: %s\n", err.empty() ? "done" : ("refused: " + err).c_str());
         if (dd) dd->Destroy();
@@ -1427,22 +1451,33 @@ void Builder::runBuilderScript(const std::string& file)
         fprintf(stderr, "BUILDER: debye: %s\n", err.empty() ? "done" : ("refused: " + err).c_str());
         if (dd) dd->Destroy();
       } else if (w[0] == "calcdiffraction" && w.size() >= 3) {
-        //  calcdiffraction OUT.png OUT.csv [XYZ [EXPOSURE SCHEME]]: the Diffraction entry of the
-        //  open calculation's results, default fields (#587).
-        std::string err, why;
-        DiffractionDialog *dd = calcHasStructure() ?
-            openResultsDiffraction(w.size() > 3 ? w[3] : w[1] + ".xyz") : 0;
-        if (!dd) err = "no Diffraction entry for this calculation";
-        else if (w.size() > 5 && (dd->setDisplay(atoi(w[4].c_str()), atoi(w[5].c_str())), false)) {}
+        //  calcdiffraction OUT.png OUT.csv [XYZ [EXPOSURE SCHEME]] [view=NAME]: the
+        //  Diffraction entry of the open calculation's results, default fields (#587).
+        //  view=fibre|powder|single|frame|debye picks the view instead of the
+        //  default for the structure (#1230).
+        std::vector<std::string> dw = w;
+        const int view = takeViewWord(dw);
+        std::string err = view == -2 ? "unknown view" : std::string(), why;
+        DiffractionDialog *dd = err.empty() && calcHasStructure() ?
+            openResultsDiffraction(dw.size() > 3 ? dw[3] : dw[1] + ".xyz") : 0;
+        if (!err.empty()) {}
+        else if (!dd) err = "no Diffraction entry for this calculation";
+        else if (view >= 0 && !dd->setPattern(view, why)) err = why;
+        else if (dw.size() > 5 && (dd->setDisplay(atoi(dw[4].c_str()), atoi(dw[5].c_str())), false)) {}
         else if (!dd->calculate(why)) err = why;
-        else if (!dd->savePng(w[1], why) || !dd->saveCsv(w[2], why)) err = why;
-        if (dd && err.empty() && w.size() > 6 && w[6] == "viewtest") {
-          if (!dd->testImageView(w[1], why)) err = why;
+        else if (!dd->savePng(dw[1], why) || !dd->saveCsv(dw[2], why)) err = why;
+        if (dd && err.empty() && dw.size() > 6 && dw[6] == "viewtest") {
+          if (!dd->testImageView(dw[1], why)) err = why;
           fprintf(stderr, "BUILDER: image view: %s\n", err.empty() ? "PASS" : err.c_str());
         }
         if (dd && err.empty())
           fprintf(stderr, "BUILDER: calcdiffraction pattern: %s\n",
-                  dd->singleCrystal() ? "single" : dd->powder() ? "powder" : "fibre");
+                  // Every view has to be named here: powder() is false in
+                  // Debye mode, so without it a Debye view reported "fibre".
+                  dd->singleCrystal() ? "single" :
+                  dd->detectorFrame() ? "frame" :
+                  dd->debye() ? "debye" :
+                  dd->powder() ? "powder" : "fibre");
         fprintf(stderr, "BUILDER: calcdiffraction: %s\n", err.empty() ? "done" : ("refused: " + err).c_str());
         if (dd) dd->Destroy();
       } else if (w[0] == "calcpowder" && w.size() >= 5) {
