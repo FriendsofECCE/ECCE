@@ -1,6 +1,6 @@
 **ECCE 9.6.1.** Please report problems as [issues](https://github.com/FriendsofECCE/ECCE/issues).
 
-**Platforms.** Linux (Debian 13; Ubuntu 24.04, RHEL/Rocky 9 and Fedora 44 packages are built on those systems but not tested). Windows 10 and 11. macOS, Apple silicon and Intel: experimental.
+**Platforms.** Linux (Debian 13; Ubuntu 24.04, RHEL/Rocky 9 and Fedora 45 packages are built on those systems but not tested). Windows 10 and 11. macOS, Apple silicon and Intel: experimental.
 
 A bug-fix release for 9.6.0, the first release in which ECCE is one program with tools in tabs. Two of the fixes are for faults that could lose work, and one of those has been present in every released version of ECCE.
 

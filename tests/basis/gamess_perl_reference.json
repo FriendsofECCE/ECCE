@@ -1,0 +1,334 @@
+[
+  {
+    "code": "GAMESS-UK",
+    "name": "ch3i_def2-C",
+    "input": "NameBasis\nbasis \"ao basis\" cartesian print\nC library \"ignored\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nC S\n  1238.40169380 0.00545688\n  186.29004992 0.04063841\n  42.25117635 0.18025594\n  11.67655793 0.46315122\n  3.59305065 0.44087173\nC S\n  0.40245147 1.00000000\nC S\n  0.13090183 1.00000000\nC P\n  9.46809706 0.03838787\n  2.01035451 0.21117025\n  0.54771005 0.51328172\nC P\n  0.15268614 1.00000000\nC D\n  0.80000000 1.00000000\nEND\nEndNumericalBasis\n",
+    "args": [],
+    "status": 0,
+    "stdout": "harmonic \nbasis nwchem \nC    S\n      1238.40169380         0.00545688\n       186.29004992         0.04063841\n        42.25117635         0.18025594\n        11.67655793         0.46315122\n         3.59305065         0.44087173\nC    S\n         0.40245147         1.00000000\nC    S\n         0.13090183         1.00000000\nC    P\n         9.46809706         0.03838787\n         2.01035451         0.21117025\n         0.54771005         0.51328172\nC    P\n         0.15268614         1.00000000\nC    D\n         0.80000000         1.00000000\nEND\n",
+    "stderr": ""
+  },
+  {
+    "code": "GAMESS-UK",
+    "name": "ch3i_def2-H",
+    "input": "NameBasis\nbasis \"ao basis\" cartesian print\nH library \"ignored\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n  13.01070100 0.01968216\n  1.96225720 0.13796524\n  0.44453796 0.47831935\nH S\n  0.12194962 1.00000000\nH P\n  0.80000000 1.00000000\nEND\nEndNumericalBasis\n",
+    "args": [],
+    "status": 0,
+    "stdout": "harmonic \nbasis nwchem \nH    S\n        13.01070100         0.01968216\n         1.96225720         0.13796524\n         0.44453796         0.47831935\nH    S\n         0.12194962         1.00000000\nH    P\n         0.80000000         1.00000000\nEND\n",
+    "stderr": ""
+  },
+  {
+    "code": "GAMESS-UK",
+    "name": "ch3i_def2-I",
+    "input": "NameBasis\nbasis \"ao basis\" cartesian print\nI library \"ignored\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nI S\n  445.90489176 0.00200373\n  23.33684241 -0.14989397\n  19.58344610 0.36436475\n  8.51120892 -0.75538138\n  2.19961619 0.82816359\n  1.06689705 0.42161048\nI S\n  11.72054757 -0.01616023\n  1.76259864 0.35271525\nI S\n  0.28697476 1.00000000\nI S\n  0.11227610 1.00000000\nI P\n  20.49902725 0.07715934\n  10.55875458 -0.38370373\n  1.50158955 0.83554175\n  0.64597173 0.16787259\nI P\n  3.02886568 1.00000000\nI P\n  0.34506592 1.00000000\nI P\n  0.11134514 1.00000000\nI D\n  51.23535492 0.00403451\n  15.61623948 -0.00507681\n  4.52660021 0.29151065\n  2.05298088 0.51145784\n  0.87640282 0.31232025\nI D\n  0.30900000 1.00000000\nEND\nECP\nI nelec 28\nI ul\n2 19.45860900 -21.84204000\n2 19.34926000 -28.46819100\n2 4.82376700 -0.24371300\n2 4.88431500 -0.32080400\nI S\n2 40.01583500 49.99429300\n2 17.42974700 281.02531700\n2 9.00548400 61.57332600\n2 19.45860900 21.84204000\n2 19.34926000 28.46819100\n2 4.82376700 0.24371300\n2 4.88431500 0.32080400\nI P\n2 15.35546600 67.44284100\n2 14.97183300 134.88113700\n2 8.96016400 14.67505100\n2 8.25909600 29.37566600\n2 19.45860900 21.84204000\n2 19.34926000 28.46819100\n2 4.82376700 0.24371300\n2 4.88431500 0.32080400\nI D\n2 15.06890800 35.43952900\n2 14.55532200 53.17605700\n2 6.71864700 9.06719500\n2 6.45639300 13.20693700\n2 1.19177900 0.08933500\n2 1.29115700 0.05238000\n2 19.45860900 21.84204000\n2 19.34926000 28.46819100\n2 4.82376700 0.24371300\n2 4.88431500 0.32080400\nEND\nEndNumericalBasis\n",
+    "args": [],
+    "status": 0,
+    "stdout": "harmonic \nbasis nwchem \nI    S\n       445.90489176         0.00200373\n        23.33684241        -0.14989397\n        19.58344610         0.36436475\n         8.51120892        -0.75538138\n         2.19961619         0.82816359\n         1.06689705         0.42161048\nI    S\n        11.72054757        -0.01616023\n         1.76259864         0.35271525\nI    S\n         0.28697476         1.00000000\nI    S\n         0.11227610         1.00000000\nI    P\n        20.49902725         0.07715934\n        10.55875458        -0.38370373\n         1.50158955         0.83554175\n         0.64597173         0.16787259\nI    P\n         3.02886568         1.00000000\nI    P\n         0.34506592         1.00000000\nI    P\n         0.11134514         1.00000000\nI    D\n        51.23535492         0.00403451\n        15.61623948        -0.00507681\n         4.52660021         0.29151065\n         2.05298088         0.51145784\n         0.87640282         0.31232025\nI    D\n         0.30900000         1.00000000\nEND\nPSEUDO ECP\nCARDS I\n3 28\n# I ul\n4\n    2        -21.84204000         19.45860900\n    2        -28.46819100         19.34926000\n    2         -0.24371300          4.82376700\n    2         -0.32080400          4.88431500\n# I S\n7\n    2         49.99429300         40.01583500\n    2        281.02531700         17.42974700\n    2         61.57332600          9.00548400\n    2         21.84204000         19.45860900\n    2         28.46819100         19.34926000\n    2          0.24371300          4.82376700\n    2          0.32080400          4.88431500\n# I P\n8\n    2         67.44284100         15.35546600\n    2        134.88113700         14.97183300\n    2         14.67505100          8.96016400\n    2         29.37566600          8.25909600\n    2         21.84204000         19.45860900\n    2         28.46819100         19.34926000\n    2          0.24371300          4.82376700\n    2          0.32080400          4.88431500\n# I D\n10\n    2         35.43952900         15.06890800\n    2         53.17605700         14.55532200\n    2          9.06719500          6.71864700\n    2         13.20693700          6.45639300\n    2          0.08933500          1.19177900\n    2          0.05238000          1.29115700\n    2         21.84204000         19.45860900\n    2         28.46819100         19.34926000\n    2          0.24371300          4.82376700\n    2          0.32080400          4.88431500\n",
+    "stderr": ""
+  },
+  {
+    "code": "GAMESS-UK",
+    "name": "pth_ecp-H",
+    "input": "NameBasis\nbasis \"ao basis\" cartesian print\nH library \"ignored\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" cartesian print\nH S\n  18.7311370 0.0334946\n  2.8253937 0.2347270\n  0.6401217 0.8137573\nEND\nEndNumericalBasis\n",
+    "args": [],
+    "status": 0,
+    "stdout": "basis nwchem \nH    S\n         18.7311370          0.0334946\n          2.8253937          0.2347270\n          0.6401217          0.8137573\nEND\n",
+    "stderr": ""
+  },
+  {
+    "code": "GAMESS-UK",
+    "name": "pth_ecp-Pt",
+    "input": "NameBasis\nbasis \"ao basis\" cartesian print\nPt library \"ignored\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" cartesian print\nPt S\n  2.6300000 -2.6087810\n  1.7200000 3.1670530\nEND\nECP\nPt nelec 60\nPt ul\n2 52.8680174 -298.3178135\nPt S\n0 409.4437358 2.7334218\nEND\nEndNumericalBasis\n",
+    "args": [],
+    "status": 0,
+    "stdout": "basis nwchem \nPt    S\n          2.6300000         -2.6087810\n          1.7200000          3.1670530\nEND\nPSEUDO ECP\nCARDS Pt\n1 60\n# Pt ul\n1\n    2       -298.31781350         52.86801740\n# Pt S\n1\n    0          2.73342180        409.44373580\n",
+    "stderr": ""
+  },
+  {
+    "code": "GAMESS-UK",
+    "name": "water_aug_ccpvdz-H",
+    "input": "NameBasis\nbasis \"ao basis\" cartesian print\nH library \"ignored\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" cartesian print\nH S\n  18.7311370 0.0334946\n  2.8253937 0.2347270\n  0.6401217 0.8137573\nEND\nEndNumericalBasis\n",
+    "args": [],
+    "status": 0,
+    "stdout": "basis nwchem \nH    S\n         18.7311370          0.0334946\n          2.8253937          0.2347270\n          0.6401217          0.8137573\nEND\n",
+    "stderr": ""
+  },
+  {
+    "code": "GAMESS-UK",
+    "name": "water_aug_ccpvdz-O",
+    "input": "NameBasis\nbasis \"ao basis\" cartesian print\nO library \"ignored\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" cartesian print\nO S\n  5484.6717000 0.0018311\n  825.2349500 0.0139501\n  188.0469600 0.0684451\nO SP\n  15.5396160 -0.1107775 0.0708743\n  3.5999336 -0.1480263 0.3397528\nO SP\n  0.2700058 1.0000000 1.0000000\nEND\nEndNumericalBasis\n",
+    "args": [],
+    "status": 0,
+    "stdout": "basis nwchem \nO    S\n       5484.6717000          0.0018311\n        825.2349500          0.0139501\n        188.0469600          0.0684451\nO    SP\n         15.5396160         -0.1107775          0.0708743\n          3.5999336         -0.1480263          0.3397528\nO    SP\n          0.2700058          1.0000000          1.0000000\nEND\n",
+    "stderr": ""
+  },
+  {
+    "code": "GAMESS-UK",
+    "name": "water_aug_pwcvdz-H",
+    "input": "NameBasis\nbasis \"ao basis\" cartesian print\nH library \"ignored\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" cartesian print\nH S\n  18.7311370 0.0334946\n  2.8253937 0.2347270\n  0.6401217 0.8137573\nEND\nEndNumericalBasis\n",
+    "args": [],
+    "status": 0,
+    "stdout": "basis nwchem \nH    S\n         18.7311370          0.0334946\n          2.8253937          0.2347270\n          0.6401217          0.8137573\nEND\n",
+    "stderr": ""
+  },
+  {
+    "code": "GAMESS-UK",
+    "name": "water_aug_pwcvdz-O",
+    "input": "NameBasis\nbasis \"ao basis\" cartesian print\nO library \"ignored\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" cartesian print\nO S\n  5484.6717000 0.0018311\n  825.2349500 0.0139501\n  188.0469600 0.0684451\nO SP\n  15.5396160 -0.1107775 0.0708743\n  3.5999336 -0.1480263 0.3397528\nO SP\n  0.2700058 1.0000000 1.0000000\nEND\nEndNumericalBasis\n",
+    "args": [],
+    "status": 0,
+    "stdout": "basis nwchem \nO    S\n       5484.6717000          0.0018311\n        825.2349500          0.0139501\n        188.0469600          0.0684451\nO    SP\n         15.5396160         -0.1107775          0.0708743\n          3.5999336         -0.1480263          0.3397528\nO    SP\n          0.2700058          1.0000000          1.0000000\nEND\n",
+    "stderr": ""
+  },
+  {
+    "code": "GAMESS-UK",
+    "name": "water_ccpvdz_explicit-H",
+    "input": "NameBasis\nbasis \"ao basis\" cartesian print\nH library \"ignored\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n  13.010000000000 0.019685000000\n  1.962000000000 0.137977000000\n  0.444600000000 0.478148000000\nH S\n  0.122000000000 1.000000000000\nH P\n  0.727000000000 1.000000000000\nEND\nEndNumericalBasis\n",
+    "args": [],
+    "status": 0,
+    "stdout": "harmonic \nbasis nwchem \nH    S\n    13.010000000000     0.019685000000\n     1.962000000000     0.137977000000\n     0.444600000000     0.478148000000\nH    S\n     0.122000000000     1.000000000000\nH    P\n     0.727000000000     1.000000000000\nEND\n",
+    "stderr": ""
+  },
+  {
+    "code": "GAMESS-UK",
+    "name": "water_ccpvdz_explicit-O",
+    "input": "NameBasis\nbasis \"ao basis\" cartesian print\nO library \"ignored\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nO S\n  11720.000000000000 0.000710000000 -0.000160000000\n  1759.000000000000 0.005470000000 -0.001263000000\n  400.800000000000 0.027837000000 -0.006267000000\n  113.700000000000 0.104800000000 -0.025716000000\n  37.030000000000 0.283062000000 -0.070924000000\n  13.270000000000 0.448719000000 -0.165411000000\n  5.025000000000 0.270952000000 -0.116955000000\n  1.013000000000 0.015458000000 0.557368000000\nO S\n  0.302300000000 1.000000000000\nO P\n  17.700000000000 0.043018000000\n  3.854000000000 0.228913000000\n  1.046000000000 0.508728000000\nO P\n  0.275300000000 1.000000000000\nO D\n  1.185000000000 1.000000000000\nEND\nEndNumericalBasis\n",
+    "args": [],
+    "status": 0,
+    "stdout": "harmonic \nbasis nwchem \nO    S\n 11720.000000000000     0.000710000000    -0.000160000000\n  1759.000000000000     0.005470000000    -0.001263000000\n   400.800000000000     0.027837000000    -0.006267000000\n   113.700000000000     0.104800000000    -0.025716000000\n    37.030000000000     0.283062000000    -0.070924000000\n    13.270000000000     0.448719000000    -0.165411000000\n     5.025000000000     0.270952000000    -0.116955000000\n     1.013000000000     0.015458000000     0.557368000000\nO    S\n     0.302300000000     1.000000000000\nO    P\n    17.700000000000     0.043018000000\n     3.854000000000     0.228913000000\n     1.046000000000     0.508728000000\nO    P\n     0.275300000000     1.000000000000\nO    D\n     1.185000000000     1.000000000000\nEND\n",
+    "stderr": ""
+  },
+  {
+    "code": "GAMESS-UK",
+    "name": "water_gencontr-H",
+    "input": "NameBasis\nbasis \"ao basis\" cartesian print\nH library \"ignored\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nH S\n  13.010000000000 0.019685000000\n  1.962000000000 0.137977000000\n  0.444600000000 0.478148000000\nEND\nEndNumericalBasis\n",
+    "args": [],
+    "status": 0,
+    "stdout": "harmonic \nbasis nwchem \nH    S\n    13.010000000000     0.019685000000\n     1.962000000000     0.137977000000\n     0.444600000000     0.478148000000\nEND\n",
+    "stderr": ""
+  },
+  {
+    "code": "GAMESS-UK",
+    "name": "water_gencontr-O",
+    "input": "NameBasis\nbasis \"ao basis\" cartesian print\nO library \"ignored\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" spherical print\nO S\n  11720.000000000000 0.000710000000 -0.000160000000\n  1759.000000000000 0.005470000000 -0.001263000000\n  400.800000000000 0.027837000000 -0.006267000000\n  113.700000000000 0.104800000000 -0.025716000000\n  37.030000000000 0.283062000000 -0.070924000000\n  13.270000000000 0.448719000000 -0.165411000000\n  5.025000000000 0.270952000000 -0.116955000000\n  1.013000000000 0.015458000000 0.557368000000\nO S\n  0.302300000000 1.000000000000\nEND\nEndNumericalBasis\n",
+    "args": [],
+    "status": 0,
+    "stdout": "harmonic \nbasis nwchem \nO    S\n 11720.000000000000     0.000710000000    -0.000160000000\n  1759.000000000000     0.005470000000    -0.001263000000\n   400.800000000000     0.027837000000    -0.006267000000\n   113.700000000000     0.104800000000    -0.025716000000\n    37.030000000000     0.283062000000    -0.070924000000\n    13.270000000000     0.448719000000    -0.165411000000\n     5.025000000000     0.270952000000    -0.116955000000\n     1.013000000000     0.015458000000     0.557368000000\nO    S\n     0.302300000000     1.000000000000\nEND\n",
+    "stderr": ""
+  },
+  {
+    "code": "GAMESS-UK",
+    "name": "water_mixed-H",
+    "input": "NameBasis\nbasis \"ao basis\" cartesian print\nH library \"ignored\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" cartesian print\nH S\n  18.7311370 0.0334946\n  2.8253937 0.2347270\n  0.6401217 0.8137573\nEND\nEndNumericalBasis\n",
+    "args": [],
+    "status": 0,
+    "stdout": "basis nwchem \nH    S\n         18.7311370          0.0334946\n          2.8253937          0.2347270\n          0.6401217          0.8137573\nEND\n",
+    "stderr": ""
+  },
+  {
+    "code": "GAMESS-UK",
+    "name": "water_mixed-O",
+    "input": "NameBasis\nbasis \"ao basis\" cartesian print\nO library \"ignored\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" cartesian print\nO S\n  5484.6717000 0.0018311\n  825.2349500 0.0139501\n  188.0469600 0.0684451\nO SP\n  15.5396160 -0.1107775 0.0708743\n  3.5999336 -0.1480263 0.3397528\nO SP\n  0.2700058 1.0000000 1.0000000\nEND\nEndNumericalBasis\n",
+    "args": [],
+    "status": 0,
+    "stdout": "basis nwchem \nO    S\n       5484.6717000          0.0018311\n        825.2349500          0.0139501\n        188.0469600          0.0684451\nO    SP\n         15.5396160         -0.1107775          0.0708743\n          3.5999336         -0.1480263          0.3397528\nO    SP\n          0.2700058          1.0000000          1.0000000\nEND\n",
+    "stderr": ""
+  },
+  {
+    "code": "GAMESS-UK",
+    "name": "water_mixed_orca-H",
+    "input": "NameBasis\nbasis \"ao basis\" cartesian print\nH library \"ignored\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" cartesian print\nH S\n  18.7311370 0.0334946\n  2.8253937 0.2347270\n  0.6401217 0.8137573\nEND\nEndNumericalBasis\n",
+    "args": [],
+    "status": 0,
+    "stdout": "basis nwchem \nH    S\n         18.7311370          0.0334946\n          2.8253937          0.2347270\n          0.6401217          0.8137573\nEND\n",
+    "stderr": ""
+  },
+  {
+    "code": "GAMESS-UK",
+    "name": "water_mixed_orca-O",
+    "input": "NameBasis\nbasis \"ao basis\" cartesian print\nO library \"ignored\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" cartesian print\nO S\n  5484.6717000 0.0018311\n  825.2349500 0.0139501\n  188.0469600 0.0684451\nO SP\n  15.5396160 -0.1107775 0.0708743\n  3.5999336 -0.1480263 0.3397528\nO SP\n  0.2700058 1.0000000 1.0000000\nEND\nEndNumericalBasis\n",
+    "args": [],
+    "status": 0,
+    "stdout": "basis nwchem \nO    S\n       5484.6717000          0.0018311\n        825.2349500          0.0139501\n        188.0469600          0.0684451\nO    SP\n         15.5396160         -0.1107775          0.0708743\n          3.5999336         -0.1480263          0.3397528\nO    SP\n          0.2700058          1.0000000          1.0000000\nEND\n",
+    "stderr": ""
+  },
+  {
+    "code": "GAMESS-UK",
+    "name": "water_numonly-H",
+    "input": "NameBasis\nbasis \"ao basis\" cartesian print\nH library \"ignored\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" cartesian print\nH S\n  18.7311370 0.0334946\n  2.8253937 0.2347270\n  0.6401217 0.8137573\nEND\nEndNumericalBasis\n",
+    "args": [],
+    "status": 0,
+    "stdout": "basis nwchem \nH    S\n         18.7311370          0.0334946\n          2.8253937          0.2347270\n          0.6401217          0.8137573\nEND\n",
+    "stderr": ""
+  },
+  {
+    "code": "GAMESS-UK",
+    "name": "water_numonly-O",
+    "input": "NameBasis\nbasis \"ao basis\" cartesian print\nO library \"ignored\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" cartesian print\nO S\n  5484.6717000 0.0018311\n  825.2349500 0.0139501\n  188.0469600 0.0684451\nO SP\n  15.5396160 -0.1107775 0.0708743\n  3.5999336 -0.1480263 0.3397528\nO SP\n  0.2700058 1.0000000 1.0000000\nEND\nEndNumericalBasis\n",
+    "args": [],
+    "status": 0,
+    "stdout": "basis nwchem \nO    S\n       5484.6717000          0.0018311\n        825.2349500          0.0139501\n        188.0469600          0.0684451\nO    SP\n         15.5396160         -0.1107775          0.0708743\n          3.5999336         -0.1480263          0.3397528\nO    SP\n          0.2700058          1.0000000          1.0000000\nEND\n",
+    "stderr": ""
+  },
+  {
+    "code": "GAMESS-UK",
+    "name": "water_same-H",
+    "input": "NameBasis\nbasis \"ao basis\" cartesian print\nH library \"ignored\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" cartesian print\nH S\n  18.7311370 0.0334946\n  2.8253937 0.2347270\n  0.6401217 0.8137573\nEND\nEndNumericalBasis\n",
+    "args": [],
+    "status": 0,
+    "stdout": "basis nwchem \nH    S\n         18.7311370          0.0334946\n          2.8253937          0.2347270\n          0.6401217          0.8137573\nEND\n",
+    "stderr": ""
+  },
+  {
+    "code": "GAMESS-UK",
+    "name": "water_same-O",
+    "input": "NameBasis\nbasis \"ao basis\" cartesian print\nO library \"ignored\"\nEND\nEndNameBasis\nNumericalBasis\nbasis \"ao basis\" cartesian print\nO S\n  5484.6717000 0.0018311\n  825.2349500 0.0139501\n  188.0469600 0.0684451\nO SP\n  15.5396160 -0.1107775 0.0708743\n  3.5999336 -0.1480263 0.3397528\nO SP\n  0.2700058 1.0000000 1.0000000\nEND\nEndNumericalBasis\n",
+    "args": [],
+    "status": 0,
+    "stdout": "basis nwchem \nO    S\n       5484.6717000          0.0018311\n        825.2349500          0.0139501\n        188.0469600          0.0684451\nO    SP\n         15.5396160         -0.1107775          0.0708743\n          3.5999336         -0.1480263          0.3397528\nO    SP\n          0.2700058          1.0000000          1.0000000\nEND\n",
+    "stderr": ""
+  },
+  {
+    "code": "GAMESS-UK",
+    "name": "empty",
+    "input": "",
+    "args": [],
+    "status": 0,
+    "stdout": "basis nwchem \n",
+    "stderr": ""
+  },
+  {
+    "code": "GAMESS-UK",
+    "name": "empty",
+    "input": "",
+    "args": [
+      "-h"
+    ],
+    "status": 0,
+    "stdout": "Usage: std2GAMESS-UK\nOptions:    -h        this help\n            -v        version\n",
+    "stderr": ""
+  },
+  {
+    "code": "GAMESS-UK",
+    "name": "empty",
+    "input": "",
+    "args": [
+      "-v"
+    ],
+    "status": 0,
+    "stdout": "Revision: 14960 \n",
+    "stderr": ""
+  },
+  {
+    "code": "GAMESS-UK",
+    "name": "empty",
+    "input": "",
+    "args": [
+      "-hv"
+    ],
+    "status": 0,
+    "stdout": "Usage: std2GAMESS-UK\nOptions:    -h        this help\n            -v        version\n",
+    "stderr": ""
+  },
+  {
+    "code": "GAMESS-UK",
+    "name": "empty",
+    "input": "",
+    "args": [
+      "-x"
+    ],
+    "status": 0,
+    "stdout": "basis nwchem \n",
+    "stderr": "Unknown option: x\n"
+  },
+  {
+    "code": "GAMESS-UK",
+    "name": "empty",
+    "input": "",
+    "args": [
+      "--"
+    ],
+    "status": 0,
+    "stdout": "basis nwchem \n",
+    "stderr": ""
+  },
+  {
+    "code": "GAMESS-UK",
+    "name": "empty",
+    "input": "",
+    "args": [
+      "positional",
+      "-v"
+    ],
+    "status": 0,
+    "stdout": "basis nwchem \n",
+    "stderr": ""
+  },
+  {
+    "code": "GAMESS-UK",
+    "name": "empty",
+    "input": "",
+    "args": [
+      "--help"
+    ],
+    "status": 0,
+    "stdout": "basis nwchem \n",
+    "stderr": "{parsers}/std2GAMESS-UK version [unknown] calling Getopt::Std::getopts (version 1.14 [paranoid]),\nrunning under Perl version 5.40.1.\n\nUsage: std2GAMESS-UK [-OPTIONS [-MORE_OPTIONS]] [--] [PROGRAM_ARG1 ...]\n\nThe following single-character options are accepted:\n\tBoolean (without arguments): -h -v\n\nOptions may be merged together.  -- stops processing of options.\n  [Now continuing due to backward compatibility and excessive paranoia.\n   See 'perldoc Getopt::Std' about $Getopt::Std::STANDARD_HELP_VERSION.]\n"
+  },
+  {
+    "code": "GAMESS-UK",
+    "name": "empty",
+    "input": "",
+    "args": [
+      "--version"
+    ],
+    "status": 0,
+    "stdout": "basis nwchem \n",
+    "stderr": "{parsers}/std2GAMESS-UK version [unknown] calling Getopt::Std::getopts (version 1.14 [paranoid]),\nrunning under Perl version 5.40.1.\n  [Now continuing due to backward compatibility and excessive paranoia.\n   See 'perldoc Getopt::Std' about $Getopt::Std::STANDARD_HELP_VERSION.]\n"
+  },
+  {
+    "code": "GAMESS-UK",
+    "name": "numbers",
+    "input": "NumericalBasis\nbasis \"ao basis\" spherical print\nF S\n 1.2D+03 -0.000000001 1e-5\n .5 0.5 -2E-2\nF SP\n 1 0.2 0.3 0.4 0.5\nF D\n 3.3 -0.0\nEND\nEndNumericalBasis\n",
+    "args": [],
+    "status": 0,
+    "stdout": "harmonic \nbasis nwchem \nF    S\n                 .5                0.5              -2E-2\nF    SP\n                  1                0.2                0.3                0.4                0.5\nF    D\n                3.3               -0.0\nEND\n",
+    "stderr": ""
+  },
+  {
+    "code": "GAMESS-UK",
+    "name": "wrap",
+    "input": "NumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 1 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8\n 2 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8\n 3 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8\n 4 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8\n 5 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8\n 6 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8\nEND\nEndNumericalBasis\n",
+    "args": [],
+    "status": 0,
+    "stdout": "harmonic \nbasis nwchem \nH    S\n                  1                0.1                0.2                0.3                0.4                0.5                0.6                0.7                0.8\n                  2                0.1                0.2                0.3                0.4                0.5                0.6                0.7                0.8\n                  3                0.1                0.2                0.3                0.4                0.5                0.6                0.7                0.8\n                  4                0.1                0.2                0.3                0.4                0.5                0.6                0.7                0.8\n                  5                0.1                0.2                0.3                0.4                0.5                0.6                0.7                0.8\n                  6                0.1                0.2                0.3                0.4                0.5                0.6                0.7                0.8\nEND\n",
+    "stderr": ""
+  },
+  {
+    "code": "GAMESS-UK",
+    "name": "multi",
+    "input": "NumericalBasis\nbasis \"ao basis\" spherical print\nH S\n 3 0.1 0.2\n 2 0.3 0.4\nH S\n 1 0.5\nH P\n 2 0.6\nEND\nEndNumericalBasis\n",
+    "args": [],
+    "status": 0,
+    "stdout": "harmonic \nbasis nwchem \nH    S\n                  3                0.1                0.2\n                  2                0.3                0.4\nH    S\n                  1                0.5\nH    P\n                  2                0.6\nEND\n",
+    "stderr": ""
+  },
+  {
+    "code": "GAMESS-UK",
+    "name": "fitting",
+    "input": "NumericalBasis\nbasis \"ao basis\" spherical\nH S\n 1 1\nEND\nbasis \"xc basis\" cartesian\nH S\n 2 1\nEND\nbasis \"cd basis\" cartesian\nH S\n 3 1\nEND\nECP\nH nelec 0\nH ul\n2 0 0\nH S\n0 1 2\n0 0 3\nEND\nEndNumericalBasis\n",
+    "args": [],
+    "status": 0,
+    "stdout": "harmonic \nbasis nwchem \nH    S\n                  1                  1\nEND\ndft jbas nwchem \nH    S\n                  3                  1\nEND\nPSEUDO ECP\nCARDS H\n1 0\n# H S\n2\n    0          2.00000000          1.00000000\n",
+    "stderr": ""
+  },
+  {
+    "code": "GAMESS-UK",
+    "name": "lone-ecp",
+    "input": "NumericalBasis\nECP\nH nelec 2\nH ul\n2 1 2\nEND\nEndNumericalBasis\n",
+    "args": [],
+    "status": 0,
+    "stdout": "basis nwchem \n",
+    "stderr": ""
+  }
+]

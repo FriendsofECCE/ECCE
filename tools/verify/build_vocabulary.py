@@ -45,8 +45,8 @@ OUT = os.path.join(ROOT, "data", "client", "config", "verify")
 
 #  code -> (generator, template, basis writer)
 SOURCES = {
-    "Gaussian-16": ("ai.gauss16", "g16.tpl", "wrGaussian16GBS.pm"),
-    "Gaussian-09": ("ai.gauss09", "g09.tpl", "wrGaussian09GBS.pm"),
+    "Gaussian-16": ("ai.gauss16", "g16.tpl", "wrGaussian16GBS.py"),
+    "Gaussian-09": ("ai.gauss09", "g09.tpl", "wrGaussian09GBS.py"),
     "ORCA":        ("ai.orca",    "orca.tpl", "wrORCAGBS.pm"),
     "NWChem":      ("ai.nwchem",  "nwch.tpl", "wrNWChemGBS.pm"),
     "MOPAC":       ("ai.mopac",   "mopac.tpl", None),

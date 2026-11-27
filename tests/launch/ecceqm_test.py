@@ -159,7 +159,8 @@ def writeCalcFiles(work, name, mol, mult, runtype="Energy"):
 
 def perl(env, script, *args, stdin=None):
     with open(stdin) if stdin else open(os.devnull) as handle:
-        result = subprocess.run(["perl", os.path.join(PARSERS, script)] + list(args),
+        interpreter = sys.executable if script == "std2ECCEQM" else "perl"
+        result = subprocess.run([interpreter, os.path.join(PARSERS, script)] + list(args),
                                 stdin=handle, env=env, stdout=subprocess.PIPE,
                                 stderr=subprocess.STDOUT)
     return result.returncode, result.stdout.decode("utf-8", "replace")

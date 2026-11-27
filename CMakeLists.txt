@@ -1476,6 +1476,13 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/tools/offload_ctest_empty_test.py)
 endif()
 
+# gbsDAVConverter against its captured Perl run (#868).
+if(PYTHON3_EXECUTABLE)
+  add_test(NAME tools_gbsdav_converter
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/tools/gbsdav_converter_test.py)
+endif()
+
 # ecce-contacts (#693, #708): coordination shells, H-bonds, ensemble patterns.
 install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/ecce_contacts.py
         DESTINATION bin RENAME ecce-contacts
@@ -2602,6 +2609,12 @@ add_test(NAME custom_solvent COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/custom_so
 # BasisFlatten and the ORCA MO table against real ORCA output, incl. HF/cc-pVQZ
 # with a g shell: every MO c^T S c = 1, trace(PS) = N (#861).
 add_test(NAME basisflatten COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/basisflatten/run_tests.py)
+# std2Gaussian-98 in Python against cases captured from its Perl (#868).
+add_test(NAME basislegacy COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/basislegacy/run_tests.py)
+# std2molcas in Python against cases captured from its Perl (#868).
+add_test(NAME basis_molcas_port COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/basis/molpro_molcas_port_test.py)
+# std2GAMESS-UK in Python against cases captured from its Perl (#868).
+add_test(NAME basis_gamessuk_port COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/basis/gamess_python_port_test.py)
 set_tests_properties(basisflatten PROPERTIES ENVIRONMENT ECCE_TEST_BUILD=${CMAKE_BINARY_DIR})
 # ORCA Geometry/GeoVib on one atom: no Opt, Freq kept; runs ORCA when installed (#623).
 add_test(NAME orca_one_atom COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/orca_one_atom/run_tests.py)
