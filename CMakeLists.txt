@@ -709,6 +709,16 @@ ecce_library(eccedock src/dock)
 add_executable(ecce-pdbqt src/apps/pdbqt/ecce-pdbqt.C)
 target_link_libraries(ecce-pdbqt PRIVATE eccedock)
 
+# Binding-pocket detection (#1320): LIGSITE-style grid enclosure, wx-free.
+add_executable(ecce-pockets src/apps/pockets/ecce-pockets.C)
+target_link_libraries(ecce-pockets PRIVATE eccedock eccetdat ecceutil)
+add_executable(pocketfinder_test tests/dock/pocketfinder_test.C)
+target_link_libraries(pocketfinder_test PRIVATE eccedock eccetdat ecceutil)
+add_test(NAME pocketfinder
+  COMMAND pocketfinder_test ${CMAKE_SOURCE_DIR}/tests/dock/fixtures/1iep.pdb)
+set_tests_properties(pocketfinder PROPERTIES SKIP_RETURN_CODE 77
+  ENVIRONMENT "ECCE_HOME=${CMAKE_SOURCE_DIR};ECCE_REALUSER=pocketfinder;ECCE_REALUSERHOME=${CMAKE_BINARY_DIR}/pocketfinder-home")
+
 # Recompute H, S, G from a calculation's stored frequencies with a chosen
 # low-frequency treatment (#692); the thermochemistry lives in tdat/thermo.
 add_executable(ecce-thermo

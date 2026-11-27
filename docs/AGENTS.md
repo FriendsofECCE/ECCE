@@ -1876,6 +1876,7 @@ launcher, without command wrappers for these tools.
 | `ecce-mocomp` | Atomic-orbital composition of one molecular orbital (`CALC --mo N\|homo\|lumo [--beta] [--method mulliken\|c2] [--min PCT] [--by ao,shell,type,atom] [--tsv]`), `--list` the orbitals, `--spin` Mulliken spin populations |
 | `ecce-density-field` | ELF, LOL, reduced density gradient, sign(λ2)ρ or density from a calculation's stored orbitals as a cube file (`CALC --field F [--spacing A] [--margin A] [--threads N] -o out.cube`), or all fields at points (`CALC --at X,Y,Z`); local data |
 | `ecce-pdbqt` | Prepare AutoDock PDBQT files for docking: `--frag FILE --atoms LIST --as ligand\|receptor -o OUT`, `--ligand FILE.sdf`, `--receptor FILE.pdb`, `--info FILE` |
+| `ecce-pockets` | Binding-pocket detection on a PDB file (#1320, core only; not yet installed or in a menu): `FILE.pdb [--spacing A] [--margin A] [--probe A] [--max-ray A] [--min-score N] [--min-volume A3] [--lining A] [--top N] [--keep-water] [--keep-ligands]`. Prints each pocket's score, volume, centre, extent and lining residues; waters and residue-name-classified ligands are ignored by default. Warns when an element had no van der Waals radius |
 | `ecce-site-screen` | Interstitial or vacancy site screening of a periodic host: `make <template> interstitial\|vacancy --element X`, then `results <folder>` for E - E(host) in eV |
 
 See the matching help page for inputs, options and units.
