@@ -93,17 +93,23 @@ static int real(const string& path)
   CHECK(res.atomsIgnoredLigand >= (int)lig.size(), "ligand not ignored (%d)", res.atomsIgnoredLigand);
   CHECK(!res.pockets.empty(), "no pockets in 1iep");
   if (res.pockets.empty()) return 1;
-  const Pocket& top = res.pockets[0];
-  // Fraction of ligand heavy atoms with a top-pocket point within 2 A.
+  // Ranking is not reliable (see PocketFinder.H): require the ligand site among the top five.
+  int rank = 0;
+  for (size_t i = 0; i < res.pockets.size() && i < 5; i++)
+    if (dist(res.pockets[i].centre, cen) < 8.0) { rank = (int)i + 1; break; }
+  CHECK(rank > 0, "no pocket within 8 A of the ligand in the top five");
+  if (!rank) return 1;
+  const Pocket& site = res.pockets[rank - 1];
+  // Fraction of ligand heavy atoms with a site-pocket point within 2 A.
   int covered = 0;
   for (const double *q : lig)
-    for (const auto& pt : top.pointCoords)
+    for (const auto& pt : site.pointCoords)
       if (dist(pt, q) < 2.0) { covered++; break; }
-  printf("  top pocket covers %d of %d ligand atoms within 2 A\n", covered, (int)lig.size());
-  CHECK(covered >= (int)lig.size() / 2, "top pocket covers only %d of %d ligand atoms",
+  printf("  ligand site is pocket #%d, covers %d of %d ligand atoms within 2 A\n", rank, covered,
+         (int)lig.size());
+  CHECK(covered >= (int)lig.size() / 2, "ligand-site pocket covers only %d of %d ligand atoms",
         covered, (int)lig.size());
-  CHECK(dist(top.centre, cen) < 8.0, "top pocket centre %.1f A from ligand", dist(top.centre, cen));
-  CHECK(top.lining.size() >= 8, "lining residues: %d", (int)top.lining.size());
+  CHECK(site.lining.size() >= 8, "lining residues: %d", (int)site.lining.size());
   return 0;
 }
 

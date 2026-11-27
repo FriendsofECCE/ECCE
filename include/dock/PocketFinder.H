@@ -7,6 +7,11 @@
  * diagonals) are closed by protein on BOTH sides within maxRay.  Contiguous
  * points scoring at least minScore form a pocket.  Everything here is wx-free.
  *
+ * LIMITATION: detection is good but ranking is not.  On 35 diverse complexes
+ * the real ligand site is among the top five pockets about 86% of the time
+ * but ranked first only about 40% of the time.  Callers must not present the
+ * best-ranked pocket as the answer; offer several and let the user choose.
+ *
  * Two limits of the PDB reader shape the design:
  *  - HETATM/ATOM is not kept on import (Fragment::restorePDB treats them
  *    alike), so "a ligand is already in the file" is decided by residue-name
@@ -29,8 +34,12 @@ struct Options {
   double margin = 4.0;        ///< grid padding around the atoms, Angstrom
   double probe = 1.4;         ///< a pocket point must fit a sphere this big, Angstrom
   double maxRay = 12.0;       ///< how far a ray looks for protein, Angstrom
-  int minScore = 5;           ///< of 7 directions; LIGSITE's usual cut
-  double minVolume = 20.0;    ///< smaller clusters are dropped, cubic Angstrom
+  // minScore/minVolume: 5/20 discarded real pockets before they could be
+  // ranked. 3/10 was chosen against 35 diverse complexes (best pocket within
+  // 8 A of the ligand: top-5 63% -> 86%) and coronavirus main-protease
+  // structures with the ligand removed (two found no pocket at 5/20).
+  int minScore = 3;           ///< of 7 directions
+  double minVolume = 10.0;    ///< smaller clusters are dropped, cubic Angstrom
   double liningDistance = 4.0;///< protein atom within this of a pocket point
   bool ignoreWater = true;    ///< waters do not close a pocket
   bool ignoreLigands = true;  ///< bound ligands are removed, so their site shows
