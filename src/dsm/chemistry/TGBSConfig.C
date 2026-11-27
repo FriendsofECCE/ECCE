@@ -15,6 +15,8 @@
   using std::endl;
   using std::ends;
   using std::ios;
+#include <filesystem>
+namespace fs = std::filesystem;
 #include <fstream>
   using std::ofstream;
   using std::ifstream;
@@ -2347,9 +2349,15 @@ const char* TGBSConfig::dump(const char* code_name, bool useNames)
 
   // Exec the script:
 #ifdef _WIN32
-  // system() is cmd.exe here, which cannot run an extensionless perl script
-  // found on PATH: name perl and the script.
-  string command = "perl \"" + string(Ecce::ecceDataControllersPath()) + "/" +
+  // Unported exporters still require Perl; converted ones use bundled Python.
+  string interpreter = "perl";
+  if (codeName == "std2Gaussian-98" || codeName == "std2Gaussian-94" ||
+      codeName == "std2Gaussian-92") {
+    fs::path py = fs::path(Ecce::ecceHome()) / "python" / "python.exe";
+    string pyExe = fs::exists(py) ? py.string() : string("python.exe");
+    interpreter = "\"" + pyExe + "\"";
+  }
+  string command = interpreter + " \"" + string(Ecce::ecceDataControllersPath()) + "/" +
     codeName + "\" < \"" + sourceFile->path() + "\" > \"" +
     resultsFile->path() + "\"";
   const int status = Ecce::runCommand(command);
