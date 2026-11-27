@@ -1013,7 +1013,18 @@ redraw without recalculation. No Calculate button is needed.
 
 Existing `diffraction`, `calcdiffraction`, `calcpowder`, `calclayer`, `calcframe`,
 `calcmeasure` and `debye` hooks still calculate and **wait for completion**
-before exporting. To use the property pane through `ECCE_BUILDER_SCRIPT`:
+before exporting.
+
+`diffraction` and `calcdiffraction` take an optional `view=NAME` word
+(`fibre`, `powder`, `single`, `frame`, `debye`) anywhere after the command,
+for example `diffraction out.png out.csv out.xyz view=fibre` or
+`calcdiffraction out.png out.csv out.xyz 0 0 viewtest view=fibre`. It picks
+the view instead of the default for the structure (Debye without a unit cell,
+Powder with one, #1230); the word is removed before the positional arguments
+are read, so every other argument keeps its place. A crystal view
+(`powder`, `single`, `frame`) for a structure without a cell, or an unknown
+name, is refused with `BUILDER: ...: refused: ...` instead of silently giving
+another view. To use the property pane through `ECCE_BUILDER_SCRIPT`:
 
 - `list Diffraction` opens the Properties entry.
 - `xrd views` lists the View entries in order with 1 if they can be chosen
@@ -1070,7 +1081,8 @@ exports the whole image. CSV keeps the full data. The diffraction powder
 panel currently has no zoom controls.
 Builder script checks: append `viewtest` to
 `calcmeasure layer0|frame OUT.png OUT.csv EXPOSURE SCHEME`, or to
-`calcdiffraction OUT.png OUT.csv XYZ EXPOSURE SCHEME` for a fibre pattern.
+`calcdiffraction OUT.png OUT.csv XYZ EXPOSURE SCHEME view=fibre` for a fibre
+pattern (the image views are the ones `viewtest` can drive).
 These send mouse/key events, check cursor anchoring and zoomed hkl picking,
 and save `OUT.png.full.png`, `.zoom.png`, `.pan.png`, `.reset.png` and
 `.rectangle.png`; `BUILDER: image view: PASS` confirms the checks passed.

@@ -19,6 +19,8 @@ namespace fs = ecce::fs;
   using std::endl;
   using std::ends;
   using std::ios;
+#include <filesystem>
+namespace fs = std::filesystem;
 #include <fstream>
   using std::ofstream;
   using std::ifstream;
@@ -30,6 +32,10 @@ namespace fs = ecce::fs;
 
 #include "util/ErrMsg.H"
 #include "util/Ecce.H"
+#ifdef _WIN32
+#include "util/Filesystem.H"
+namespace fs = ecce::fs;
+#endif
 #include "util/CompareOps.H"
 #include "util/SFile.H"
 #include "util/TempStorage.H"
@@ -2351,11 +2357,14 @@ const char* TGBSConfig::dump(const char* code_name, bool useNames)
 
   // Exec the script:
 #ifdef _WIN32
-  // Only the converted exporters use Python; other registered codes still
-  // need Perl until their writers have been ported too.
+  // cmd.exe needs an interpreter for extensionless translators. Keep the
+  // remaining Perl exporters working until their writers are ported too.
   string interpreter = "perl";
-  if (codeName == "std2GAMESS-US" || codeName == "std2GAMESS-UK" ||
-      codeName == "std2aceII") {
+  if (codeName == "std2NWChem" || codeName == "std2ORCA" ||
+      codeName == "std2ECCEQM" || codeName == "std2Gaussian-16" ||
+      codeName == "std2Gaussian-09" || codeName == "std2Gaussian-03" ||
+      codeName == "std2Gaussian-98" || codeName == "std2molcas" ||
+      codeName == "std2GAMESS-UK") {
     fs::path py = fs::path(Ecce::ecceHome()) / "python" / "python.exe";
     string pyExe = fs::exists(py) ? py.string() : string("python.exe");
     interpreter = "\"" + pyExe + "\"";

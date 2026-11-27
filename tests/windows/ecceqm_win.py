@@ -136,7 +136,7 @@ def writeCalcFiles(work, name, mol, mult):
 
 def generateDeck(work, name):
     with open(os.path.join(work, name + ".gbs")) as gbs:
-        r = subprocess.run([PERL, PARSERS + "/std2ECCEQM"], stdin=gbs, env=env,
+        r = subprocess.run([tree + "/python/python.exe", PARSERS + "/std2ECCEQM"], stdin=gbs, env=env,
                            stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     text = r.stdout.decode("utf-8", "replace")
     with open(os.path.join(work, name + ".basis"), "w", newline="\n") as h:

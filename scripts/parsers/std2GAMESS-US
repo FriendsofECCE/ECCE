@@ -1,8 +1,0 @@
-#!/usr/bin/env python3
-"""Translate ECCE standard basis data on stdin to GAMESS-US on stdout."""
-
-import sys
-from rdStandardGBS import translator_main
-from wrGamesGBS import wrGames
-
-sys.exit(translator_main(wrGames, 'GAMESS-US', '1326'))

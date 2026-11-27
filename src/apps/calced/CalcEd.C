@@ -487,7 +487,14 @@ bool CalcEd::Show(bool show)
     if (show) ToolTabs::select(this);
     return true;
   }
-  return CalcEdGUI::Show(show);
+  const bool ret = CalcEdGUI::Show(show);
+  //  The window is centred and fitted before it is mapped, but takes its
+  //  final height from the sizer's minimum when GTK maps it; a window that
+  //  grew by a row then hangs below the display.  Clamp the position once
+  //  that size is in, instead of leaving it to the size-event fit.
+  if (show)
+    CallAfter([this]() { ewxWindowUtils::keepOnDisplay(this); });
+  return ret;
 }
 
 
