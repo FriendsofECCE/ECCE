@@ -1,35 +1,14 @@
-#!/usr/bin/env perl
-use strict;
-use vars qw($opt_h $opt_help $opt_v);
-use Getopt::Std;
+#!/usr/bin/env python3
+"""Translate ECCE standard basis data on stdin to ACES II on stdout."""
 
-push(@INC,"$ENV{ECCE_HOME}/scripts/parsers");
+from contextlib import redirect_stdout
+from io import StringIO
+import sys
+from rdStandardGBS import translator_main
+from wracesIIGBS import wracesII
 
-require "rdStandardGBS.pm";
-require "wracesIIGBS.pm";
-
-#
-#  Handle the options
-#
-getopts('hv');
-&handle_options;  # subroutine in this file
-
-my $bs = &readStandardBS();
-&wracesII($bs);
-
-sub usage {
-  print "Usage: std2acesII\n";
-  print "Options:    -h        this help\n";
-  print "            -v        version\n";
-  exit;
-}
-#
-#
-#
-sub handle_options {
-  &usage && exit if ( $opt_h || $opt_help );
-  my $revision = '$Revision: 1326 $';
-  $revision =~ (s/\$//g);
-  print "$revision\n" if ( $opt_v );
-  exit if ( $opt_v );
-}
+# The short usage spells the code differently from its installed filename.
+with redirect_stdout(StringIO()) as output:
+    status = translator_main(wracesII, 'aceII', '1326')
+sys.stdout.write(output.getvalue().replace('Usage: std2aceII\n', 'Usage: std2acesII\n', 1))
+sys.exit(status)

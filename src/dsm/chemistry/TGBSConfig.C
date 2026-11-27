@@ -8,6 +8,10 @@
 
 #include <unistd.h>
 #include <ctype.h>
+#ifdef _WIN32
+#include "util/Filesystem.H"
+namespace fs = ecce::fs;
+#endif
 
 #include <iostream>
   using std::cout;
@@ -2347,9 +2351,16 @@ const char* TGBSConfig::dump(const char* code_name, bool useNames)
 
   // Exec the script:
 #ifdef _WIN32
-  // system() is cmd.exe here, which cannot run an extensionless perl script
-  // found on PATH: name perl and the script.
-  string command = "perl \"" + string(Ecce::ecceDataControllersPath()) + "/" +
+  // Only the converted exporters use Python; other registered codes still
+  // need Perl until their writers have been ported too.
+  string interpreter = "perl";
+  if (codeName == "std2GAMESS-US" || codeName == "std2GAMESS-UK" ||
+      codeName == "std2aceII") {
+    fs::path py = fs::path(Ecce::ecceHome()) / "python" / "python.exe";
+    string pyExe = fs::exists(py) ? py.string() : string("python.exe");
+    interpreter = "\"" + pyExe + "\"";
+  }
+  string command = interpreter + " \"" + string(Ecce::ecceDataControllersPath()) + "/" +
     codeName + "\" < \"" + sourceFile->path() + "\" > \"" +
     resultsFile->path() + "\"";
   const int status = Ecce::runCommand(command);
