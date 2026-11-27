@@ -1,18 +1,19 @@
-#!/usr/bin/env perl
-# One SCF iteration into EWVEC (total energy, PropTSVector<Wave Step>) and
-# DELTAE (its change), from
-#   "    4 OT DIIS     0.80E-01    0.7     0.06579221     -7.0482844195 -8.11E-02"
-#   "    1 Broy./Diag. 0.40E+00    0.3     0.01235000     -7.1234567890 -7.12E+00"
-# Both come from one parse type because they share the line, and two entries
-# with one Begin would starve each other.  Not TEVEC, which is indexed by
-# geometry step and an SCF prints many per geometry.  Hartree already.
-$| = 1;
-($key, $runtype, $ucCategory, $theory) = @ARGV;
+#!/usr/bin/env python3
+import io
+import re
+import sys
 
-$_ = <STDIN>;
-exit(0) if (!defined($_));
-exit(0) if (!/^\s+\d+\s+(?:OT\s+\w+|\S+\/\S+)\s+\S+\s+\S+\s+\S+\s+(-?\d+\.\d+)\s+(-?\d+\.\d+E[-+]\d+)\s*$/i);
+# Python 3.6 lacks reconfigure(); job output may contain stray bytes.
+for name in ("stdin", "stdout"):
+    stream = getattr(sys, name)
+    if hasattr(stream, "reconfigure"):
+        stream.reconfigure(encoding="utf-8", errors="replace", newline="\n")
+    else:
+        setattr(sys, name, io.TextIOWrapper(stream.buffer, encoding="utf-8",
+                                           errors="replace", newline="\n"))
 
-print "key: EWVEC\nsize:\n1\nvalues:\n$1\nunits:\nHartree\nEND\n";
-print "key: DELTAE\nsize:\n1\nvalues:\n$2\nunits:\nHartree\nEND\n";
-exit(0);
+line = sys.stdin.readline()
+match = re.search('^\\s+\\d+\\s+(?:OT\\s+\\w+|\\S+/\\S+)\\s+\\S+\\s+\\S+\\s+\\S+\\s+(-?\\d+\\.\\d+)\\s+(-?\\d+\\.\\d+E[-+]\\d+)\\s*$', line, re.ASCII | re.IGNORECASE)
+if match:
+    print("key: EWVEC\nsize:\n1\nvalues:\n{}\nunits:\nHartree\nEND".format(match[1]), flush=True)
+    print("key: DELTAE\nsize:\n1\nvalues:\n{}\nunits:\nHartree\nEND".format(match[2]), flush=True)

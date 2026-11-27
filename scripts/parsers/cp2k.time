@@ -1,14 +1,18 @@
-#!/usr/bin/env perl
-# The whole-program row of CP2K's timing table:
-#   " CP2K    1  1.0    1.403    1.432   32.862   32.862"
-# (calls, ASD, self max/avg, total max/avg); the last column is the wall
-# time of the run in seconds.
-$| = 1;
-($key, $runtype, $ucCategory, $theory) = @ARGV;
+#!/usr/bin/env python3
+import io
+import re
+import sys
 
-my $line = <STDIN>;
-exit(0) if (!defined($line));
-exit(0) if ($line !~ /^\s*CP2K\s+1\s+\S+\s+\S+\s+\S+\s+\S+\s+(\d+\.\d+)\s*$/);
+# Python 3.6 lacks reconfigure(); job output may contain stray bytes.
+for name in ("stdin", "stdout"):
+    stream = getattr(sys, name)
+    if hasattr(stream, "reconfigure"):
+        stream.reconfigure(encoding="utf-8", errors="replace", newline="\n")
+    else:
+        setattr(sys, name, io.TextIOWrapper(stream.buffer, encoding="utf-8",
+                                           errors="replace", newline="\n"))
 
-print "key: ETIME\nsize:\n1\nvalues:\n$1\nEND\n";
-exit(0);
+line = sys.stdin.readline()
+match = re.search('^\\s*CP2K\\s+1\\s+\\S+\\s+\\S+\\s+\\S+\\s+\\S+\\s+(\\d+\\.\\d+)\\s*$', line, re.ASCII)
+if match:
+    print("key: ETIME\nsize:\n1\nvalues:\n{}\nEND".format(match[1]), flush=True)

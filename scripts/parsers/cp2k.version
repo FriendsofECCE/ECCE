@@ -1,12 +1,22 @@
-#!/usr/bin/env perl
-# CP2K's version line: "CP2K| version string:    CP2K version 2025.1".
-# Fed the Begin line only (cp2k.desc, Lines=1).
-$| = 1;
-($key, $runtype, $ucCategory, $theory) = @ARGV;
+#!/usr/bin/env python3
+import io
+import re
+import sys
 
-$_ = <STDIN>;
-exit(0) if (!defined($_));
-exit(0) if (!/CP2K\| version string:\s+(?:CP2K version\s+)?(\S+)/);
+# Python 3.6 lacks reconfigure(); job output may contain stray bytes.
+for name in ("stdin", "stdout"):
+    stream = getattr(sys, name)
+    if hasattr(stream, "reconfigure"):
+        stream.reconfigure(encoding="utf-8", errors="replace", newline="\n")
+    else:
+        setattr(sys, name, io.TextIOWrapper(stream.buffer, encoding="utf-8",
+                                           errors="replace", newline="\n"))
 
-print "key: VERSION\nsize:\n1\nvalues:\nCP2K $1\nEND\n";
-exit(0);
+# The opaque version token must retain its bytes, even if it is not UTF-8.
+line = sys.stdin.buffer.readline()
+match = re.search(rb"CP2K\| version string:\s+(?:CP2K version\s+)?(\S+)",
+                  line, re.ASCII)
+if match:
+    sys.stdout.buffer.write(b"key: VERSION\nsize:\n1\nvalues:\nCP2K " +
+                            match[1] + b"\nEND\n")
+    sys.stdout.buffer.flush()

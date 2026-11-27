@@ -1,23 +1,29 @@
-#!/usr/bin/env perl
-###############################################################################
-# CP2K has nothing in its input that depends on the launch (it writes its
-# files into the run directory it is started in, and finds its own data
-# directory), but Launch::postProcessInput() shells out to the code's
-# <LaunchPreprocessor> without checking that one is named, so the script has
-# to exist.  It leaves the input file as ai.cp2k wrote it.
-###############################################################################
+#!/usr/bin/env python3
+# CP2K needs no launch-time edits, but Launch requires this preprocessor.
+import sys
 
-use Getopt::Std;
-
-&getopts('p:v');
-
-if ($opt_v) {
-  $revision = '$Revision: 1.0';
-  $revision =~ (s/\$//g);
-  print "$revision\n";
-  exit 0;
-}
-
-open(PARAMDICT, "<$opt_p") || die "parameter file does not exist!\n";
-close(PARAMDICT);
-exit(0);
+args = sys.argv[1:]
+param, version = "", False
+while args and len(args[0]) > 1 and args[0].startswith("-"):
+    token = args.pop(0)
+    option, rest = token[1], token[2:]
+    if option == "-" and rest == "":
+        break
+    if option == "p":
+        param = rest if rest else (args.pop(0) if args else "")
+    else:
+        if option == "v":
+            version = True
+        else:
+            sys.stderr.write("Unknown option: {}\n".format(option))
+        if rest:
+            args.insert(0, "-" + rest)
+if version:
+    print("Revision: 1.0")
+else:
+    try:
+        with open(param, encoding="utf-8", errors="replace"):
+            pass
+    except OSError:
+        sys.stderr.write("parameter file does not exist!\n")
+        sys.exit(2)

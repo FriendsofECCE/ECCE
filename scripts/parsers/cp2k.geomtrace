@@ -1,38 +1,32 @@
-#!/usr/bin/env perl
-################################################################################
-# One frame of the xyz trajectory CP2K prints into its output during a
-# geometry optimisation (&MOTION/&PRINT/&TRAJECTORY, FILENAME __STD_OUT__):
-#
-#   " i =        1, E =        -1.1147417434"
-#   " H         0.0000000000        0.0000000000        0.1659238241"
-#
-# The energy on the first line is that of this geometry, so the frame yields
-# one GEOMTRACE step and one TEVEC entry together and the two vectors stay
-# the same length (a longer TEVEC would drive the viewer's frame stepping
-# out of range).  Coordinates are Angstrom.  The starting geometry is not a
-# frame: CP2K prints the first one after the first move.
-################################################################################
+#!/usr/bin/env python3
+import io
+import re
+import sys
 
-$| = 1;
+# Python 3.6 lacks reconfigure(); job output may contain stray bytes.
+for name in ("stdin", "stdout"):
+    stream = getattr(sys, name)
+    if hasattr(stream, "reconfigure"):
+        stream.reconfigure(encoding="utf-8", errors="replace", newline="\n")
+    else:
+        setattr(sys, name, io.TextIOWrapper(stream.buffer, encoding="utf-8",
+                                           errors="replace", newline="\n"))
 
-($key, $runtype, $ucCategory, $theory) = @ARGV;
-
-my ($energy, @coords, $labels);
-my $n = 0;
-while (<STDIN>) {
-  if (/^\s*i =\s+\d+,\s+E =\s+(-?\d+\.\d+)\s*$/) {
-    $energy = $1;
-  } elsif (defined($energy) &&
-           /^\s*([A-Za-z][A-Za-z]?)\d*\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s*$/) {
-    $n++;
-    push(@coords, " $2 $3 $4");
-    $labels .= " $n-$1";
-  }
-}
-#  A block cut short (a job killed mid-frame) is not a frame.
-exit(0) if (!defined($energy) || $n < 1);
-
-print "key: GEOMTRACE\nsize:\n1 $n 3\nrowlabels:\n$labels\ncolumnlabels:\nX Y Z\n";
-print "values:\n", join("\n", @coords), "\nunits:\nAngstrom\nEND\n";
-print "key: TEVEC\nsize:\n1\nvalues:\n$energy\nunits:\nHartree\nEND\n";
-exit(0);
+# One frame carries its own energy so the geometry and energy steps align.
+energy = None
+coords, labels = [], []
+for line in sys.stdin:
+    match = re.search(r"^\s*i =\s+\d+,\s+E =\s+(-?\d+\.\d+)\s*$", line, re.ASCII)
+    if match:
+        energy = match[1]
+    elif energy is not None:
+        match = re.search(r"^\s*([A-Za-z][A-Za-z]?)\d*\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s*$",
+                          line, re.ASCII)
+        if match:
+            coords.append(" " + " ".join(match.groups()[1:]))
+            labels.append("{}-{}".format(len(labels) + 1, match[1]))
+if energy is not None and coords:
+    print("key: GEOMTRACE\nsize:\n1 {} 3\nrowlabels:\n {}\ncolumnlabels:\nX Y Z".format(
+        len(coords), " ".join(labels)))
+    print("values:\n" + "\n".join(coords) + "\nunits:\nAngstrom\nEND")
+    print("key: TEVEC\nsize:\n1\nvalues:\n{}\nunits:\nHartree\nEND".format(energy), flush=True)

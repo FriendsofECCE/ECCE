@@ -3227,6 +3227,11 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/parsers/run_tests.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/parsers)
 
+  add_test(NAME parsers_cp2k_port
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/parsers/cp2k_port_test.py)
+  set_tests_properties(parsers_cp2k_port PROPERTIES TIMEOUT 300)
+
   # An xtb run made outside ECCE imports with its companion files (#362).
   add_test(NAME parsers_xtb_import
            COMMAND ${PYTHON3_EXECUTABLE}

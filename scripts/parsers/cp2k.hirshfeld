@@ -1,24 +1,30 @@
-#!/usr/bin/env perl
-# CP2K's Hirshfeld table into HIRSHFELD; the net charge is the last column
-# in both the restricted and the unrestricted layout:
-#
-#    #Atom  Element  Kind  Ref Charge     Population                    Net charge
-#        1       Si     1       4.000          4.000                         0.000
-#    #Atom  Element  Kind  Ref Charge     Population       Spin moment  Net charge
-#        1       Ni     1      18.000    9.889   8.728            1.161     -0.617
-$| = 1;
-($key, $runtype, $ucCategory, $theory) = @ARGV;
+#!/usr/bin/env python3
+import io
+import re
+import sys
 
-my @charge;
-while (<STDIN>) {
-  last if (/^\s*Total Charge/);
-  next if (!/^\s*\d+\s+[A-Za-z]{1,2}\s+\d+\s+(.*\S)\s*$/);
-  my @n = split(/\s+/, $1);
-  next if (@n < 3 || grep { !/^-?\d+\.\d+$/ } @n);
-  push(@charge, $n[-1]);
-}
-exit(0) if (!@charge);
+# Python 3.6 lacks reconfigure(); job output may contain stray bytes.
+for name in ("stdin", "stdout"):
+    stream = getattr(sys, name)
+    if hasattr(stream, "reconfigure"):
+        stream.reconfigure(encoding="utf-8", errors="replace", newline="\n")
+    else:
+        setattr(sys, name, io.TextIOWrapper(stream.buffer, encoding="utf-8",
+                                           errors="replace", newline="\n"))
 
-print "key: HIRSHFELD\nsize:\n", scalar(@charge), "\nvalues:\n",
-      join(" ", @charge), "\nunits:\ne\nEND\n";
-exit(0);
+charge = []
+for line in sys.stdin:
+    if re.search(r"^\s*Total Charge", line, re.ASCII):
+        break
+    match = re.search(r"^\s*\d+\s+[A-Za-z]{1,2}\s+\d+\s+(.*\S)\s*$", line, re.ASCII)
+    if not match:
+        continue
+    fields = re.split(r"\s+", match[1], flags=re.ASCII)
+    if any(not re.search(r"^-?\d+\.\d+$", value, re.ASCII) for value in fields):
+        continue
+    if len(fields) >= 3:
+        charge.append(fields[-1])
+
+if charge:
+    print("key: HIRSHFELD\nsize:\n{}\nvalues:\n{}\nunits:\ne\nEND".format(
+        len(charge), " ".join(charge)), flush=True)

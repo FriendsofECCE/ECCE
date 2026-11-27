@@ -1,33 +1,43 @@
-#!/usr/bin/env perl
-################################################################################
-# CP2K's atomic forces into EGRADVEC, from
-#   " FORCES|      1  1.8E-13  1.8E-13  9.67888929E-02   9.67888929E-02"
-# CP2K prints forces in Hartree/Bohr; EGRADVEC is a gradient, so the sign is
-# flipped and nothing else changes.
-################################################################################
+#!/usr/bin/env python3
+import io
+import re
+import sys
 
-$| = 1;
+# Python 3.6 lacks reconfigure(); job output may contain stray bytes.
+for name in ("stdin", "stdout"):
+    stream = getattr(sys, name)
+    if hasattr(stream, "reconfigure"):
+        stream.reconfigure(encoding="utf-8", errors="replace", newline="\n")
+    else:
+        setattr(sys, name, io.TextIOWrapper(stream.buffer, encoding="utf-8",
+                                           errors="replace", newline="\n"))
 
-($key, $runtype, $ucCategory, $theory) = @ARGV;
+_NUM = re.compile(r"[ \t\n\r\f\v]*([+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?)", re.ASCII)
 
-my (@values, @labels);
-while (<STDIN>) {
-  last if (/FORCES\|\s+Sum/);
-  next if (!/FORCES\|\s+(\d+)\s+(-?\d\S*)\s+(-?\d\S*)\s+(-?\d\S*)\s+\d\S*\s*$/);
-  push(@labels, $1);
-  foreach my $f ($2, $3, $4) {
-    my $g = ($f + 0 == 0) ? 0 : -$f;
-    push(@values, sprintf("%.10f", $g));
-  }
-}
-my $natom = scalar(@labels);
-exit(0) if ($natom == 0);
 
-print "key: EGRADVEC\nsize:\n$natom 3\nrowlabels:\n", join(" ", @labels),
-      "\ncolumnlabels:\nX Y Z\nvalues:\n";
-for (my $i = 0; $i <= $#values; $i++) {
-  print "$values[$i] ";
-  print "\n" if (($i % 3) == 2);
-}
-print "units:\nHartree/Bohr\nEND\n";
-exit(0);
+def _num(value):
+    # Perl arithmetic takes a numeric prefix, or zero for a non-number.
+    match = _NUM.match(value)
+    return float(match[1]) if match else 0.0
+
+
+values, labels = [], []
+for line in sys.stdin:
+    if re.search(r"FORCES\|\s+Sum", line, re.ASCII):
+        break
+    match = re.search(r"FORCES\|\s+(\d+)\s+(-?\d\S*)\s+(-?\d\S*)\s+(-?\d\S*)\s+\d\S*\s*$",
+                      line, re.ASCII)
+    if not match:
+        continue
+    labels.append(match[1])
+    for field in match.groups()[1:]:
+        force = _num(field)
+        # CP2K prints forces in Hartree/Bohr; ECCE stores the gradient.
+        gradient = 0 if force == 0 else -force
+        values.append(("%.10f" % gradient).replace("inf", "Inf"))
+if labels:
+    print("key: EGRADVEC\nsize:\n{} 3\nrowlabels:\n{}\ncolumnlabels:\nX Y Z\nvalues:".format(
+        len(labels), " ".join(labels)))
+    for index in range(0, len(values), 3):
+        print(" ".join(values[index:index + 3]) + " ")
+    print("units:\nHartree/Bohr\nEND", flush=True)
