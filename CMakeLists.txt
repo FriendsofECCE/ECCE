@@ -3257,6 +3257,13 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/parsers/g16_units_test.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/parsers)
 
+  # pertab.py must hold the same tables as pertab.pl while both exist (#868).
+  add_test(NAME parsers_pertab_twin
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/parsers/g16_trace_port_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/parsers)
+  set_tests_properties(parsers_pertab_twin PROPERTIES SKIP_RETURN_CODE 77)
+
   # QE relax / vc-relax: one TEVEC per GEOMTRACE frame, its own energy (#1003).
   add_test(NAME parsers_qe_trace_align
            COMMAND ${PYTHON3_EXECUTABLE}

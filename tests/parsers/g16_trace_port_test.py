@@ -11,6 +11,7 @@ import argparse
 import importlib.util
 import json
 import os
+import shutil
 from pathlib import Path
 import subprocess
 import sys
@@ -33,6 +34,10 @@ INPUTS = [
 
 
 def pertab_check():
+    # The Perl table is the reference; without perl there is nothing to compare.
+    if not shutil.which("perl"):
+        print("SKIP pertab: no perl to read pertab.pl")
+        sys.exit(77)
     spec = importlib.util.spec_from_file_location("pertab", str(SCRIPTS / "pertab.py"))
     pt = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(pt)
