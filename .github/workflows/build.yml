@@ -479,9 +479,9 @@ jobs:
           mkdir -p minos
           app=$(mktemp -d)
           mnt=$(mktemp -d)
-          hdiutil attach dist/ECCE-*.dmg -mountpoint "$mnt" -nobrowse -quiet
-          cp -R "$mnt/ECCE.app" "$app/"
-          hdiutil detach "$mnt" -quiet
+          echo "hdiutil attach the dmg at $mnt"; hdiutil attach dist/ECCE-*.dmg -mountpoint "$mnt" -nobrowse -quiet || { echo "hdiutil attach failed rc=$?"; exit 1; }
+          cp -R "$mnt/ECCE.app" "$app/" || { echo "copying ECCE.app out of the dmg failed rc=$?"; exit 1; }
+          tests/macos/detach.sh "$mnt"
           python3 packaging/macos/minos.py "$app/ECCE.app" minos/minos.txt \
             --floor "$MACOSX_DEPLOYMENT_TARGET" --arch "${{ matrix.arch }}" > /dev/null || rc=$?
           echo "runner: $(sw_vers -productVersion) $(uname -m)" >> minos/minos.txt
@@ -492,11 +492,11 @@ jobs:
       - name: ecce-qm in the app
         run: |
           mnt=$(mktemp -d)
-          hdiutil attach dist/ECCE-*.dmg -mountpoint "$mnt" -nobrowse -quiet
+          echo "hdiutil attach the dmg at $mnt"; hdiutil attach dist/ECCE-*.dmg -mountpoint "$mnt" -nobrowse -quiet || { echo "hdiutil attach failed rc=$?"; exit 1; }
           q="$mnt/ECCE.app/Contents/Resources/ecce/bin/ecce-qm"
           test -x "$q"
           python3 tests/qm/package_check.py "$q" "$mnt/ECCE.app/Contents/Resources/ecce/data/admin/basissets" --max-mb 40 | tee -a "$GITHUB_STEP_SUMMARY" || rc=$?
-          hdiutil detach "$mnt" -quiet
+          tests/macos/detach.sh "$mnt"
           exit ${rc:-0}
 
       # hashFiles() walks the whole workspace, which timed out after a build;
@@ -513,10 +513,10 @@ jobs:
         timeout-minutes: 10
         run: |
           mnt=$(mktemp -d)
-          hdiutil attach dist/ECCE-*.dmg -mountpoint "$mnt" -nobrowse -quiet
+          echo "hdiutil attach the dmg at $mnt"; hdiutil attach dist/ECCE-*.dmg -mountpoint "$mnt" -nobrowse -quiet || { echo "hdiutil attach failed rc=$?"; exit 1; }
           appdir=$(mktemp -d)
-          cp -R "$mnt/ECCE.app" "$appdir/"
-          hdiutil detach "$mnt" -quiet
+          cp -R "$mnt/ECCE.app" "$appdir/" || { echo "copying ECCE.app out of the dmg failed rc=$?"; exit 1; }
+          tests/macos/detach.sh "$mnt"
           rc=0
           tests/macos/python-check.sh "$appdir/ECCE.app" python-check || rc=$?
           { echo '### Python in ECCE.app'; echo '```'; cat python-check/summary.txt; echo '```';
@@ -529,10 +529,10 @@ jobs:
         run: |
           pkill -f "$PWD/stage" || true
           mnt=$(mktemp -d)
-          hdiutil attach dist/ECCE-*.dmg -mountpoint "$mnt" -nobrowse -quiet
+          echo "hdiutil attach the dmg at $mnt"; hdiutil attach dist/ECCE-*.dmg -mountpoint "$mnt" -nobrowse -quiet || { echo "hdiutil attach failed rc=$?"; exit 1; }
           appdir=$(mktemp -d)
-          cp -R "$mnt/ECCE.app" "$appdir/"
-          hdiutil detach "$mnt" -quiet
+          cp -R "$mnt/ECCE.app" "$appdir/" || { echo "copying ECCE.app out of the dmg failed rc=$?"; exit 1; }
+          tests/macos/detach.sh "$mnt"
           # The build tree and the staging prefix must not be needed.
           mv build-cmake build-cmake.gone
           mv stage stage.gone
@@ -552,10 +552,10 @@ jobs:
         timeout-minutes: 40
         run: |
           mnt=$(mktemp -d)
-          hdiutil attach dist/ECCE-*.dmg -mountpoint "$mnt" -nobrowse -quiet
+          echo "hdiutil attach the dmg at $mnt"; hdiutil attach dist/ECCE-*.dmg -mountpoint "$mnt" -nobrowse -quiet || { echo "hdiutil attach failed rc=$?"; exit 1; }
           appdir=$(mktemp -d)
-          cp -R "$mnt/ECCE.app" "$appdir/"
-          hdiutil detach "$mnt" -quiet
+          cp -R "$mnt/ECCE.app" "$appdir/" || { echo "copying ECCE.app out of the dmg failed rc=$?"; exit 1; }
+          tests/macos/detach.sh "$mnt"
           rc=0
           "$appdir/ECCE.app/Contents/Resources/python/bin/python3" tests/macos/lab_local.py mac \
             "$appdir/ECCE.app" "$PWD/lab-out" | tee lab.log || rc=$?
