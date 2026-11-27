@@ -111,6 +111,11 @@ CASES = [
                                                        ("GOOD", "task")]),
     ("nwchem-ammonia-dummy-lowercase.nw", "NWChem", 5, [("GOOD", "geometry"),
                                                         ("GOOD", "electrons")]),
+    #  An upper-case directive inside the geometry block is valid NWChem.
+    #  The Perl checker called it BAD (its /i on a compiled qr// did
+    #  nothing); the Python one deliberately does not (#1331).
+    ("nwchem-ammonia-units-upper.nw", "NWChem",   4, [("GOOD", "geometry"),
+                                                     ("GOOD", "task")]),
     ("mopac-methane.mopin",   "MOPAC",            5, [("GOOD", "geometry")]),
     ("mopac-ammonia-freq.mopin", "MOPAC",          4, [("GOOD", "geometry"), ("GOOD", "sections")]),
     ("qe-silicon.qein",       "QuantumESPRESSO",  2, [("GOOD", "control"),

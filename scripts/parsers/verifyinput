@@ -56,6 +56,8 @@ def geometryLines(start, stop, directives, what):
             continue
         if re.search(cartesian, L[i], re.ASCII):
             continue
+        # NWChem directives are case-insensitive.  The Perl version meant this
+        # too, but /i on a compiled qr// had no effect (#1331): keep re.I.
         if directives is not None and re.search(directives, L[i], re.I | re.ASCII):
             continue
         odd.append(i)
