@@ -1,0 +1,4 @@
+basis "ao basis" cartesian print
+  H library "6-31G*"
+  O library " aug-cc-pwCVDZ"
+END

@@ -62,7 +62,7 @@ def write_deck(work, mol, basis, method):
     elements = sorted({a[0] for a in atoms})
     library_gbs(os.path.join(work, "c.gbs"), elements, basis)
     with open(os.path.join(work, "c.gbs")) as h:
-        p = subprocess.run(["perl", os.path.join(PARSERS, "std2ECCEQM")], stdin=h, env=env,
+        p = subprocess.run([sys.executable, os.path.join(PARSERS, "std2ECCEQM")], stdin=h, env=env,
                            capture_output=True, text=True)
     if p.returncode:
         raise RuntimeError(p.stderr)
