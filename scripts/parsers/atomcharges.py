@@ -8,14 +8,19 @@ import re
 import sys
 
 
+# Perl matched bytes, so \s, \d and \w are ASCII there: without re.ASCII a row
+# led by a UTF-8 no-break space, or carrying a non-ASCII digit or letter, is a
+# data row to Python and not to Perl, and the charge count silently changes.
 def charge_rows():
     values = []
     # The Perl read job output as bytes; a stray byte must not crash the parse.
     sys.stdin.reconfigure(encoding="utf-8", errors="replace")
     for line in sys.stdin:
-        match = re.match(r"^\s*\d+\s+[A-Za-z]{1,2}\w*\s*:?\s+(-?\d+\.\d+)", line)
+        match = re.match(r"^\s*\d+\s+[A-Za-z]{1,2}\w*\s*:?\s+(-?\d+\.\d+)", line,
+                          re.ASCII)
         if not match:
-            match = re.match(r"^\s*[A-Za-z]{1,2}\w*\s+\d+\s+(-?\d+\.\d+)\s+-?\d+\.\d+\s", line)
+            match = re.match(r"^\s*[A-Za-z]{1,2}\w*\s+\d+\s+(-?\d+\.\d+)\s+-?\d+\.\d+\s",
+                              line, re.ASCII)
         if match:
             # Keep the captured text so precision and signed zero survive.
             values.append(match[1])

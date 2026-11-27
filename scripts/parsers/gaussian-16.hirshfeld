@@ -5,14 +5,18 @@ import sys
 
 from atomcharges import emit_charges
 
+# Perl matched bytes, so \s, \d and \w are ASCII there: without re.ASCII a row
+# led by a UTF-8 no-break space, or carrying a non-ASCII digit or letter, is a
+# data row to Python and not to Perl, and the charge count silently changes.
 hirshfeld = []
 cm5 = []
 # The Perl read job output as bytes; a stray byte must not crash the parse.
 sys.stdin.reconfigure(encoding="utf-8", errors="replace")
 for line in sys.stdin:
-    match = re.match(r"^\s*\d+\s+[A-Za-z]{1,2}\w*\s+(-?\d+\.\d+(?:\s+-?\d+\.\d+)*)\s*$", line)
+    match = re.match(r"^\s*\d+\s+[A-Za-z]{1,2}\w*\s+(-?\d+\.\d+(?:\s+-?\d+\.\d+)*)\s*$", line,
+                     re.ASCII)
     if match:
-        numbers = match[1].split()
+        numbers = [x for x in re.split(r"[ \t\n\r\f\v]+", match[1]) if x]
         hirshfeld.append(numbers[0])
         if len(numbers) >= 6:
             cm5.append(numbers[-1])

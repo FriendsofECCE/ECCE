@@ -2416,6 +2416,21 @@ CASES = [
         },
     ),
     dict(
+    #  #1331: the fixture is the clean one with one extra row led by a
+    #  UTF-8 no-break space.  Perl's \s was ASCII and never matched it, so
+    #  the expected values are the clean case's; Python without re.ASCII
+    #  took the decoy as data.
+        name='orca-oh-uhf-loewdin-nbsp-decoy',
+        desc='orca.desc',
+        fixture='orca/oh_uhf_nbsp_decoy.out',
+        parse_args=('.', 'Energy', 'SCF', 'UHF', '1'),
+        silent_ok={'ORBSYM][ORBSYMBETA': 'no UseSym, so no Irrep column'},
+        expect={
+            'LOEWDIN': dict(keys={'LOEWDIN': {
+                'size': '2', 'values': '-0.109515 0.109515', 'sum': 0.0}}),
+        },
+    ),
+    dict(
         #  The UHF case with one undecodable byte in a non-matching line:
         #  the Perl parser tolerated it, so the property must still come out.
         name='orca-oh-uhf-loewdin-stray-byte',
@@ -2527,11 +2542,56 @@ CASES = [
     ),
 
     dict(
+    #  #1331: the clean fixture with one extra row led by a UTF-8 no-break
+    #  space.  Perl's \s was ASCII and never matched it, so the expected
+    #  values are the clean case's; Python without re.ASCII took the decoy
+    #  as data.
+        name='g16-co-pop-hirshfeld-mk-nbsp-decoy',
+        desc='gaussian-16.desc',
+        fixture='gaussian-16/co_pop_all_nbsp_decoy.log',
+        parse_args=('.', 'Energy', 'DFT', 'rPBE1PBE', '0'),
+        silent_ok={
+            'DELTAE': 'runtype-gated to /Geo/i (see g16-co-freq).',
+            'RMSDP': 'runtype-gated to /Geo/i (see g16-co-freq).',
+            'ESCF1][ESCFVEC': 'runtype-gated to /Geo/i (see g16-co-freq).',
+            'EGRAD': 'runtype-gated to /Geo/i (see g16-co-freq).',
+        },
+        expect={
+            'HIRSHFELD][CM5': dict(keys={
+                'HIRSHFELD': {'size': '2', 'sum': 0.0, 'units': 'e',
+                              'values': '0.163068 -0.163068'},
+                'CM5': {'size': '2', 'sum': 0.0, 'units': 'e',
+                        'values': '0.187346 -0.187346'}}),
+            'ESPFIT': dict(keys={'ESPFIT': {'size': '2', 'sum': 0.0,
+                                            'units': 'e',
+                                            'values': '0.121482 -0.121482'}}),
+        },
+    ),
+
+    dict(
         #  AIM=(CP): section I maps attractors to nuclei, section III has the
         #  charges; trimmed from a real CO job.
         name='g16-co-aim',
         desc='gaussian-16.desc',
         fixture='gaussian-16/co_aim_cp.log',
+        parse_args=('.', 'Energy', 'DFT', 'B3LYP', '0'),
+        expect={
+            'AIM': dict(keys={'AIM': {'size': '2',
+                                      'units': 'e',
+                                      'values': '0.890256 -0.891752'}}),
+        },
+    ),
+
+    dict(
+    #  #1331: the clean fixture with one extra row led by a UTF-8 no-break
+    #  space.  Perl's \s was ASCII and never matched it, so the expected
+    #  values are the clean case's; Python without re.ASCII took the decoy
+    #  as data.
+    #  The decoy is an attractor row with no charge row, so Python dropped
+    #  AIM entirely (len(values) != len(order)).
+        name='g16-co-aim-nbsp-decoy',
+        desc='gaussian-16.desc',
+        fixture='gaussian-16/co_aim_cp_nbsp_decoy.log',
         parse_args=('.', 'Energy', 'DFT', 'B3LYP', '0'),
         expect={
             'AIM': dict(keys={'AIM': {'size': '2',
