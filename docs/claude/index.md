@@ -11,5 +11,6 @@ holds its overview and lists its entries.
 
 - [Code registration](codereg/index.md) — 59 entries
 - [Services](services/index.md) — 10 entries
+- [Docking and pocket finding](dock/index.md) — 1 entry
 - [MO correlation diagram](mo-diagram/index.md) — 8 entries
 - [wx, viewer and C++](wx-viewer/index.md) — 23 entries

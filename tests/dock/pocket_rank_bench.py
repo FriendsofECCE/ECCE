@@ -48,7 +48,16 @@ def split(path, code, work):
     out = os.path.join(work, code + "_prot.pdb")
     open(out, "w").write("".join(prot[best[0]]) + "END\n")
     xyz = [(float(l[30:38]), float(l[38:46]), float(l[46:54])) for l in het[best]]
-    return out, xyz
+    return out, xyz, best[1]
+
+def keep(d, code, s):
+    """move the cleaned protein into d and write the ligand next to it."""
+    os.makedirs(d, exist_ok=True)
+    prot = os.path.join(d, code + "_prot.pdb")
+    os.replace(s[0], prot)
+    open(os.path.join(d, code + "_lig.xyz"), "w").write(
+        s[2] + "\n" + "".join("%.3f %.3f %.3f\n" % x for x in s[1]))
+    return prot, s[1], s[2]
 
 def run(exe, pdb):
     txt = subprocess.run([exe, pdb, "--top", "60", "--threads", "2"], capture_output=True, text=True).stdout
@@ -78,14 +87,17 @@ def rate(r, k): return 100.0 * sum(x <= k for x in r) / len(r)
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--pockets", required=True); ap.add_argument("--work", required=True)
+    ap.add_argument("--keep", help="directory that keeps <code>_prot.pdb and <code>_lig.xyz")
     a = ap.parse_args(); os.makedirs(a.work, exist_ok=True)
     data = []
     for code in sorted(set(CODES)):
         f = fetch(code, a.work)
         s = split(f, code, a.work) if f else None
         if not s: print("skip", code); continue
+        if a.keep:
+            s = keep(a.keep, code, s)
         pk = run(a.pockets, s[0])
-        if not pk: print("no pockets", code); continue
+        if not pk: print("no pockets", code, "(is ECCE_HOME set?)"); continue
         data.append((code, pk, s[1]))
     items = [(pk, xyz) for _, pk, xyz in data]
     print("complexes used:", len(data))
@@ -103,4 +115,5 @@ def main():
     r0, r1 = ranks(items, None), ranks(items, best)
     print("first-hit rank current/tuned:", " ".join("%s:%s/%s" % (c, x, y) for (c, _, _), x, y in zip(data, r0, r1)))
 
-main()
+if __name__ == "__main__":
+    main()
