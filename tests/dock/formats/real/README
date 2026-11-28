@@ -1,0 +1,8 @@
+Real structure files for tests/dock/structure_formats.py (#1343).
+aspirin_pubchem3d.sdf        PubChem CID 2244, 3D record (public domain)
+nirmatrelvir_pubchem2d.sdf   PubChem CID 155903259, 2D record (public domain)
+atp_rcsb.sdf, heme_rcsb.sdf  RCSB Ligand Expo "ideal" SDF for ATP and HEM (CC0)
+aspirin_pubchem3d.mol2, atp_rcsb.mol2   the SDFs above, converted by obabel 3.1.1
+*_ecce.pdbqt                 written by ECCE's ecce-pdbqt --ligand
+*_ob.pdbqt                   written by obabel 3.1.1
+No heme MOL2: obabel writes its Fe as a nameless Du atom.

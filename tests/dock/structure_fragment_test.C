@@ -21,8 +21,32 @@ static int count(Fragment& f, double order)
   return n;
 }
 
+// "--dump <file> <type>": the Fragment's atoms and bond orders as the Builder
+// sees them (after generateBondOrders for PDBQT), for structure_formats.py.
+static int dump(const std::string& path, const std::string& type)
+{
+  Fragment f;
+  if (!DockFragmentIO::read(f, path, type)) {
+    printf("ERROR %s\n", DockFragmentIO::lastError().c_str());
+    return 1;
+  }
+  for (size_t i = 0; i < f.numAtoms(); i++)
+    printf("A %s\n", f.atomRef(i)->atomicSymbol().c_str());
+  std::vector<TBond*>* b = f.bonds();
+  for (size_t k = 0; k < b->size(); k++) {
+    int i = -1, j = -1;
+    for (size_t n = 0; n < f.numAtoms(); n++) {
+      if (f.atomRef(n) == (*b)[k]->atom1()) i = (int)n;
+      if (f.atomRef(n) == (*b)[k]->atom2()) j = (int)n;
+    }
+    printf("B %d %d %.2f\n", i, j, (*b)[k]->order());
+  }
+  return 0;
+}
+
 int main(int argc, char** argv)
 {
+  if (argc == 4 && std::string(argv[1]) == "--dump") return dump(argv[2], argv[3]);
   std::string d = argv[1];
   {
     Fragment f;

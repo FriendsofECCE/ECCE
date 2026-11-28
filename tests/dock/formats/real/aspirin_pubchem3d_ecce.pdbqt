@@ -1,0 +1,28 @@
+REMARK  Prepared by ECCE
+REMARK  Name = ligand
+REMARK  4 active torsions
+ROOT
+ATOM      1 C1   UNL A   1      -0.086   0.609   0.440  1.00  0.00     0.099 A 
+ATOM      2 C2   UNL A   1      -0.793  -0.551   0.124  1.00  0.00     0.077 A 
+ATOM      3 C3   UNL A   1      -0.729   1.846   0.413  1.00  0.00     0.034 A 
+ATOM      4 C4   UNL A   1      -2.143  -0.474  -0.218  1.00  0.00     0.016 A 
+ATOM      5 C5   UNL A   1      -2.079   1.924   0.071  1.00  0.00     0.003 A 
+ATOM      6 C6   UNL A   1      -2.785   0.764  -0.245  1.00  0.00     0.001 A 
+ENDROOT
+BRANCH 1 7
+ATOM      7 O7   UNL A   1       1.233   0.554   0.779  1.00  0.00    -0.277 OA
+BRANCH 7 8
+ATOM      8 C8   UNL A   1       2.109   0.671  -0.311  1.00  0.00     0.264 C 
+ATOM      9 O9   UNL A   1       1.781   0.810  -1.482  1.00  0.00    -0.265 OA
+ATOM     10 C10  UNL A   1       3.530   0.600   0.164  1.00  0.00     0.121 C 
+ENDBRANCH 7 8
+ENDBRANCH 1 7
+BRANCH 2 11
+ATOM     11 C11  UNL A   1      -0.141  -1.854   0.148  1.00  0.00     0.294 C 
+ATOM     12 O12  UNL A   1       0.796  -2.184   0.869  1.00  0.00    -0.259 OA
+BRANCH 11 13
+ATOM     13 O13  UNL A   1      -0.695  -2.715  -0.750  1.00  0.00    -0.327 OA
+ATOM     14 H14  UNL A   1      -0.256  -3.592  -0.734  1.00  0.00     0.221 HD
+ENDBRANCH 11 13
+ENDBRANCH 2 11
+TORSDOF 4

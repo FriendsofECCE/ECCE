@@ -128,6 +128,44 @@ int DockMol::valence(int i) const
   return v;
 }
 
+// Open Babel's ConnectTheDots rule: two bonds at one atom closer than 45
+// degrees cannot both be real, so the longer goes.  This is what removes the
+// false P-P bond across a P-O-P bridge (angle ~30 degrees) while the 0.45 A
+// tolerance stays, which long real bonds (C-I, S-S, metals) need.
+void DockMol::pruneAcuteBonds()
+{
+  const double minCos = cos(45.0 * M_PI / 180.0);
+  bool again = true;
+  while (again) {
+    again = false;
+    std::vector< std::vector<int> > at(atoms.size());
+    for (size_t k = 0; k < bonds.size(); k++) {
+      at[bonds[k].i].push_back((int)k);
+      at[bonds[k].j].push_back((int)k);
+    }
+    for (size_t a = 0; a < atoms.size() && !again; a++) {
+      for (size_t p = 0; p < at[a].size() && !again; p++) {
+        for (size_t q = p+1; q < at[a].size() && !again; q++) {
+          int bp = at[a][p], bq = at[a][q];
+          int op = bonds[bp].i == (int)a ? bonds[bp].j : bonds[bp].i;
+          int oq = bonds[bq].i == (int)a ? bonds[bq].j : bonds[bq].i;
+          double u[3] = { atoms[op].x - atoms[a].x, atoms[op].y - atoms[a].y,
+                          atoms[op].zc - atoms[a].zc };
+          double v[3] = { atoms[oq].x - atoms[a].x, atoms[oq].y - atoms[a].y,
+                          atoms[oq].zc - atoms[a].zc };
+          double lu = sqrt(u[0]*u[0] + u[1]*u[1] + u[2]*u[2]);
+          double lv = sqrt(v[0]*v[0] + v[1]*v[1] + v[2]*v[2]);
+          if (lu < 1e-6 || lv < 1e-6) continue;
+          double c = (u[0]*v[0] + u[1]*v[1] + u[2]*v[2]) / (lu*lv);
+          if (c <= minCos) continue;
+          bonds.erase(bonds.begin() + (lu > lv ? bp : bq));
+          again = true;
+        }
+      }
+    }
+  }
+}
+
 void DockMol::perceiveBonds()
 {
   p_geomBonds = true;
@@ -146,6 +184,7 @@ void DockMol::perceiveBonds()
       if (d2 < cut*cut && d2 > 0.16) addBond((int)i, (int)j, 1);
     }
   }
+  pruneAcuteBonds();
   // No bond block means no bond orders; a short C=O or C=N still has to be
   // seen as a double bond or every amide would come out rotatable.
   for (size_t k = 0; k < bonds.size(); k++) {

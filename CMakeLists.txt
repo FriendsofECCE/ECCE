@@ -2685,8 +2685,13 @@ add_test(NAME structure_fragment COMMAND structure_fragment_test
   ${CMAKE_SOURCE_DIR}/tests/dock/formats)
 set_tests_properties(structure_fragment PROPERTIES
   ENVIRONMENT "ECCE_HOME=${CMAKE_SOURCE_DIR}")
+add_test(NAME structure_formats_fragment COMMAND ${PYTHON3_EXECUTABLE}
+  ${CMAKE_SOURCE_DIR}/tests/dock/structure_formats.py fragment
+  $<TARGET_FILE:structure_fragment_test> ${CMAKE_SOURCE_DIR}/tests/dock/formats)
+set_tests_properties(structure_formats_fragment PROPERTIES
+  ENVIRONMENT "ECCE_HOME=${CMAKE_SOURCE_DIR}")
 set_tests_properties(structure_formats_oracle structure_formats_bridge
-  PROPERTIES SKIP_RETURN_CODE 77)
+  structure_formats_fragment PROPERTIES SKIP_RETURN_CODE 77)
 
 # tests/metal_bonds (#325): Metal bonds need no nubs.
 add_executable(metal_bond_test tests/metal_bonds/metal_bond_test.C)

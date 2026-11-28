@@ -66,6 +66,7 @@ class DockMol
 
     /** Bonds from interatomic distances; used for PDB input only. */
     void perceiveBonds();
+    void pruneAcuteBonds();
     /** Smallest set of smallest rings, by size, up to ring size 10. */
     void perceiveRings();
     /** Ring flags, hybridisation and aromaticity.  Call after rings. */

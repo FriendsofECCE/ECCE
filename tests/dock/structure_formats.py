@@ -150,6 +150,7 @@ USER_CHARGES
             "ATOM      3  OA  UNL     1       2.700   0.000   0.000  0.00  0.00    -0.300 OA\n")
         a, b = ours(q, "pdbqt")
         check(b is not None and [x[0] for x in a] == ["C", "O"], "g.pdbqt: G0 dropped, CG0 is C: %s" % (a,))
+            geometry()
         # V3000 without Open Babel says so.
         env = dict(os.environ, ECCE_OBABEL="/nonexistent/obabel", PATH="")
         a, b = ours(fix + "/acetic_v3000.mol", "mol", env)
@@ -163,10 +164,129 @@ USER_CHARGES
         shutil.rmtree(d)
 
 
+def geometry_cases():
+    """Hand-built geometries: long real bonds survive, false ones go (#1344)."""
+    return [
+        # name, [(element, x, y, z)], expected bond pairs
+        ("C-I", [("C", 0, 0, 0), ("I", 2.14, 0, 0), ("C", -0.5, 1.45, 0)],
+         {(0, 1), (0, 2)}),
+        ("S-S", [("S", 0, 0, 0), ("S", 2.05, 0, 0), ("C", -0.55, 1.73, 0),
+                 ("C", 2.60, 1.73, 0)], {(0, 1), (0, 2), (1, 3)}),
+        # P-O-P at 100 degrees: the P...P pair is inside the 0.45 A tolerance.
+        ("P-O-P", [("P", 0, 0, 0), ("O", 1.6, 0, 0), ("P", 1.878, 1.576, 0)],
+         {(0, 1), (1, 2)}),
+        ("epoxide", [("C", 0, 0, 0), ("C", 1.47, 0, 0), ("O", 0.735, 1.227, 0)],
+         {(0, 1), (0, 2), (1, 2)}),
+        ("cyclopropane", [("C", 0, 0, 0), ("C", 1.51, 0, 0), ("C", 0.755, 1.308, 0)],
+         {(0, 1), (0, 2), (1, 2)}),
+    ]
+
+
+def pdbqt_text(atoms):
+    types = {"C": "C", "O": "OA", "S": "SA", "P": "P", "I": "I"}
+    return "".join(
+        "ATOM  %5d %-4s UNL     1    %8.3f%8.3f%8.3f  0.00  0.00    +0.000 %s\n"
+        % (i + 1, " " + el, x, y, z, types[el])
+        for i, (el, x, y, z) in enumerate(atoms))
+
+
+def geometry():
+    d = tempfile.mkdtemp()
+    try:
+        for name, atoms, want in geometry_cases():
+            f = os.path.join(d, name + ".pdbqt")
+            open(f, "w").write(pdbqt_text(atoms))
+            a, b = ours(f, "pdbqt")
+            check(b is not None and len(a) == len(atoms), "%s: reads: %s" % (name, a))
+            if b is None:
+                continue
+            got = set(key(x) for x in b)
+            check(got == want, "%s: bonds %s, want %s" % (name, sorted(got), sorted(want)))
+            if shutil.which("obabel"):
+                ob = set(key(x) for x in obabel_mol2(f)[1])
+                check(ob == got, "%s: obabel has %s" % (name, sorted(ob)))
+        print("geometry: %d hand-built cases" % len(geometry_cases()))
+    finally:
+        shutil.rmtree(d)
+
+
+# Fragment-level orders (DockFragmentIO + generateBondOrders) against obabel's
+# own perception of the same PDBQT.  Aromatic on either side matches 1, 1.5, 2.
+# Known differences, (file, atom i, atom j): why.  generateBondOrders is
+# shared code and is not changed here.
+EXPECTED_FRAGMENT_DIFF = {}
+
+
+def fragment():
+    if not shutil.which("obabel"):
+        print("obabel not found, fragment bond-order comparison skipped")
+        sys.exit(77)
+    r = fix + "/real/"
+    cases = [(r + "aspirin_pubchem3d_ob.pdbqt", "aspirin_ob"),
+             (r + "atp_rcsb_ob.pdbqt", "atp_ob"),
+             (fix + "/poses.pdbqt", "poses")]
+    for path, name in cases:
+        p = subprocess.run([dump, "--dump", path, "PDBQT"], capture_output=True, text=True)
+        bonds = {}
+        n = 0
+        for line in p.stdout.splitlines():
+            w = line.split()
+            if w[0] == "ERROR":
+                check(False, "%s: %s" % (name, line))
+            elif w[0] == "A":
+                n += 1
+            elif w[0] == "B":
+                bonds[key((int(w[1]), int(w[2])))] = float(w[3])
+        oa, ob = obabel_mol2(path)
+        check(n == len(oa), "%s: %d atoms, obabel %d" % (name, n, len(oa)))
+        raw = subprocess.run(["obabel", path, "-omol2", "-l", "1"], capture_output=True,
+                             text=True).stdout
+        ar = set()
+        sect = ""
+        for line in raw.splitlines():
+            if line.startswith("@<TRIPOS>"):
+                sect = line[9:].strip()
+            elif sect == "BOND" and line.split()[3] == "ar":
+                ar.add(key((int(line.split()[1]) - 1, int(line.split()[2]) - 1)))
+        mine, theirs = set(bonds), set(key(x) for x in ob)
+        check(mine == theirs, "%s: bond pairs differ: ours-only %s obabel-only %s"
+              % (name, sorted(mine - theirs), sorted(theirs - mine)))
+        nd = 0
+        for x in ob:
+            k = key(x)
+            if k not in bonds:
+                continue
+            o, mo = x[2], bonds[k]
+            ok = (mo == o) or (k in ar and mo in (1.0, 1.5, 2.0)) or \
+                 (mo == 1.5 and o in (1, 2))
+            if not ok:
+                nd += 1
+                why = EXPECTED_FRAGMENT_DIFF.get((name,) + k)
+                print("%s %s bond %d-%d: Fragment order %.2f, obabel %d%s"
+                      % ("EXPECTED" if why else "DIFF", name, k[0], k[1], mo, o,
+                         " (" + why + ")" if why else ""))
+                check(bool(why), "%s bond %s order %.2f vs obabel %d" % (name, k, mo, o))
+        print("%s: %d bonds, %d order differences" % (name, len(bonds), nd))
+
+
+REAL = ["aspirin_pubchem3d", "nirmatrelvir_pubchem2d", "atp_rcsb", "heme_rcsb"]
+
+
 def oracle():
     if not shutil.which("obabel"):
         print("obabel not found, oracle comparison skipped")
         sys.exit(77)
+    r = fix + "/real/"
+    for n in REAL:
+        compare(n + ".sdf", r + n + ".sdf", "sdf")
+    for n in ("aspirin_pubchem3d", "atp_rcsb"):
+        compare(n + ".mol2", r + n + ".mol2", "mol2")
+    for n in ("aspirin_pubchem3d_ecce", "aspirin_pubchem3d_ob", "atp_rcsb_ecce",
+              "atp_rcsb_ob", "heme_rcsb_ecce"):
+        compare(n + ".pdbqt", r + n + ".pdbqt", "pdbqt", perceived=True)
+    # A 2D file stays flat: no 3D regeneration behind the user's back.
+    a, b = ours(r + "nirmatrelvir_pubchem2d.sdf", "sdf")
+    check(b is not None and all(x[3] == 0.0 for x in a), "nirmatrelvir 2D: z must stay 0")
     compare("benzamide.sdf", fix + "/benzamide.sdf", "sdf")
     compare("benzamide.mol2", fix + "/benzamide.mol2", "mol2")
     compare("multi.sdf", fix + "/multi.sdf", "sdf")
@@ -197,5 +317,6 @@ def bridge():
         shutil.rmtree(d)
 
 
-{"native": native, "oracle": oracle, "bridge": bridge}[mode]()
+{"native": native, "oracle": oracle, "bridge": bridge, "geometry": geometry,
+ "fragment": fragment}[mode]()
 sys.exit(1 if fails else 0)
