@@ -111,9 +111,12 @@ def h5content(path):
         shutil.rmtree(home, ignore_errors=True)
 
 
-def compare(parsed, copied):
+def compare(parsed, copied, skipFiles=None, skipProps=()):
     problems = []
     a, b = files(parsed), files(copied)
+    if skipFiles:
+        a = {r for r in a if not skipFiles.search(r)}
+        b = {r for r in b if not skipFiles.search(r)}
     for rel in sorted(a - b):
         problems.append("missing in the copy: " + rel)
     for rel in sorted(b - a):
@@ -123,6 +126,8 @@ def compare(parsed, copied):
         if os.path.basename(rel) == ".ecce-meta":
             ra, rb = records(pa), records(pb)
             for key in sorted(set(ra) | set(rb)):
+                if rel == ".ecce-meta" and key[1].rsplit(":", 1)[-1] in skipProps:
+                    continue
                 if ra.get(key) != rb.get(key):
                     problems.append("%s %s: parse %r, copy %r" % (
                         rel, key[1].rsplit(":", 1)[-1],
@@ -148,6 +153,114 @@ def compare(parsed, copied):
             if da != db and DATE_B.sub(b"", da) != DATE_B.sub(b"", db):
                 problems.append("%s differs (%d and %d bytes)"
                                 % (rel, len(da), len(db)))
+    return problems
+
+
+# A docked example cannot be identical in both arms.  The copy arm is a RUN
+# (what Launch makes: the Vina inputs, the structure before docking); the
+# parse arm is an IMPORT of the finished run, which has no inputs and, because
+# a Vina output holds only docked poses, the structure of pose 1.  So each of
+# those differences is asserted to its expected value, and everything else
+# (POSESCORE, GEOMTRACE, the receptor atoms, every other record) is compared
+# exactly as for any set.
+DOCK_FILES = re.compile(r"^(Inputs/|Outputs/[^/]*\.(out|vinaout)$|Parameters/chemsys\.mvm$)")
+DOCK_PROPS = ("state", "hasinputs", "launch_maxwall", "launch_nodes",
+              "launch_totalprocs")
+COORD_TOL = 2e-3     # the files carry 3 decimals; .mvm 4 significant digits
+
+
+def meta(calc, name):
+    for (res, key), value in records(os.path.join(calc, ".ecce-meta")).items():
+        if res == "." and key.rsplit(":", 1)[-1] == name:
+            return value
+    return None
+
+
+def mvmAtoms(path):
+    """[(element, x, y, z)] of an ECCE .mvm/.frag atom_list."""
+    lines = open(path, errors="replace").read().split("\n")
+    start = [i for i, l in enumerate(lines) if l.startswith("atom_list")][0]
+    atoms = []
+    for line in lines[start + 1:]:
+        t = line.split()
+        if len(t) != 4:
+            break
+        atoms.append((t[0], float(t[1]), float(t[2]), float(t[3])))
+    return atoms
+
+
+def traceFrame1(path):
+    """The coordinates of step 1 of a GEOMTRACE, as [(x, y, z)]."""
+    m = re.search(r'<step number="1">(.*?)</step>', open(path).read(), re.S)
+    v = [float(x) for x in m.group(1).split()]
+    return [tuple(v[i:i + 3]) for i in range(0, len(v), 3)]
+
+
+def maxDev(a, b):
+    return max(abs(p - q) for x, y in zip(a, b) for p, q in zip(x, y))
+
+
+def compareDocking(parsed, copied):
+    problems = compare(parsed, copied, DOCK_FILES, DOCK_PROPS)
+
+    def expect(what, got, want):
+        if got != want:
+            problems.append("%s: %r, expected %r" % (what, got, want))
+
+    def isdir(calc, name):
+        return os.path.isdir(os.path.join(calc, name))
+
+    expect("copy arm state", meta(copied, "state"), "Complete")
+    expect("parse arm state", meta(parsed, "state"), "Loaded")
+    expect("copy arm Inputs", sorted(os.listdir(os.path.join(copied, "Inputs")))
+           if isdir(copied, "Inputs") else None,
+           ["vina.vinafrag", "vina.vinain"])
+    expect("parse arm Inputs files",    # the empty folder itself is made anyway
+           sorted(os.listdir(os.path.join(parsed, "Inputs")))
+           if isdir(parsed, "Inputs") else [], [])
+    expect("parse arm hasinputs", meta(parsed, "hasinputs"), None)
+    if "vina.vinain" not in (meta(copied, "hasinputs") or ""):
+        problems.append("copy arm hasinputs does not list vina.vinain")
+    expect("parse arm launch_totalprocs", meta(parsed, "launch_totalprocs"), "0")
+    if meta(copied, "launch_totalprocs") in (None, "", "0"):
+        problems.append("copy arm records no processors for its run")
+    # The stored Vina output is the imported file.
+    outs = [r for r in files(parsed) if r.startswith("Outputs/") and r.endswith(".out")]
+    expect("parse arm Outputs", len(outs), 1)
+    if outs and open(os.path.join(parsed, outs[0]), "rb").read() != \
+            open(os.path.join(copied, "Outputs", "vina.vinaout"), "rb").read():
+        problems.append("Outputs/vina.vinaout is not the imported output")
+
+    # The ligand: same atoms in both arms, only its coordinates differ.
+    try:
+        rng = re.search(r"LIGAND_ATOMS=(\d+)-(\d+)", open(os.path.join(
+            copied, "Inputs", "vina.vinain")).read())
+        lo, hi = int(rng.group(1)) - 1, int(rng.group(2))
+        pm = mvmAtoms(os.path.join(parsed, "Parameters", "chemsys.mvm"))
+        cm = mvmAtoms(os.path.join(copied, "Parameters", "chemsys.mvm"))
+        frag = mvmAtoms(os.path.join(copied, "Inputs", "vina.vinafrag"))
+        trace = traceFrame1(os.path.join(parsed, "Props", "GEOMTRACE"))
+    except (AttributeError, IndexError, OSError):
+        problems.append("ligand check: cannot read vinain/vinafrag/mvm/GEOMTRACE")
+        return problems
+    expect("atom count, parse and copy", len(pm), len(cm))
+    expect("element order, parse and copy", [a[0] for a in pm], [a[0] for a in cm])
+    if not 0 <= lo < hi <= len(cm) or len(frag) != len(cm) or len(trace) != len(cm):
+        problems.append("atom counts disagree: ligand %d-%d, mvm %d/%d, vinafrag "
+                        "%d, GEOMTRACE %d" % (lo + 1, hi, len(pm), len(cm),
+                                              len(frag), len(trace)))
+        return problems
+    xyz = lambda atoms: [a[1:] for a in atoms]
+    expect("receptor atoms, parse and copy", pm[:lo], cm[:lo])
+    d = maxDev(xyz(pm)[lo:hi], trace[lo:hi])
+    if d > COORD_TOL:
+        problems.append("parse arm ligand is not frame 1 of GEOMTRACE (%.4f)" % d)
+    d = maxDev(xyz(cm)[lo:hi], xyz(frag)[lo:hi])
+    if d > COORD_TOL:
+        problems.append("copy arm ligand is not the ligand of vina.vinafrag (%.4f)" % d)
+    if maxDev(xyz(pm)[lo:hi], xyz(cm)[lo:hi]) <= COORD_TOL:
+        problems.append("the ligand is the same in both arms; the copy should "
+                        "hold it before docking")
     return problems
 
 
@@ -200,7 +313,8 @@ def checkSet(work, setId, failures):
     for calc in sorted(pcalcs):
         if os.path.basename(calc) not in stored:
             continue
-        problems = compare(pcalcs[calc], ccalcs[calc])
+        problems = (compareDocking if setId == "docking" else compare)(
+            pcalcs[calc], ccalcs[calc])
         if problems:
             failures.append("%s/%s: %d differences" % (setId, calc, len(problems)))
             print("FAIL  %s/%s\n      %s" % (setId, calc, "\n      ".join(
