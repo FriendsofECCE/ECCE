@@ -224,6 +224,11 @@ def compareDocking(parsed, copied):
     expect("parse arm launch_totalprocs", meta(parsed, "launch_totalprocs"), "0")
     if meta(copied, "launch_totalprocs") in (None, "", "0"):
         problems.append("copy arm records no processors for its run")
+    # An import knows nothing of how the run was placed; a run records it.
+    expect("parse arm launch_nodes", meta(parsed, "launch_nodes"), "0")
+    expect("copy arm launch_nodes", meta(copied, "launch_nodes"), "1")
+    expect("parse arm launch_maxwall", meta(parsed, "launch_maxwall"), "")
+    expect("copy arm launch_maxwall", meta(copied, "launch_maxwall"), "0 0:0")
     # The stored Vina output is the imported file.
     outs = [r for r in files(parsed) if r.startswith("Outputs/") and r.endswith(".out")]
     expect("parse arm Outputs", len(outs), 1)
