@@ -1,4 +1,4 @@
-#!/usr/bin/env perl
+#!/usr/bin/env python3
 ################################################################################
 #
 # Purpose:
@@ -15,19 +15,11 @@
 #
 ################################################################################
 
-$| = 1;
+import re
+import sys
+from xtb_parse import configure_streams
 
-($key, $runtype, $ucCategory, $theory) = @ARGV;
+configure_streams()
 
-my $line = <STDIN>;
-my $etime = 0.0;
-if (defined($line) && $line =~ /TOTAL JOB TIME:\s*(-?\d+\.?\d*)/) {
-  $etime = $1;
-}
-
-print "key: ETIME\n";
-print "size:\n1\n";
-print "values:\n$etime\n";
-print "END\n";
-
-exit(0);
+match = re.search(r"TOTAL JOB TIME:\s*(-?\d+\.?\d*)", sys.stdin.readline(), re.ASCII)
+print("key: ETIME\nsize:\n1\nvalues:\n{}\nEND".format(match.group(1) if match else "0"))

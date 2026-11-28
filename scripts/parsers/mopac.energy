@@ -1,4 +1,4 @@
-#!/usr/bin/env perl
+#!/usr/bin/env python3
 ################################################################################
 #
 # Purpose:
@@ -11,7 +11,7 @@
 # instead.  All three keys are emitted on every invocation, the same
 # pattern orca.energy uses -- eccejobmonitor collapses a combined
 # "[TE][TEVEC][HFENERGY]" bracket into one opaque type label, so the
-# script cannot tell from $ARGV[0] which key it is being asked for.
+# script cannot tell from argv[0] which key it is being asked for.
 # TE and HFENERGY are plain overwriting PropValues and end up holding
 # the last occurrence; TEVEC accumulates one entry per occurrence.
 #
@@ -33,25 +33,15 @@
 #
 ################################################################################
 
-$| = 1;
+import re
+import sys
+from xtb_parse import configure_streams, scalar
 
-($key, $runtype, $ucCategory, $theory) = @ARGV;
+configure_streams()
 
-$_ = <STDIN>;
-my $value;
-my $isFinal = 0;
-if (/(FINAL )?HEAT OF FORMATION\s*=\s*(-?\d+\.?\d*)/) {
-  $isFinal = defined($1) ? 1 : 0;
-  $value = $2;
-}
-exit(0) if (!defined($value));
-
-my @keys = $isFinal ? ("TE", "TEVEC", "HFENERGY") : ("TE", "HFENERGY");
-foreach my $k (@keys) {
-  print "key: $k\n";
-  print "size:\n1\n";
-  print "values:\n$value\n";
-  print "units:\nkcal/mol\n";
-  print "END\n";
-}
-exit(0);
+line = sys.stdin.readline()
+match = re.search(r"(FINAL )?HEAT OF FORMATION\s*=\s*(-?\d+\.?\d*)", line, re.ASCII)
+if match:
+    keys = ("TE", "TEVEC", "HFENERGY") if match.group(1) else ("TE", "HFENERGY")
+    for key in keys:
+        scalar(key, match.group(2), "kcal/mol")

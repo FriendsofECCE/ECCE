@@ -1,4 +1,4 @@
-#!/usr/bin/env perl
+#!/usr/bin/env python3
 ################################################################################
 #
 # Purpose:
@@ -38,62 +38,54 @@
 #
 ################################################################################
 
-$| = 1;
+import re
+import sys
+import math
+from xtb_parse import configure_streams, number, fields
 
-my ($key, $runtype, $ucCategory, $theory, $openShells) = @ARGV;
-$openShells = 0 if (!defined($openShells) || $openShells eq "");
+configure_streams()
 
-my $nmo = 0;
-my $electrons = 0.0;
+args = sys.argv[1:] + [""] * 5
+key, runtype, category, theory, open_shells = args[:5]
+open_shells = number(open_shells)
+nmo, electrons = 0, 0.0
+for line in sys.stdin:
+    # "<n> <element> <pop> [<pop> ...]". Anchor on the atom number and
+    # symbol so the column header and stray separators are skipped.
+    match = re.search(r"^\s*\d+\s+[A-Za-z][A-Za-z]?\s+(.+)$", line.rstrip("\n"), re.ASCII)
+    if match:
+        for value in fields(match.group(1)):
+            if re.search(r"^-?\d+\.\d+$", value, re.ASCII):
+                nmo += 1
+                electrons += number(value)
+if not nmo or not math.isfinite(electrons):
+    sys.exit(0)
 
-while (<STDIN>) {
-  chomp;
-  #  "<n>  <element>  <pop> [<pop> ...]".  Anchored on the leading atom
-  #  number and element symbol so the "Atom s px py pz" column header and
-  #  any stray separator are simply skipped rather than ending the read.
-  next unless (/^\s*\d+\s+[A-Za-z][A-Za-z]?\s+(.+)$/);
-  my @vals = split(' ', $1);
-  foreach my $v (@vals) {
-    next unless ($v =~ /^-?\d+\.\d+$/);
-    $nmo++;
-    $electrons += $v;
-  }
-}
+# Populations must sum to a whole electron count; otherwise this is a
+# misread block, and publishing an occupancy vector would invent a result.
+n = int(electrons + 0.5)
+if abs(electrons - n) > 0.05:
+    sys.exit(0)
+unrestricted = re.search(r"^U", theory, re.ASCII | re.IGNORECASE)
 
-exit(0) if ($nmo == 0);
 
-#  The populations must sum to a whole number of electrons.  If they do
-#  not, this was not the block we think it was -- emit nothing rather
-#  than an occupancy vector built on a misread.
-my $n = int($electrons + 0.5);
-exit(0) if (abs($electrons - $n) > 0.05);
+def emit(name, nfilled, fill):
+    if nfilled < 0 or nfilled > nmo:
+        return
+    occ = [fill if i < nfilled else "0.0000" for i in range(nmo)]
+    print("key: {}\nsize:\n{}\nvalues:\n{}\nunits:\nelectrons\nEND".format(
+        name, nmo, " ".join(occ)))
 
-my $unrestricted = ($theory =~ /^U/i) ? 1 : 0;
 
-sub emit {
-  my ($name, $nfilled, $fill) = @_;
-  return if ($nfilled < 0 || $nfilled > $nmo);
-  my @occ;
-  for my $i (0 .. $nmo - 1) {
-    push(@occ, ($i < $nfilled) ? $fill : "0.0000");
-  }
-  print "key: $name\n";
-  print "size:\n$nmo\n";
-  print "values:\n";
-  print "@occ\n";
-  print "units:\nelectrons\n";
-  print "END\n";
-}
-
-if ($unrestricted) {
-  #  Nalpha + Nbeta = n, Nalpha - Nbeta = openShells.
-  my $nAlpha = ($n + $openShells) / 2;
-  my $nBeta  = ($n - $openShells) / 2;
-  exit(0) if ($nAlpha != int($nAlpha) || $nBeta != int($nBeta));
-  &emit("ORBOCC", $nAlpha, "1.0000");
-  &emit("ORBOCCBETA", $nBeta, "1.0000");
-} else {
-  exit(0) if ($n % 2 != 0);
-  &emit("ORBOCC", $n / 2, "2.0000");
-}
-exit(0);
+if unrestricted:
+    # Nalpha + Nbeta = n, Nalpha - Nbeta = open_shells.
+    alpha, beta = (n + open_shells) / 2, (n - open_shells) / 2
+    if (not math.isfinite(alpha) or not math.isfinite(beta)
+            or alpha != int(alpha) or beta != int(beta)):
+        sys.exit(0)
+    emit("ORBOCC", alpha, "1.0000")
+    emit("ORBOCCBETA", beta, "1.0000")
+else:
+    if n % 2:
+        sys.exit(0)
+    emit("ORBOCC", n / 2, "2.0000")

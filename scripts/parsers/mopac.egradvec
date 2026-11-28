@@ -1,4 +1,4 @@
-#!/usr/bin/env perl
+#!/usr/bin/env python3
 ################################################################################
 #
 # Purpose:
@@ -21,43 +21,32 @@
 #
 ################################################################################
 
-$| = 1;
+import re
+import sys
+from xtb_parse import configure_streams, number
 
-($key, $runtype, $ucCategory, $theory) = @ARGV;
+configure_streams()
 
-my $KCAL_ANG_PER_HARTREE_BOHR = 1185.82105;
+KCAL_ANG_PER_HARTREE_BOHR = 1185.82105
 
-my %grad;   # $grad{atom}{coord} = value, both 0-based
-my $natoms = 0;
-my %coordIdx = ("X" => 0, "Y" => 1, "Z" => 2);
-
-while (<STDIN>) {
-  if (/^\s*\d+\s+(\d+)\s+\S+\s+CARTESIAN\s+([XYZ])\s+-?\d+\.\d+\s+(-?\d+\.\d+)/) {
-    my ($atom, $coord, $value) = ($1 - 1, $coordIdx{$2}, $3);
-    $grad{$atom}{$coord} = $value / $KCAL_ANG_PER_HARTREE_BOHR;
-    $natoms = $atom + 1 if (($atom + 1) > $natoms);
-  }
-}
-
-exit(0) if ($natoms < 1);
-
-print "key: EGRADVEC\n";
-print "size:\n$natoms 3\n";
-print "rowlabels:\n";
-for my $i (1 .. $natoms) {
-  print " $i ";
-  print "\n" if (($i % 10) == 0);
-}
-print "\ncolumnlabels:\nX Y Z\n";
-print "values:\n";
-for my $a (0 .. $natoms - 1) {
-  for my $c (0 .. 2) {
-    my $v = $grad{$a}{$c};
-    $v = 0.0 if (!defined($v));
-    printf(" %.10f", $v);
-  }
-  print "\n";
-}
-print "units:\nHartree/Bohr\n";
-print "END\n";
-exit(0);
+grad = {}  # grad[atom, coord] = value, both 0-based
+natoms = 0
+coord_index = {"X": 0, "Y": 1, "Z": 2}
+for line in sys.stdin:
+    match = re.search(r"^\s*\d+\s+(\d+)\s+\S+\s+CARTESIAN\s+([XYZ])\s+-?\d+\.\d+\s+(-?\d+\.\d+)", line, re.ASCII)
+    if match:
+        atom = number(match.group(1), integer=True) - 1
+        coord = coord_index[match.group(2)]
+        grad[atom, coord] = number(match.group(3)) / KCAL_ANG_PER_HARTREE_BOHR
+        natoms = max(natoms, atom + 1)
+if natoms < 1:
+    sys.exit(0)
+print("key: EGRADVEC\nsize:\n{} 3\nrowlabels:".format(natoms))
+for i in range(1, natoms + 1):
+    print(" {} ".format(i), end="")
+    if i % 10 == 0:
+        print()
+print("\ncolumnlabels:\nX Y Z\nvalues:")
+for atom in range(natoms):
+    print("".join(" {:.10f}".format(grad.get((atom, coord), 0.0)) for coord in range(3)))
+print("units:\nHartree/Bohr\nEND")

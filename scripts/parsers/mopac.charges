@@ -1,4 +1,4 @@
-#!/usr/bin/env perl
+#!/usr/bin/env python3
 ################################################################################
 #
 # Purpose:
@@ -31,36 +31,24 @@
 #
 ################################################################################
 
-$| = 1;
+import re
+import sys
+from xtb_parse import configure_streams
 
-($key, $runtype, $ucCategory, $theory) = @ARGV;
+configure_streams()
 
-my @charges;
-my @dipole;
-
-while (<STDIN>) {
-  if (/^\s*\d+\s+[A-Za-z]{1,2}\s+(-?\d+\.\d+)/) {
-    push(@charges, $1);
-  } elsif (/^\s*SUM\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)/) {
-    @dipole = ($1, $2, $3);
-  }
-}
-
-if (@charges) {
-  print "key: MULLIKEN\n";
-  print "size:\n", scalar(@charges), "\n";
-  print "values:\n";
-  print join(" ", @charges), "\n";
-  print "units:\ne\n";
-  print "END\n";
-}
-
-if (@dipole) {
-  print "key: DIPOLE\n";
-  print "size:\n3\n";
-  print "rowlabels:\nX Y Z\n";
-  print "values:\n$dipole[0] $dipole[1] $dipole[2]\n";
-  print "units:\nDebye\n";
-  print "END\n";
-}
-exit(0);
+charges, dipole = [], []
+for line in sys.stdin:
+    match = re.search(r"^\s*\d+\s+[A-Za-z]{1,2}\s+(-?\d+\.\d+)", line, re.ASCII)
+    if match:
+        charges.append(match.group(1))
+    else:
+        match = re.search(r"^\s*SUM\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)", line, re.ASCII)
+        if match:
+            dipole = match.groups()
+if charges:
+    print("key: MULLIKEN\nsize:\n{}\nvalues:\n{}\nunits:\ne\nEND".format(
+        len(charges), " ".join(charges)))
+if dipole:
+    print("key: DIPOLE\nsize:\n3\nrowlabels:\nX Y Z\nvalues:\n{}\nunits:\nDebye\nEND".format(
+        " ".join(dipole)))

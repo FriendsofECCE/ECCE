@@ -1,4 +1,4 @@
-#!/usr/bin/env perl
+#!/usr/bin/env python3
 ################################################################################
 #
 # Purpose:
@@ -12,20 +12,12 @@
 #
 ################################################################################
 
-$| = 1;
+import re
+import sys
+from xtb_parse import configure_streams, scalar
 
-($key, $runtype, $ucCategory, $theory) = @ARGV;
+configure_streams()
 
-my $line = <STDIN>;
-exit(0) if (!defined($line));
-
-exit(0) unless ($line =~ /ZERO POINT ENERGY\s+(-?\d+\.?\d*)/);
-my $value = $1;
-
-print "key: EZEROPT\n";
-print "size:\n1\n";
-print "values:\n$value\n";
-print "units:\nkcal/mol\n";
-print "END\n";
-
-exit(0);
+match = re.search(r"ZERO POINT ENERGY\s+(-?\d+\.?\d*)", sys.stdin.readline(), re.ASCII)
+if match:
+    scalar("EZEROPT", match.group(1), "kcal/mol")

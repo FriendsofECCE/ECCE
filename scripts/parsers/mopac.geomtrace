@@ -1,4 +1,4 @@
-#!/usr/bin/env perl
+#!/usr/bin/env python3
 ################################################################################
 #
 # Purpose:
@@ -23,44 +23,33 @@
 #
 ################################################################################
 
-$| = 1;
+import re
+import sys
+import os
+from xtb_parse import configure_streams
 
-($key, $runtype, $ucCategory, $theory) = @ARGV;
+configure_streams()
 
-my @coordlines;
-my @symbols;
-my $rowLabels = "";
-my $index = 0;
-while (<STDIN>) {
-  if (/^\s*\d+\s+([A-Za-z]{1,2})\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s*$/) {
-    my ($symbol, $x, $y, $z) = ($1, $2, $3, $4);
-    push(@coordlines, "$x $y $z");
-    push(@symbols, $symbol);
-    $rowLabels .= " " . ($index + 1) . "-$symbol";
-    $index++;
-  }
-}
+coords, symbols = [], []
+for line in sys.stdin:
+    match = re.search(r"^\s*\d+\s+([A-Za-z]{1,2})\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s*$", line, re.ASCII)
+    if match:
+        symbols.append(match.group(1))
+        coords.append(" ".join(match.groups()[1:]))
+if coords:
+    labels = "".join(" {}-{}".format(i + 1, symbol) for i, symbol in enumerate(symbols))
+    print("key: GEOMTRACE\nsize:\n1 {} 3\nrowlabels:\n{}\ncolumnlabels:\nX Y Z\nvalues:".format(
+        len(coords), labels))
+    for row in coords:
+        print(" " + row)
+    print("units:\nAngstrom\nEND")
 
-my $size = $#coordlines + 1;
-if ($size >= 1) {
-  print "key: GEOMTRACE\n";
-  print "size:\n1 $size 3\n";
-  print "rowlabels:\n$rowLabels\n";
-  print "columnlabels:\nX Y Z\n";
-  print "values:\n";
-  foreach my $line (@coordlines) {
-    print " $line\n";
-  }
-  print "units:\nAngstrom\n";
-  print "END\n";
-
-  # mopac.vib rotates a FORCE run's modes back into this frame; the latest
-  # block before the force orientation is the one it needs.
-  if (open(AUXFILE, ">" . $key . "/mopacInputGeom")) {
-    for my $i (0 .. $#coordlines) {
-      print AUXFILE "$symbols[$i] $coordlines[$i]\n";
-    }
-    close(AUXFILE);
-  }
-}
-exit(0);
+    # mopac.vib rotates a FORCE run's modes back into this frame; the latest
+    # block before the force orientation is the one it needs.
+    try:
+        with open(os.path.join(sys.argv[1], "mopacInputGeom"), "w",
+                  encoding="utf-8", errors="replace", newline="\n") as stream:
+            for symbol, row in zip(symbols, coords):
+                stream.write(symbol + " " + row + "\n")
+    except OSError:
+        pass

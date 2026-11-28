@@ -1,4 +1,4 @@
-#!/usr/bin/env perl
+#!/usr/bin/env python3
 ################################################################################
 #
 # Purpose:
@@ -10,19 +10,17 @@
 #
 ################################################################################
 
-$| = 1;
+import re
+import sys
+from xtb_parse import configure_streams
 
-my @charges;
-while (<STDIN>) {
-  push(@charges, $1) if (/^\s*\d+\s+[A-Za-z]{1,2}\s+(-?\d+\.\d+)\s*$/);
-}
+configure_streams()
 
-if (@charges) {
-  print "key: ESPFIT\n";
-  print "size:\n", scalar(@charges), "\n";
-  print "values:\n";
-  print join(" ", @charges), "\n";
-  print "units:\ne\n";
-  print "END\n";
-}
-exit(0);
+charges = []
+for line in sys.stdin:
+    match = re.search(r"^\s*\d+\s+[A-Za-z]{1,2}\s+(-?\d+\.\d+)\s*$", line, re.ASCII)
+    if match:
+        charges.append(match.group(1))
+if charges:
+    print("key: ESPFIT\nsize:\n{}\nvalues:\n{}\nunits:\ne\nEND".format(
+        len(charges), " ".join(charges)))

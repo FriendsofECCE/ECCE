@@ -1,4 +1,4 @@
-#!/usr/bin/env perl
+#!/usr/bin/env python3
 ################################################################################
 #
 # Purpose:
@@ -12,21 +12,14 @@
 #
 ################################################################################
 
-$| = 1;
+import re
+import sys
+from xtb_parse import configure_streams
 
-($key, $runtype, $ucCategory, $theory) = @ARGV;
+configure_streams()
 
-my $line = <STDIN>;
-chomp($line) if (defined $line);
-
-my $pntgrp = "C1";
-if (defined($line) && $line =~ /MOLECULAR POINT GROUP\s*:\s*(\S+)/) {
-  $pntgrp = $1;
-}
-
-print "key: PNTGRP\n";
-print "size: \n1\n";
-print "values: \n$pntgrp\n";
-print "END\n";
-
-exit(0);
+# Labels are opaque bytes in Perl, including malformed UTF-8. Match the raw
+# record so publishing a label cannot replace bytes in the user's output.
+match = re.search(rb"MOLECULAR POINT GROUP\s*:\s*(\S+)", sys.stdin.buffer.readline(), re.ASCII)
+label = match.group(1) if match else b"C1"
+sys.stdout.buffer.write(b"key: PNTGRP\nsize: \n1\nvalues: \n" + label + b"\nEND\n")

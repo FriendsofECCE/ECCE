@@ -1,0 +1,7332 @@
+{
+  "charges-atom/clean": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: MULLIKEN\nsize:\n1\nvalues:\n-0.5000\nunits:\ne\nEND\n"
+  },
+  "charges-atom/ending-": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: MULLIKEN\nsize:\n1\nvalues:\n-0.5000\nunits:\ne\nEND\n"
+  },
+  "charges-atom/ending-0d": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: MULLIKEN\nsize:\n1\nvalues:\n-0.5000\nunits:\ne\nEND\n"
+  },
+  "charges-atom/ending-0d0a": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: MULLIKEN\nsize:\n1\nvalues:\n-0.5000\nunits:\ne\nEND\n"
+  },
+  "charges-atom/field-0/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "charges-atom/field-0/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "charges-atom/field-0/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "charges-atom/field-0/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "charges-atom/field-0/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "charges-atom/field-0/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "charges-atom/field-0/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "charges-atom/field-1/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "charges-atom/field-1/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "charges-atom/field-1/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "charges-atom/field-1/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "charges-atom/field-1/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "charges-atom/field-1/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "charges-atom/field-1/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "charges-atom/field-2/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "charges-atom/field-2/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: MULLIKEN\nsize:\n1\nvalues:\n6.5000\nunits:\ne\nEND\n"
+  },
+  "charges-atom/field-2/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "charges-atom/field-2/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "charges-atom/field-2/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "charges-atom/field-2/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "charges-atom/field-2/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "charges-atom/field-3/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: MULLIKEN\nsize:\n1\nvalues:\n-0.5000\nunits:\ne\nEND\n"
+  },
+  "charges-atom/field-3/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: MULLIKEN\nsize:\n1\nvalues:\n-0.5000\nunits:\ne\nEND\n"
+  },
+  "charges-atom/field-3/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: MULLIKEN\nsize:\n1\nvalues:\n-0.5000\nunits:\ne\nEND\n"
+  },
+  "charges-atom/field-3/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: MULLIKEN\nsize:\n1\nvalues:\n-0.5000\nunits:\ne\nEND\n"
+  },
+  "charges-atom/field-3/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: MULLIKEN\nsize:\n1\nvalues:\n-0.5000\nunits:\ne\nEND\n"
+  },
+  "charges-atom/field-3/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: MULLIKEN\nsize:\n1\nvalues:\n-0.5000\nunits:\ne\nEND\n"
+  },
+  "charges-atom/field-3/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: MULLIKEN\nsize:\n1\nvalues:\n-0.5000\nunits:\ne\nEND\n"
+  },
+  "charges-atom/leading-digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "charges-atom/leading-empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: MULLIKEN\nsize:\n1\nvalues:\n-0.5000\nunits:\ne\nEND\n"
+  },
+  "charges-atom/leading-nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "charges-atom/leading-overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "charges-atom/leading-prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "charges-atom/leading-stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "charges-atom/leading-word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "charges-atom/space-1/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "charges-atom/space-1/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "charges-atom/space-1/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "charges-atom/space-1/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "charges-atom/space-1/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "charges-atom/space-1/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "charges-atom/space-1/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "charges-atom/space-2/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "charges-atom/space-2/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "charges-atom/space-2/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "charges-atom/space-2/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "charges-atom/space-2/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "charges-atom/space-2/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "charges-atom/space-2/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "charges-atom/space-3/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: MULLIKEN\nsize:\n1\nvalues:\n-0.5000\nunits:\ne\nEND\n"
+  },
+  "charges-atom/space-3/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: MULLIKEN\nsize:\n1\nvalues:\n-0.50006\nunits:\ne\nEND\n"
+  },
+  "charges-atom/space-3/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: MULLIKEN\nsize:\n1\nvalues:\n-0.5000\nunits:\ne\nEND\n"
+  },
+  "charges-atom/space-3/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: MULLIKEN\nsize:\n1\nvalues:\n-0.5000\nunits:\ne\nEND\n"
+  },
+  "charges-atom/space-3/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: MULLIKEN\nsize:\n1\nvalues:\n-0.50003\nunits:\ne\nEND\n"
+  },
+  "charges-atom/space-3/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: MULLIKEN\nsize:\n1\nvalues:\n-0.5000\nunits:\ne\nEND\n"
+  },
+  "charges-atom/space-3/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: MULLIKEN\nsize:\n1\nvalues:\n-0.5000\nunits:\ne\nEND\n"
+  },
+  "charges-sum/clean": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: DIPOLE\nsize:\n3\nrowlabels:\nX Y Z\nvalues:\n-0.000 0.125 -2.141\nunits:\nDebye\nEND\n"
+  },
+  "charges-sum/ending-": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: DIPOLE\nsize:\n3\nrowlabels:\nX Y Z\nvalues:\n-0.000 0.125 -2.141\nunits:\nDebye\nEND\n"
+  },
+  "charges-sum/ending-0d": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: DIPOLE\nsize:\n3\nrowlabels:\nX Y Z\nvalues:\n-0.000 0.125 -2.141\nunits:\nDebye\nEND\n"
+  },
+  "charges-sum/ending-0d0a": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: DIPOLE\nsize:\n3\nrowlabels:\nX Y Z\nvalues:\n-0.000 0.125 -2.141\nunits:\nDebye\nEND\n"
+  },
+  "charges-sum/field-0/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "charges-sum/field-0/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "charges-sum/field-0/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "charges-sum/field-0/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "charges-sum/field-0/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "charges-sum/field-0/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "charges-sum/field-0/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "charges-sum/field-1/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "charges-sum/field-1/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "charges-sum/field-1/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "charges-sum/field-1/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "charges-sum/field-1/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "charges-sum/field-1/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "charges-sum/field-1/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "charges-sum/field-2/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "charges-sum/field-2/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "charges-sum/field-2/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "charges-sum/field-2/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "charges-sum/field-2/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "charges-sum/field-2/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "charges-sum/field-2/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "charges-sum/field-3/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "charges-sum/field-3/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "charges-sum/field-3/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "charges-sum/field-3/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "charges-sum/field-3/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "charges-sum/field-3/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "charges-sum/field-3/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "charges-sum/leading-digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "charges-sum/leading-empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: DIPOLE\nsize:\n3\nrowlabels:\nX Y Z\nvalues:\n-0.000 0.125 -2.141\nunits:\nDebye\nEND\n"
+  },
+  "charges-sum/leading-nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "charges-sum/leading-overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "charges-sum/leading-prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "charges-sum/leading-stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "charges-sum/leading-word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "charges-sum/space-1/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "charges-sum/space-1/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "charges-sum/space-1/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "charges-sum/space-1/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "charges-sum/space-1/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "charges-sum/space-1/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "charges-sum/space-1/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "charges-sum/space-2/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "charges-sum/space-2/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "charges-sum/space-2/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "charges-sum/space-2/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "charges-sum/space-2/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "charges-sum/space-2/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "charges-sum/space-2/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "charges-sum/space-3/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "charges-sum/space-3/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "charges-sum/space-3/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "charges-sum/space-3/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "charges-sum/space-3/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "charges-sum/space-3/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "charges-sum/space-3/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "dielectric/clean": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: SOLVMODEL\nsize:\n1\nvalues:\nCOSMO, \u00ce\u00b5 = 78.4\nunits:\nNA\nEND\n"
+  },
+  "dielectric/ending-": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: SOLVMODEL\nsize:\n1\nvalues:\nCOSMO, \u00ce\u00b5 = 78.4\nunits:\nNA\nEND\n"
+  },
+  "dielectric/ending-0d": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: SOLVMODEL\nsize:\n1\nvalues:\nCOSMO, \u00ce\u00b5 = 78.4\nunits:\nNA\nEND\n"
+  },
+  "dielectric/ending-0d0a": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: SOLVMODEL\nsize:\n1\nvalues:\nCOSMO, \u00ce\u00b5 = 78.4\nunits:\nNA\nEND\n"
+  },
+  "dielectric/field-0/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "dielectric/field-0/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: SOLVMODEL\nsize:\n1\nvalues:\nCOSMO, \u00ce\u00b5 = 78.4\nunits:\nNA\nEND\n"
+  },
+  "dielectric/field-0/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "dielectric/field-0/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "dielectric/field-0/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: SOLVMODEL\nsize:\n1\nvalues:\nCOSMO, \u00ce\u00b5 = 78.4\nunits:\nNA\nEND\n"
+  },
+  "dielectric/field-0/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "dielectric/field-0/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "dielectric/field-1/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "dielectric/field-1/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "dielectric/field-1/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "dielectric/field-1/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "dielectric/field-1/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "dielectric/field-1/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "dielectric/field-1/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "dielectric/field-2/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "dielectric/field-2/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "dielectric/field-2/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "dielectric/field-2/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "dielectric/field-2/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "dielectric/field-2/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "dielectric/field-2/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "dielectric/field-3/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "dielectric/field-3/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "dielectric/field-3/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "dielectric/field-3/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "dielectric/field-3/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "dielectric/field-3/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "dielectric/field-3/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "dielectric/leading-digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "dielectric/leading-empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: SOLVMODEL\nsize:\n1\nvalues:\nCOSMO, \u00ce\u00b5 = 78.4\nunits:\nNA\nEND\n"
+  },
+  "dielectric/leading-nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "dielectric/leading-overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "dielectric/leading-prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: SOLVMODEL\nsize:\n1\nvalues:\nCOSMO, \u00ce\u00b5 = 78.4\nunits:\nNA\nEND\n"
+  },
+  "dielectric/leading-stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "dielectric/leading-word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "dielectric/space-1/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: SOLVMODEL\nsize:\n1\nvalues:\nCOSMO, \u00ce\u00b5 = 78.4\nunits:\nNA\nEND\n"
+  },
+  "dielectric/space-1/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "dielectric/space-1/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: SOLVMODEL\nsize:\n1\nvalues:\nCOSMO, \u00ce\u00b5 = 78.4\nunits:\nNA\nEND\n"
+  },
+  "dielectric/space-1/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: SOLVMODEL\nsize:\n1\nvalues:\nCOSMO, \u00ce\u00b5 = 78.4\nunits:\nNA\nEND\n"
+  },
+  "dielectric/space-1/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "dielectric/space-1/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: SOLVMODEL\nsize:\n1\nvalues:\nCOSMO, \u00ce\u00b5 = 78.4\nunits:\nNA\nEND\n"
+  },
+  "dielectric/space-1/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: SOLVMODEL\nsize:\n1\nvalues:\nCOSMO, \u00ce\u00b5 = 78.4\nunits:\nNA\nEND\n"
+  },
+  "dielectric/space-2/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "dielectric/space-2/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: SOLVMODEL\nsize:\n1\nvalues:\nCOSMO, \u00ce\u00b5 = 78.4\nunits:\nNA\nEND\n"
+  },
+  "dielectric/space-2/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "dielectric/space-2/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "dielectric/space-2/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "dielectric/space-2/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "dielectric/space-2/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "dielectric/space-3/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "dielectric/space-3/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: SOLVMODEL\nsize:\n1\nvalues:\nCOSMO, \u00ce\u00b5 = 78.4\nunits:\nNA\nEND\n"
+  },
+  "dielectric/space-3/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "dielectric/space-3/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "dielectric/space-3/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "dielectric/space-3/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "dielectric/space-3/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "empty/charges": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "empty/egradvec": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "empty/energy": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "empty/espcharge": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "empty/etime": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ETIME\nsize:\n1\nvalues:\n0\nEND\n"
+  },
+  "empty/ezeropt": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "empty/forceframe": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "empty/geomtrace": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "empty/ip": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "empty/orbocc": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "empty/pntgrp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: PNTGRP\nsize: \n1\nvalues: \nC1\nEND\n"
+  },
+  "empty/solvmodel": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "esp/clean": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ESPFIT\nsize:\n1\nvalues:\n-0.5889\nunits:\ne\nEND\n"
+  },
+  "esp/ending-": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ESPFIT\nsize:\n1\nvalues:\n-0.5889\nunits:\ne\nEND\n"
+  },
+  "esp/ending-0d": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ESPFIT\nsize:\n1\nvalues:\n-0.5889\nunits:\ne\nEND\n"
+  },
+  "esp/ending-0d0a": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ESPFIT\nsize:\n1\nvalues:\n-0.5889\nunits:\ne\nEND\n"
+  },
+  "esp/field-0/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "esp/field-0/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "esp/field-0/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "esp/field-0/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "esp/field-0/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "esp/field-0/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "esp/field-0/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "esp/field-1/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "esp/field-1/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "esp/field-1/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "esp/field-1/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "esp/field-1/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "esp/field-1/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "esp/field-1/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "esp/field-2/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "esp/field-2/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "esp/field-2/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "esp/field-2/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "esp/field-2/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "esp/field-2/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "esp/field-2/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "esp/leading-digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "esp/leading-empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ESPFIT\nsize:\n1\nvalues:\n-0.5889\nunits:\ne\nEND\n"
+  },
+  "esp/leading-nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "esp/leading-overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "esp/leading-prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "esp/leading-stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "esp/leading-word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "esp/space-1/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "esp/space-1/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "esp/space-1/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "esp/space-1/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "esp/space-1/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "esp/space-1/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "esp/space-1/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "esp/space-2/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "esp/space-2/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "esp/space-2/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "esp/space-2/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "esp/space-2/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "esp/space-2/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "esp/space-2/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "extra/egradvec/0": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: EGRADVEC\nsize:\n2 3\nrowlabels:\n 1  2 \ncolumnlabels:\nX Y Z\nvalues:\n 0.0000000000 0.0000000000 0.0000000000\n 0.0000000000 0.0000000000 -0.0000000000\nunits:\nHartree/Bohr\nEND\n"
+  },
+  "extra/egradvec/1": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: EGRADVEC\nsize:\n1 3\nrowlabels:\n 1 \ncolumnlabels:\nX Y Z\nvalues:\n 0.0000000000 -0.0000000000 0.0000000000\nunits:\nHartree/Bohr\nEND\n"
+  },
+  "extra/egradvec/2": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: EGRADVEC\nsize:\n11 3\nrowlabels:\n 1  2  3  4  5  6  7  8  9  10 \n 11 \ncolumnlabels:\nX Y Z\nvalues:\n 0.0000000000 0.0000000000 0.0000000000\n 0.0000000000 0.0000000000 0.0000000000\n 0.0000000000 0.0000000000 0.0000000000\n 0.0000000000 0.0000000000 0.0000000000\n 0.0000000000 0.0000000000 0.0000000000\n 0.0000000000 0.0000000000 0.0000000000\n 0.0000000000 0.0000000000 0.0000000000\n 0.0000000000 0.0000000000 0.0000000000\n 0.0000000000 0.0000000000 0.0000000000\n 0.0000000000 0.0000000000 0.0000000000\n 0.0010411081 0.0000000000 0.0000000000\nunits:\nHartree/Bohr\nEND\n"
+  },
+  "extra/orbocc/0": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "extra/orbocc/1": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "extra/orbocc/2": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "extra/orbocc/3": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "extra/orbocc/4": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "extra/solvmodel/0": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: SOLVMODEL\nsize:\n1\nvalues:\nCOSMO, \u00ce\u00b5 = 78.4\nunits:\nNA\nEND\n"
+  },
+  "extra/solvmodel/1": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "extra/solvmodel/2": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "extra/solvmodel/3": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: SOLVMODEL\nsize:\n1\nvalues:\nCOSMO, \u00ce\u00b5 = 2\nunits:\nNA\nEND\n"
+  },
+  "extra/solvmodel/4": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: SOLVMODEL\nsize:\n1\nvalues:\nCOSMO, \u00ce\u00b5 = 1.23456789012346\nunits:\nNA\nEND\n"
+  },
+  "extra/solvmodel/5": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "final/clean": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: TE\nsize:\n1\nvalues:\n-57.79986\nunits:\nkcal/mol\nEND\nkey: TEVEC\nsize:\n1\nvalues:\n-57.79986\nunits:\nkcal/mol\nEND\nkey: HFENERGY\nsize:\n1\nvalues:\n-57.79986\nunits:\nkcal/mol\nEND\n"
+  },
+  "final/ending-": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: TE\nsize:\n1\nvalues:\n-57.79986\nunits:\nkcal/mol\nEND\nkey: TEVEC\nsize:\n1\nvalues:\n-57.79986\nunits:\nkcal/mol\nEND\nkey: HFENERGY\nsize:\n1\nvalues:\n-57.79986\nunits:\nkcal/mol\nEND\n"
+  },
+  "final/ending-0d": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: TE\nsize:\n1\nvalues:\n-57.79986\nunits:\nkcal/mol\nEND\nkey: TEVEC\nsize:\n1\nvalues:\n-57.79986\nunits:\nkcal/mol\nEND\nkey: HFENERGY\nsize:\n1\nvalues:\n-57.79986\nunits:\nkcal/mol\nEND\n"
+  },
+  "final/ending-0d0a": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: TE\nsize:\n1\nvalues:\n-57.79986\nunits:\nkcal/mol\nEND\nkey: TEVEC\nsize:\n1\nvalues:\n-57.79986\nunits:\nkcal/mol\nEND\nkey: HFENERGY\nsize:\n1\nvalues:\n-57.79986\nunits:\nkcal/mol\nEND\n"
+  },
+  "final/field-0/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: TE\nsize:\n1\nvalues:\n-57.79986\nunits:\nkcal/mol\nEND\nkey: HFENERGY\nsize:\n1\nvalues:\n-57.79986\nunits:\nkcal/mol\nEND\n"
+  },
+  "final/field-0/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: TE\nsize:\n1\nvalues:\n-57.79986\nunits:\nkcal/mol\nEND\nkey: HFENERGY\nsize:\n1\nvalues:\n-57.79986\nunits:\nkcal/mol\nEND\n"
+  },
+  "final/field-0/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: TE\nsize:\n1\nvalues:\n-57.79986\nunits:\nkcal/mol\nEND\nkey: HFENERGY\nsize:\n1\nvalues:\n-57.79986\nunits:\nkcal/mol\nEND\n"
+  },
+  "final/field-0/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: TE\nsize:\n1\nvalues:\n-57.79986\nunits:\nkcal/mol\nEND\nkey: HFENERGY\nsize:\n1\nvalues:\n-57.79986\nunits:\nkcal/mol\nEND\n"
+  },
+  "final/field-0/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: TE\nsize:\n1\nvalues:\n-57.79986\nunits:\nkcal/mol\nEND\nkey: HFENERGY\nsize:\n1\nvalues:\n-57.79986\nunits:\nkcal/mol\nEND\n"
+  },
+  "final/field-0/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: TE\nsize:\n1\nvalues:\n-57.79986\nunits:\nkcal/mol\nEND\nkey: HFENERGY\nsize:\n1\nvalues:\n-57.79986\nunits:\nkcal/mol\nEND\n"
+  },
+  "final/field-0/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: TE\nsize:\n1\nvalues:\n-57.79986\nunits:\nkcal/mol\nEND\nkey: HFENERGY\nsize:\n1\nvalues:\n-57.79986\nunits:\nkcal/mol\nEND\n"
+  },
+  "final/field-1/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "final/field-1/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "final/field-1/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "final/field-1/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "final/field-1/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "final/field-1/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "final/field-1/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "final/field-2/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "final/field-2/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "final/field-2/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "final/field-2/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "final/field-2/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "final/field-2/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "final/field-2/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "final/field-3/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "final/field-3/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "final/field-3/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "final/field-3/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "final/field-3/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "final/field-3/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "final/field-3/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "final/field-4/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "final/field-4/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "final/field-4/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "final/field-4/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "final/field-4/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "final/field-4/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "final/field-4/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "final/field-5/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "final/field-5/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "final/field-5/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "final/field-5/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "final/field-5/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: TE\nsize:\n1\nvalues:\n3\nunits:\nkcal/mol\nEND\nkey: TEVEC\nsize:\n1\nvalues:\n3\nunits:\nkcal/mol\nEND\nkey: HFENERGY\nsize:\n1\nvalues:\n3\nunits:\nkcal/mol\nEND\n"
+  },
+  "final/field-5/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "final/field-5/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "final/leading-digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: TE\nsize:\n1\nvalues:\n-57.79986\nunits:\nkcal/mol\nEND\nkey: TEVEC\nsize:\n1\nvalues:\n-57.79986\nunits:\nkcal/mol\nEND\nkey: HFENERGY\nsize:\n1\nvalues:\n-57.79986\nunits:\nkcal/mol\nEND\n"
+  },
+  "final/leading-empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: TE\nsize:\n1\nvalues:\n-57.79986\nunits:\nkcal/mol\nEND\nkey: TEVEC\nsize:\n1\nvalues:\n-57.79986\nunits:\nkcal/mol\nEND\nkey: HFENERGY\nsize:\n1\nvalues:\n-57.79986\nunits:\nkcal/mol\nEND\n"
+  },
+  "final/leading-nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: TE\nsize:\n1\nvalues:\n-57.79986\nunits:\nkcal/mol\nEND\nkey: TEVEC\nsize:\n1\nvalues:\n-57.79986\nunits:\nkcal/mol\nEND\nkey: HFENERGY\nsize:\n1\nvalues:\n-57.79986\nunits:\nkcal/mol\nEND\n"
+  },
+  "final/leading-overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: TE\nsize:\n1\nvalues:\n-57.79986\nunits:\nkcal/mol\nEND\nkey: TEVEC\nsize:\n1\nvalues:\n-57.79986\nunits:\nkcal/mol\nEND\nkey: HFENERGY\nsize:\n1\nvalues:\n-57.79986\nunits:\nkcal/mol\nEND\n"
+  },
+  "final/leading-prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: TE\nsize:\n1\nvalues:\n-57.79986\nunits:\nkcal/mol\nEND\nkey: TEVEC\nsize:\n1\nvalues:\n-57.79986\nunits:\nkcal/mol\nEND\nkey: HFENERGY\nsize:\n1\nvalues:\n-57.79986\nunits:\nkcal/mol\nEND\n"
+  },
+  "final/leading-stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: TE\nsize:\n1\nvalues:\n-57.79986\nunits:\nkcal/mol\nEND\nkey: TEVEC\nsize:\n1\nvalues:\n-57.79986\nunits:\nkcal/mol\nEND\nkey: HFENERGY\nsize:\n1\nvalues:\n-57.79986\nunits:\nkcal/mol\nEND\n"
+  },
+  "final/leading-word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: TE\nsize:\n1\nvalues:\n-57.79986\nunits:\nkcal/mol\nEND\nkey: TEVEC\nsize:\n1\nvalues:\n-57.79986\nunits:\nkcal/mol\nEND\nkey: HFENERGY\nsize:\n1\nvalues:\n-57.79986\nunits:\nkcal/mol\nEND\n"
+  },
+  "final/space-1/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: TE\nsize:\n1\nvalues:\n-57.79986\nunits:\nkcal/mol\nEND\nkey: HFENERGY\nsize:\n1\nvalues:\n-57.79986\nunits:\nkcal/mol\nEND\n"
+  },
+  "final/space-1/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: TE\nsize:\n1\nvalues:\n-57.79986\nunits:\nkcal/mol\nEND\nkey: HFENERGY\nsize:\n1\nvalues:\n-57.79986\nunits:\nkcal/mol\nEND\n"
+  },
+  "final/space-1/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: TE\nsize:\n1\nvalues:\n-57.79986\nunits:\nkcal/mol\nEND\nkey: HFENERGY\nsize:\n1\nvalues:\n-57.79986\nunits:\nkcal/mol\nEND\n"
+  },
+  "final/space-1/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: TE\nsize:\n1\nvalues:\n-57.79986\nunits:\nkcal/mol\nEND\nkey: HFENERGY\nsize:\n1\nvalues:\n-57.79986\nunits:\nkcal/mol\nEND\n"
+  },
+  "final/space-1/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: TE\nsize:\n1\nvalues:\n-57.79986\nunits:\nkcal/mol\nEND\nkey: HFENERGY\nsize:\n1\nvalues:\n-57.79986\nunits:\nkcal/mol\nEND\n"
+  },
+  "final/space-1/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: TE\nsize:\n1\nvalues:\n-57.79986\nunits:\nkcal/mol\nEND\nkey: HFENERGY\nsize:\n1\nvalues:\n-57.79986\nunits:\nkcal/mol\nEND\n"
+  },
+  "final/space-1/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: TE\nsize:\n1\nvalues:\n-57.79986\nunits:\nkcal/mol\nEND\nkey: HFENERGY\nsize:\n1\nvalues:\n-57.79986\nunits:\nkcal/mol\nEND\n"
+  },
+  "final/space-2/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "final/space-2/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "final/space-2/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "final/space-2/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "final/space-2/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "final/space-2/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "final/space-2/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "final/space-3/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "final/space-3/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "final/space-3/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "final/space-3/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "final/space-3/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "final/space-3/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "final/space-3/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "final/space-4/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "final/space-4/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: TE\nsize:\n1\nvalues:\n-57.79986\nunits:\nkcal/mol\nEND\nkey: TEVEC\nsize:\n1\nvalues:\n-57.79986\nunits:\nkcal/mol\nEND\nkey: HFENERGY\nsize:\n1\nvalues:\n-57.79986\nunits:\nkcal/mol\nEND\n"
+  },
+  "final/space-4/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "final/space-4/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "final/space-4/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "final/space-4/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "final/space-4/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "final/space-5/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "final/space-5/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: TE\nsize:\n1\nvalues:\n-57.79986\nunits:\nkcal/mol\nEND\nkey: TEVEC\nsize:\n1\nvalues:\n-57.79986\nunits:\nkcal/mol\nEND\nkey: HFENERGY\nsize:\n1\nvalues:\n-57.79986\nunits:\nkcal/mol\nEND\n"
+  },
+  "final/space-5/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "final/space-5/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "final/space-5/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: TE\nsize:\n1\nvalues:\n3\nunits:\nkcal/mol\nEND\nkey: TEVEC\nsize:\n1\nvalues:\n3\nunits:\nkcal/mol\nEND\nkey: HFENERGY\nsize:\n1\nvalues:\n3\nunits:\nkcal/mol\nEND\n"
+  },
+  "final/space-5/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "final/space-5/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-energy/clean": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: TE\nsize:\n1\nvalues:\n-57.791897\nunits:\nkcal/mol\nEND\nkey: HFENERGY\nsize:\n1\nvalues:\n-57.791897\nunits:\nkcal/mol\nEND\n"
+  },
+  "force-energy/ending-": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: TE\nsize:\n1\nvalues:\n-57.791897\nunits:\nkcal/mol\nEND\nkey: HFENERGY\nsize:\n1\nvalues:\n-57.791897\nunits:\nkcal/mol\nEND\n"
+  },
+  "force-energy/ending-0d": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: TE\nsize:\n1\nvalues:\n-57.791897\nunits:\nkcal/mol\nEND\nkey: HFENERGY\nsize:\n1\nvalues:\n-57.791897\nunits:\nkcal/mol\nEND\n"
+  },
+  "force-energy/ending-0d0a": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: TE\nsize:\n1\nvalues:\n-57.791897\nunits:\nkcal/mol\nEND\nkey: HFENERGY\nsize:\n1\nvalues:\n-57.791897\nunits:\nkcal/mol\nEND\n"
+  },
+  "force-energy/field-0/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-energy/field-0/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-energy/field-0/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-energy/field-0/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-energy/field-0/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-energy/field-0/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-energy/field-0/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-energy/field-1/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-energy/field-1/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-energy/field-1/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-energy/field-1/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-energy/field-1/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-energy/field-1/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-energy/field-1/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-energy/field-2/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-energy/field-2/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-energy/field-2/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-energy/field-2/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-energy/field-2/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-energy/field-2/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-energy/field-2/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-energy/field-3/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-energy/field-3/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-energy/field-3/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-energy/field-3/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-energy/field-3/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-energy/field-3/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-energy/field-3/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-energy/field-4/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-energy/field-4/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-energy/field-4/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-energy/field-4/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-energy/field-4/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: TE\nsize:\n1\nvalues:\n3\nunits:\nkcal/mol\nEND\nkey: HFENERGY\nsize:\n1\nvalues:\n3\nunits:\nkcal/mol\nEND\n"
+  },
+  "force-energy/field-4/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-energy/field-4/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-energy/leading-digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: TE\nsize:\n1\nvalues:\n-57.791897\nunits:\nkcal/mol\nEND\nkey: HFENERGY\nsize:\n1\nvalues:\n-57.791897\nunits:\nkcal/mol\nEND\n"
+  },
+  "force-energy/leading-empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: TE\nsize:\n1\nvalues:\n-57.791897\nunits:\nkcal/mol\nEND\nkey: HFENERGY\nsize:\n1\nvalues:\n-57.791897\nunits:\nkcal/mol\nEND\n"
+  },
+  "force-energy/leading-nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: TE\nsize:\n1\nvalues:\n-57.791897\nunits:\nkcal/mol\nEND\nkey: HFENERGY\nsize:\n1\nvalues:\n-57.791897\nunits:\nkcal/mol\nEND\n"
+  },
+  "force-energy/leading-overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: TE\nsize:\n1\nvalues:\n-57.791897\nunits:\nkcal/mol\nEND\nkey: HFENERGY\nsize:\n1\nvalues:\n-57.791897\nunits:\nkcal/mol\nEND\n"
+  },
+  "force-energy/leading-prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: TE\nsize:\n1\nvalues:\n-57.791897\nunits:\nkcal/mol\nEND\nkey: HFENERGY\nsize:\n1\nvalues:\n-57.791897\nunits:\nkcal/mol\nEND\n"
+  },
+  "force-energy/leading-stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: TE\nsize:\n1\nvalues:\n-57.791897\nunits:\nkcal/mol\nEND\nkey: HFENERGY\nsize:\n1\nvalues:\n-57.791897\nunits:\nkcal/mol\nEND\n"
+  },
+  "force-energy/leading-word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: TE\nsize:\n1\nvalues:\n-57.791897\nunits:\nkcal/mol\nEND\nkey: HFENERGY\nsize:\n1\nvalues:\n-57.791897\nunits:\nkcal/mol\nEND\n"
+  },
+  "force-energy/space-1/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-energy/space-1/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-energy/space-1/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-energy/space-1/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-energy/space-1/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-energy/space-1/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-energy/space-1/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-energy/space-2/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-energy/space-2/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-energy/space-2/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-energy/space-2/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-energy/space-2/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-energy/space-2/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-energy/space-2/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-energy/space-3/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-energy/space-3/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: TE\nsize:\n1\nvalues:\n-57.791897\nunits:\nkcal/mol\nEND\nkey: HFENERGY\nsize:\n1\nvalues:\n-57.791897\nunits:\nkcal/mol\nEND\n"
+  },
+  "force-energy/space-3/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-energy/space-3/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-energy/space-3/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-energy/space-3/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-energy/space-3/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-energy/space-4/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-energy/space-4/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: TE\nsize:\n1\nvalues:\n-57.791897\nunits:\nkcal/mol\nEND\nkey: HFENERGY\nsize:\n1\nvalues:\n-57.791897\nunits:\nkcal/mol\nEND\n"
+  },
+  "force-energy/space-4/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-energy/space-4/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-energy/space-4/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: TE\nsize:\n1\nvalues:\n3\nunits:\nkcal/mol\nEND\nkey: HFENERGY\nsize:\n1\nvalues:\n3\nunits:\nkcal/mol\nEND\n"
+  },
+  "force-energy/space-4/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-energy/space-4/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-frame/clean": {
+    "files": {
+      "mopacForceGeom": "O 0.0000 -0.0000 0.1173\n"
+    },
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-frame/ending-": {
+    "files": {
+      "mopacForceGeom": "O 0.0000 -0.0000 0.1173\n"
+    },
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-frame/ending-0d": {
+    "files": {
+      "mopacForceGeom": "O 0.0000 -0.0000 0.1173\n"
+    },
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-frame/ending-0d0a": {
+    "files": {
+      "mopacForceGeom": "O 0.0000 -0.0000 0.1173\n"
+    },
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-frame/field-0/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-frame/field-0/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-frame/field-0/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-frame/field-0/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-frame/field-0/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-frame/field-0/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-frame/field-0/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-frame/field-1/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-frame/field-1/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-frame/field-1/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-frame/field-1/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-frame/field-1/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-frame/field-1/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-frame/field-1/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-frame/field-2/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-frame/field-2/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-frame/field-2/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-frame/field-2/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-frame/field-2/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-frame/field-2/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-frame/field-2/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-frame/field-3/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-frame/field-3/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-frame/field-3/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-frame/field-3/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-frame/field-3/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-frame/field-3/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-frame/field-3/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-frame/field-4/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-frame/field-4/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-frame/field-4/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-frame/field-4/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-frame/field-4/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-frame/field-4/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-frame/field-4/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-frame/leading-digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-frame/leading-empty": {
+    "files": {
+      "mopacForceGeom": "O 0.0000 -0.0000 0.1173\n"
+    },
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-frame/leading-nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-frame/leading-overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-frame/leading-prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-frame/leading-stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-frame/leading-word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-frame/space-1/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-frame/space-1/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-frame/space-1/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-frame/space-1/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-frame/space-1/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-frame/space-1/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-frame/space-1/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-frame/space-2/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-frame/space-2/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-frame/space-2/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-frame/space-2/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-frame/space-2/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-frame/space-2/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-frame/space-2/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-frame/space-3/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-frame/space-3/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-frame/space-3/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-frame/space-3/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-frame/space-3/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-frame/space-3/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-frame/space-3/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-frame/space-4/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-frame/space-4/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-frame/space-4/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-frame/space-4/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-frame/space-4/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-frame/space-4/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "force-frame/space-4/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "geometry/clean": {
+    "files": {
+      "mopacInputGeom": "O 0.0000 -0.0000 0.1173\n"
+    },
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: GEOMTRACE\nsize:\n1 1 3\nrowlabels:\n 1-O\ncolumnlabels:\nX Y Z\nvalues:\n 0.0000 -0.0000 0.1173\nunits:\nAngstrom\nEND\n"
+  },
+  "geometry/ending-": {
+    "files": {
+      "mopacInputGeom": "O 0.0000 -0.0000 0.1173\n"
+    },
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: GEOMTRACE\nsize:\n1 1 3\nrowlabels:\n 1-O\ncolumnlabels:\nX Y Z\nvalues:\n 0.0000 -0.0000 0.1173\nunits:\nAngstrom\nEND\n"
+  },
+  "geometry/ending-0d": {
+    "files": {
+      "mopacInputGeom": "O 0.0000 -0.0000 0.1173\n"
+    },
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: GEOMTRACE\nsize:\n1 1 3\nrowlabels:\n 1-O\ncolumnlabels:\nX Y Z\nvalues:\n 0.0000 -0.0000 0.1173\nunits:\nAngstrom\nEND\n"
+  },
+  "geometry/ending-0d0a": {
+    "files": {
+      "mopacInputGeom": "O 0.0000 -0.0000 0.1173\n"
+    },
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: GEOMTRACE\nsize:\n1 1 3\nrowlabels:\n 1-O\ncolumnlabels:\nX Y Z\nvalues:\n 0.0000 -0.0000 0.1173\nunits:\nAngstrom\nEND\n"
+  },
+  "geometry/field-0/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "geometry/field-0/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "geometry/field-0/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "geometry/field-0/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "geometry/field-0/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "geometry/field-0/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "geometry/field-0/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "geometry/field-1/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "geometry/field-1/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "geometry/field-1/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "geometry/field-1/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "geometry/field-1/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "geometry/field-1/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "geometry/field-1/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "geometry/field-2/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "geometry/field-2/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "geometry/field-2/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "geometry/field-2/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "geometry/field-2/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "geometry/field-2/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "geometry/field-2/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "geometry/field-3/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "geometry/field-3/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "geometry/field-3/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "geometry/field-3/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "geometry/field-3/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "geometry/field-3/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "geometry/field-3/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "geometry/field-4/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "geometry/field-4/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "geometry/field-4/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "geometry/field-4/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "geometry/field-4/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "geometry/field-4/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "geometry/field-4/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "geometry/leading-digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "geometry/leading-empty": {
+    "files": {
+      "mopacInputGeom": "O 0.0000 -0.0000 0.1173\n"
+    },
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: GEOMTRACE\nsize:\n1 1 3\nrowlabels:\n 1-O\ncolumnlabels:\nX Y Z\nvalues:\n 0.0000 -0.0000 0.1173\nunits:\nAngstrom\nEND\n"
+  },
+  "geometry/leading-nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "geometry/leading-overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "geometry/leading-prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "geometry/leading-stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "geometry/leading-word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "geometry/space-1/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "geometry/space-1/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "geometry/space-1/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "geometry/space-1/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "geometry/space-1/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "geometry/space-1/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "geometry/space-1/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "geometry/space-2/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "geometry/space-2/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "geometry/space-2/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "geometry/space-2/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "geometry/space-2/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "geometry/space-2/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "geometry/space-2/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "geometry/space-3/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "geometry/space-3/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "geometry/space-3/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "geometry/space-3/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "geometry/space-3/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "geometry/space-3/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "geometry/space-3/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "geometry/space-4/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "geometry/space-4/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "geometry/space-4/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "geometry/space-4/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "geometry/space-4/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "geometry/space-4/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "geometry/space-4/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "gradient/clean": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: EGRADVEC\nsize:\n1 3\nrowlabels:\n 1 \ncolumnlabels:\nX Y Z\nvalues:\n 0.0821487095 0.0000000000 0.0000000000\nunits:\nHartree/Bohr\nEND\n"
+  },
+  "gradient/ending-": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: EGRADVEC\nsize:\n1 3\nrowlabels:\n 1 \ncolumnlabels:\nX Y Z\nvalues:\n 0.0821487095 0.0000000000 0.0000000000\nunits:\nHartree/Bohr\nEND\n"
+  },
+  "gradient/ending-0d": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: EGRADVEC\nsize:\n1 3\nrowlabels:\n 1 \ncolumnlabels:\nX Y Z\nvalues:\n 0.0821487095 0.0000000000 0.0000000000\nunits:\nHartree/Bohr\nEND\n"
+  },
+  "gradient/ending-0d0a": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: EGRADVEC\nsize:\n1 3\nrowlabels:\n 1 \ncolumnlabels:\nX Y Z\nvalues:\n 0.0821487095 0.0000000000 0.0000000000\nunits:\nHartree/Bohr\nEND\n"
+  },
+  "gradient/field-0/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "gradient/field-0/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "gradient/field-0/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "gradient/field-0/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "gradient/field-0/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "gradient/field-0/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "gradient/field-0/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "gradient/field-1/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "gradient/field-1/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "gradient/field-1/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "gradient/field-1/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "gradient/field-1/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "gradient/field-1/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "gradient/field-1/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "gradient/field-2/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: EGRADVEC\nsize:\n1 3\nrowlabels:\n 1 \ncolumnlabels:\nX Y Z\nvalues:\n 0.0821487095 0.0000000000 0.0000000000\nunits:\nHartree/Bohr\nEND\n"
+  },
+  "gradient/field-2/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "gradient/field-2/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: EGRADVEC\nsize:\n1 3\nrowlabels:\n 1 \ncolumnlabels:\nX Y Z\nvalues:\n 0.0821487095 0.0000000000 0.0000000000\nunits:\nHartree/Bohr\nEND\n"
+  },
+  "gradient/field-2/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: EGRADVEC\nsize:\n1 3\nrowlabels:\n 1 \ncolumnlabels:\nX Y Z\nvalues:\n 0.0821487095 0.0000000000 0.0000000000\nunits:\nHartree/Bohr\nEND\n"
+  },
+  "gradient/field-2/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: EGRADVEC\nsize:\n1 3\nrowlabels:\n 1 \ncolumnlabels:\nX Y Z\nvalues:\n 0.0821487095 0.0000000000 0.0000000000\nunits:\nHartree/Bohr\nEND\n"
+  },
+  "gradient/field-2/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: EGRADVEC\nsize:\n1 3\nrowlabels:\n 1 \ncolumnlabels:\nX Y Z\nvalues:\n 0.0821487095 0.0000000000 0.0000000000\nunits:\nHartree/Bohr\nEND\n"
+  },
+  "gradient/field-2/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: EGRADVEC\nsize:\n1 3\nrowlabels:\n 1 \ncolumnlabels:\nX Y Z\nvalues:\n 0.0821487095 0.0000000000 0.0000000000\nunits:\nHartree/Bohr\nEND\n"
+  },
+  "gradient/field-3/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "gradient/field-3/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "gradient/field-3/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "gradient/field-3/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "gradient/field-3/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "gradient/field-3/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "gradient/field-3/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "gradient/field-4/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "gradient/field-4/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "gradient/field-4/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "gradient/field-4/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "gradient/field-4/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "gradient/field-4/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "gradient/field-4/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "gradient/field-5/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "gradient/field-5/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "gradient/field-5/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "gradient/field-5/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "gradient/field-5/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "gradient/field-5/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "gradient/field-5/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "gradient/field-6/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "gradient/field-6/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "gradient/field-6/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "gradient/field-6/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "gradient/field-6/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "gradient/field-6/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "gradient/field-6/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "gradient/leading-digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "gradient/leading-empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: EGRADVEC\nsize:\n1 3\nrowlabels:\n 1 \ncolumnlabels:\nX Y Z\nvalues:\n 0.0821487095 0.0000000000 0.0000000000\nunits:\nHartree/Bohr\nEND\n"
+  },
+  "gradient/leading-nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "gradient/leading-overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "gradient/leading-prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "gradient/leading-stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "gradient/leading-word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "gradient/space-1/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "gradient/space-1/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "gradient/space-1/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "gradient/space-1/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "gradient/space-1/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "gradient/space-1/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "gradient/space-1/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "gradient/space-2/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "gradient/space-2/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "gradient/space-2/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "gradient/space-2/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "gradient/space-2/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "gradient/space-2/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "gradient/space-2/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "gradient/space-3/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "gradient/space-3/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "gradient/space-3/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "gradient/space-3/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "gradient/space-3/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "gradient/space-3/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "gradient/space-3/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "gradient/space-4/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "gradient/space-4/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "gradient/space-4/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "gradient/space-4/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "gradient/space-4/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "gradient/space-4/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "gradient/space-4/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "gradient/space-5/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "gradient/space-5/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "gradient/space-5/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "gradient/space-5/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "gradient/space-5/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "gradient/space-5/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "gradient/space-5/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "gradient/space-6/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "gradient/space-6/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "gradient/space-6/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "gradient/space-6/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "gradient/space-6/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "gradient/space-6/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "gradient/space-6/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "ionization/clean": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: IP\nsize:\n1\nvalues:\n12.115488\nunits:\neV\nEND\n"
+  },
+  "ionization/ending-": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: IP\nsize:\n1\nvalues:\n12.115488\nunits:\neV\nEND\n"
+  },
+  "ionization/ending-0d": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: IP\nsize:\n1\nvalues:\n12.115488\nunits:\neV\nEND\n"
+  },
+  "ionization/ending-0d0a": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: IP\nsize:\n1\nvalues:\n12.115488\nunits:\neV\nEND\n"
+  },
+  "ionization/field-0/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "ionization/field-0/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "ionization/field-0/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "ionization/field-0/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "ionization/field-0/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "ionization/field-0/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "ionization/field-0/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "ionization/field-1/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "ionization/field-1/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "ionization/field-1/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "ionization/field-1/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "ionization/field-1/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "ionization/field-1/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "ionization/field-1/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "ionization/field-2/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "ionization/field-2/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "ionization/field-2/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "ionization/field-2/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "ionization/field-2/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "ionization/field-2/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "ionization/field-2/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "ionization/field-3/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "ionization/field-3/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "ionization/field-3/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "ionization/field-3/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "ionization/field-3/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: IP\nsize:\n1\nvalues:\n3\nunits:\neV\nEND\n"
+  },
+  "ionization/field-3/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "ionization/field-3/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "ionization/leading-digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: IP\nsize:\n1\nvalues:\n12.115488\nunits:\neV\nEND\n"
+  },
+  "ionization/leading-empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: IP\nsize:\n1\nvalues:\n12.115488\nunits:\neV\nEND\n"
+  },
+  "ionization/leading-nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: IP\nsize:\n1\nvalues:\n12.115488\nunits:\neV\nEND\n"
+  },
+  "ionization/leading-overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: IP\nsize:\n1\nvalues:\n12.115488\nunits:\neV\nEND\n"
+  },
+  "ionization/leading-prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: IP\nsize:\n1\nvalues:\n12.115488\nunits:\neV\nEND\n"
+  },
+  "ionization/leading-stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: IP\nsize:\n1\nvalues:\n12.115488\nunits:\neV\nEND\n"
+  },
+  "ionization/leading-word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: IP\nsize:\n1\nvalues:\n12.115488\nunits:\neV\nEND\n"
+  },
+  "ionization/space-1/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "ionization/space-1/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "ionization/space-1/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "ionization/space-1/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "ionization/space-1/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "ionization/space-1/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "ionization/space-1/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "ionization/space-2/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "ionization/space-2/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: IP\nsize:\n1\nvalues:\n12.115488\nunits:\neV\nEND\n"
+  },
+  "ionization/space-2/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "ionization/space-2/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "ionization/space-2/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "ionization/space-2/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "ionization/space-2/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "ionization/space-3/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "ionization/space-3/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: IP\nsize:\n1\nvalues:\n12.115488\nunits:\neV\nEND\n"
+  },
+  "ionization/space-3/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "ionization/space-3/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "ionization/space-3/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: IP\nsize:\n1\nvalues:\n3\nunits:\neV\nEND\n"
+  },
+  "ionization/space-3/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "ionization/space-3/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "open-shells/digit/PM7": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "open-shells/digit/UPM7": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "open-shells/digit/uPM7": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "open-shells/digit/\u00c5PM7": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "open-shells/empty/PM7": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "open-shells/empty/UPM7": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "open-shells/empty/uPM7": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "open-shells/empty/\u00c5PM7": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "open-shells/fraction/PM7": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "open-shells/fraction/UPM7": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "open-shells/fraction/uPM7": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "open-shells/fraction/\u00c5PM7": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "open-shells/nbsp/PM7": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "open-shells/nbsp/UPM7": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "open-shells/nbsp/uPM7": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "open-shells/nbsp/\u00c5PM7": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "open-shells/negative/PM7": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "open-shells/negative/UPM7": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ORBOCC\nsize:\n4\nvalues:\n1.0000 0.0000 0.0000 0.0000\nunits:\nelectrons\nEND\nkey: ORBOCCBETA\nsize:\n4\nvalues:\n1.0000 1.0000 0.0000 0.0000\nunits:\nelectrons\nEND\n"
+  },
+  "open-shells/negative/uPM7": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ORBOCC\nsize:\n4\nvalues:\n1.0000 0.0000 0.0000 0.0000\nunits:\nelectrons\nEND\nkey: ORBOCCBETA\nsize:\n4\nvalues:\n1.0000 1.0000 0.0000 0.0000\nunits:\nelectrons\nEND\n"
+  },
+  "open-shells/negative/\u00c5PM7": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "open-shells/one/PM7": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "open-shells/one/UPM7": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ORBOCC\nsize:\n4\nvalues:\n1.0000 1.0000 0.0000 0.0000\nunits:\nelectrons\nEND\nkey: ORBOCCBETA\nsize:\n4\nvalues:\n1.0000 0.0000 0.0000 0.0000\nunits:\nelectrons\nEND\n"
+  },
+  "open-shells/one/uPM7": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ORBOCC\nsize:\n4\nvalues:\n1.0000 1.0000 0.0000 0.0000\nunits:\nelectrons\nEND\nkey: ORBOCCBETA\nsize:\n4\nvalues:\n1.0000 0.0000 0.0000 0.0000\nunits:\nelectrons\nEND\n"
+  },
+  "open-shells/one/\u00c5PM7": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "open-shells/overflow/PM7": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "open-shells/overflow/UPM7": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "open-shells/overflow/uPM7": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "open-shells/overflow/\u00c5PM7": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "open-shells/prefix/PM7": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "open-shells/prefix/UPM7": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ORBOCC\nsize:\n4\nvalues:\n1.0000 1.0000 1.0000 0.0000\nunits:\nelectrons\nEND\nkey: ORBOCCBETA\nsize:\n4\nvalues:\n0.0000 0.0000 0.0000 0.0000\nunits:\nelectrons\nEND\n"
+  },
+  "open-shells/prefix/uPM7": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ORBOCC\nsize:\n4\nvalues:\n1.0000 1.0000 1.0000 0.0000\nunits:\nelectrons\nEND\nkey: ORBOCCBETA\nsize:\n4\nvalues:\n0.0000 0.0000 0.0000 0.0000\nunits:\nelectrons\nEND\n"
+  },
+  "open-shells/prefix/\u00c5PM7": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "open-shells/stray/PM7": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "open-shells/stray/UPM7": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "open-shells/stray/uPM7": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "open-shells/stray/\u00c5PM7": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "open-shells/word/PM7": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "open-shells/word/UPM7": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "open-shells/word/uPM7": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "open-shells/word/\u00c5PM7": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "open-shells/zero/PM7": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "open-shells/zero/UPM7": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "open-shells/zero/uPM7": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "open-shells/zero/\u00c5PM7": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "point-group/clean": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: PNTGRP\nsize: \n1\nvalues: \nC2v\nEND\n"
+  },
+  "point-group/ending-": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: PNTGRP\nsize: \n1\nvalues: \nC2v\nEND\n"
+  },
+  "point-group/ending-0d": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: PNTGRP\nsize: \n1\nvalues: \nC2v\nEND\n"
+  },
+  "point-group/ending-0d0a": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: PNTGRP\nsize: \n1\nvalues: \nC2v\nEND\n"
+  },
+  "point-group/field-0/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: PNTGRP\nsize: \n1\nvalues: \nC1\nEND\n"
+  },
+  "point-group/field-0/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: PNTGRP\nsize: \n1\nvalues: \nC1\nEND\n"
+  },
+  "point-group/field-0/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: PNTGRP\nsize: \n1\nvalues: \nC1\nEND\n"
+  },
+  "point-group/field-0/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: PNTGRP\nsize: \n1\nvalues: \nC1\nEND\n"
+  },
+  "point-group/field-0/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: PNTGRP\nsize: \n1\nvalues: \nC1\nEND\n"
+  },
+  "point-group/field-0/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: PNTGRP\nsize: \n1\nvalues: \nC1\nEND\n"
+  },
+  "point-group/field-0/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: PNTGRP\nsize: \n1\nvalues: \nC1\nEND\n"
+  },
+  "point-group/field-1/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: PNTGRP\nsize: \n1\nvalues: \nC1\nEND\n"
+  },
+  "point-group/field-1/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: PNTGRP\nsize: \n1\nvalues: \nC1\nEND\n"
+  },
+  "point-group/field-1/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: PNTGRP\nsize: \n1\nvalues: \nC1\nEND\n"
+  },
+  "point-group/field-1/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: PNTGRP\nsize: \n1\nvalues: \nC1\nEND\n"
+  },
+  "point-group/field-1/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: PNTGRP\nsize: \n1\nvalues: \nC1\nEND\n"
+  },
+  "point-group/field-1/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: PNTGRP\nsize: \n1\nvalues: \nC1\nEND\n"
+  },
+  "point-group/field-1/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: PNTGRP\nsize: \n1\nvalues: \nC1\nEND\n"
+  },
+  "point-group/field-2/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: PNTGRP\nsize: \n1\nvalues: \nC1\nEND\n"
+  },
+  "point-group/field-2/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: PNTGRP\nsize: \n1\nvalues: \nC1\nEND\n"
+  },
+  "point-group/field-2/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: PNTGRP\nsize: \n1\nvalues: \nC1\nEND\n"
+  },
+  "point-group/field-2/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: PNTGRP\nsize: \n1\nvalues: \nC1\nEND\n"
+  },
+  "point-group/field-2/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: PNTGRP\nsize: \n1\nvalues: \nC1\nEND\n"
+  },
+  "point-group/field-2/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: PNTGRP\nsize: \n1\nvalues: \nC1\nEND\n"
+  },
+  "point-group/field-2/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: PNTGRP\nsize: \n1\nvalues: \nC1\nEND\n"
+  },
+  "point-group/field-3/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: PNTGRP\nsize: \n1\nvalues: \nC1\nEND\n"
+  },
+  "point-group/field-3/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: PNTGRP\nsize: \n1\nvalues: \nC1\nEND\n"
+  },
+  "point-group/field-3/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: PNTGRP\nsize: \n1\nvalues: \nC1\nEND\n"
+  },
+  "point-group/field-3/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: PNTGRP\nsize: \n1\nvalues: \nC1\nEND\n"
+  },
+  "point-group/field-3/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: PNTGRP\nsize: \n1\nvalues: \nC1\nEND\n"
+  },
+  "point-group/field-3/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: PNTGRP\nsize: \n1\nvalues: \nC1\nEND\n"
+  },
+  "point-group/field-3/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: PNTGRP\nsize: \n1\nvalues: \nC1\nEND\n"
+  },
+  "point-group/field-4/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: PNTGRP\nsize: \n1\nvalues: \n\u00d9\u00a3\nEND\n"
+  },
+  "point-group/field-4/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: PNTGRP\nsize: \n1\nvalues: \nC1\nEND\n"
+  },
+  "point-group/field-4/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: PNTGRP\nsize: \n1\nvalues: \n\u00c2\u00a0\nEND\n"
+  },
+  "point-group/field-4/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: PNTGRP\nsize: \n1\nvalues: \n*****\nEND\n"
+  },
+  "point-group/field-4/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: PNTGRP\nsize: \n1\nvalues: \n3x\nEND\n"
+  },
+  "point-group/field-4/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: PNTGRP\nsize: \n1\nvalues: \n\u00ff\nEND\n"
+  },
+  "point-group/field-4/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: PNTGRP\nsize: \n1\nvalues: \n\u00c3\u0085\nEND\n"
+  },
+  "point-group/leading-digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: PNTGRP\nsize: \n1\nvalues: \nC2v\nEND\n"
+  },
+  "point-group/leading-empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: PNTGRP\nsize: \n1\nvalues: \nC2v\nEND\n"
+  },
+  "point-group/leading-nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: PNTGRP\nsize: \n1\nvalues: \nC2v\nEND\n"
+  },
+  "point-group/leading-overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: PNTGRP\nsize: \n1\nvalues: \nC2v\nEND\n"
+  },
+  "point-group/leading-prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: PNTGRP\nsize: \n1\nvalues: \nC2v\nEND\n"
+  },
+  "point-group/leading-stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: PNTGRP\nsize: \n1\nvalues: \nC2v\nEND\n"
+  },
+  "point-group/leading-word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: PNTGRP\nsize: \n1\nvalues: \nC2v\nEND\n"
+  },
+  "point-group/space-1/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: PNTGRP\nsize: \n1\nvalues: \nC1\nEND\n"
+  },
+  "point-group/space-1/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: PNTGRP\nsize: \n1\nvalues: \nC1\nEND\n"
+  },
+  "point-group/space-1/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: PNTGRP\nsize: \n1\nvalues: \nC1\nEND\n"
+  },
+  "point-group/space-1/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: PNTGRP\nsize: \n1\nvalues: \nC1\nEND\n"
+  },
+  "point-group/space-1/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: PNTGRP\nsize: \n1\nvalues: \nC1\nEND\n"
+  },
+  "point-group/space-1/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: PNTGRP\nsize: \n1\nvalues: \nC1\nEND\n"
+  },
+  "point-group/space-1/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: PNTGRP\nsize: \n1\nvalues: \nC1\nEND\n"
+  },
+  "point-group/space-2/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: PNTGRP\nsize: \n1\nvalues: \nC1\nEND\n"
+  },
+  "point-group/space-2/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: PNTGRP\nsize: \n1\nvalues: \nC1\nEND\n"
+  },
+  "point-group/space-2/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: PNTGRP\nsize: \n1\nvalues: \nC1\nEND\n"
+  },
+  "point-group/space-2/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: PNTGRP\nsize: \n1\nvalues: \nC1\nEND\n"
+  },
+  "point-group/space-2/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: PNTGRP\nsize: \n1\nvalues: \nC1\nEND\n"
+  },
+  "point-group/space-2/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: PNTGRP\nsize: \n1\nvalues: \nC1\nEND\n"
+  },
+  "point-group/space-2/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: PNTGRP\nsize: \n1\nvalues: \nC1\nEND\n"
+  },
+  "point-group/space-3/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: PNTGRP\nsize: \n1\nvalues: \nC1\nEND\n"
+  },
+  "point-group/space-3/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: PNTGRP\nsize: \n1\nvalues: \nC2v\nEND\n"
+  },
+  "point-group/space-3/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: PNTGRP\nsize: \n1\nvalues: \nC1\nEND\n"
+  },
+  "point-group/space-3/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: PNTGRP\nsize: \n1\nvalues: \nC1\nEND\n"
+  },
+  "point-group/space-3/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: PNTGRP\nsize: \n1\nvalues: \nC1\nEND\n"
+  },
+  "point-group/space-3/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: PNTGRP\nsize: \n1\nvalues: \nC1\nEND\n"
+  },
+  "point-group/space-3/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: PNTGRP\nsize: \n1\nvalues: \nC1\nEND\n"
+  },
+  "point-group/space-4/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: PNTGRP\nsize: \n1\nvalues: \n\u00d9\u00a3C2v\nEND\n"
+  },
+  "point-group/space-4/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: PNTGRP\nsize: \n1\nvalues: \nC2v\nEND\n"
+  },
+  "point-group/space-4/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: PNTGRP\nsize: \n1\nvalues: \n\u00c2\u00a0C2v\nEND\n"
+  },
+  "point-group/space-4/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: PNTGRP\nsize: \n1\nvalues: \n*****C2v\nEND\n"
+  },
+  "point-group/space-4/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: PNTGRP\nsize: \n1\nvalues: \n3xC2v\nEND\n"
+  },
+  "point-group/space-4/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: PNTGRP\nsize: \n1\nvalues: \n\u00ffC2v\nEND\n"
+  },
+  "point-group/space-4/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: PNTGRP\nsize: \n1\nvalues: \n\u00c3\u0085C2v\nEND\n"
+  },
+  "populations/clean": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ORBOCC\nsize:\n4\nvalues:\n2.0000 2.0000 2.0000 0.0000\nunits:\nelectrons\nEND\n"
+  },
+  "populations/ending-": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ORBOCC\nsize:\n4\nvalues:\n2.0000 2.0000 2.0000 0.0000\nunits:\nelectrons\nEND\n"
+  },
+  "populations/ending-0d": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ORBOCC\nsize:\n4\nvalues:\n2.0000 2.0000 2.0000 0.0000\nunits:\nelectrons\nEND\n"
+  },
+  "populations/ending-0d0a": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ORBOCC\nsize:\n4\nvalues:\n2.0000 2.0000 2.0000 0.0000\nunits:\nelectrons\nEND\n"
+  },
+  "populations/field-0/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "populations/field-0/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "populations/field-0/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "populations/field-0/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "populations/field-0/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "populations/field-0/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "populations/field-0/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "populations/field-1/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "populations/field-1/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "populations/field-1/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "populations/field-1/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "populations/field-1/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "populations/field-1/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "populations/field-1/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "populations/field-2/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ORBOCC\nsize:\n3\nvalues:\n2.0000 2.0000 0.0000\nunits:\nelectrons\nEND\n"
+  },
+  "populations/field-2/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ORBOCC\nsize:\n3\nvalues:\n2.0000 2.0000 0.0000\nunits:\nelectrons\nEND\n"
+  },
+  "populations/field-2/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ORBOCC\nsize:\n3\nvalues:\n2.0000 2.0000 0.0000\nunits:\nelectrons\nEND\n"
+  },
+  "populations/field-2/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ORBOCC\nsize:\n3\nvalues:\n2.0000 2.0000 0.0000\nunits:\nelectrons\nEND\n"
+  },
+  "populations/field-2/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ORBOCC\nsize:\n3\nvalues:\n2.0000 2.0000 0.0000\nunits:\nelectrons\nEND\n"
+  },
+  "populations/field-2/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ORBOCC\nsize:\n3\nvalues:\n2.0000 2.0000 0.0000\nunits:\nelectrons\nEND\n"
+  },
+  "populations/field-2/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ORBOCC\nsize:\n3\nvalues:\n2.0000 2.0000 0.0000\nunits:\nelectrons\nEND\n"
+  },
+  "populations/field-3/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ORBOCC\nsize:\n3\nvalues:\n2.0000 2.0000 0.0000\nunits:\nelectrons\nEND\n"
+  },
+  "populations/field-3/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ORBOCC\nsize:\n3\nvalues:\n2.0000 2.0000 0.0000\nunits:\nelectrons\nEND\n"
+  },
+  "populations/field-3/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ORBOCC\nsize:\n3\nvalues:\n2.0000 2.0000 0.0000\nunits:\nelectrons\nEND\n"
+  },
+  "populations/field-3/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ORBOCC\nsize:\n3\nvalues:\n2.0000 2.0000 0.0000\nunits:\nelectrons\nEND\n"
+  },
+  "populations/field-3/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ORBOCC\nsize:\n3\nvalues:\n2.0000 2.0000 0.0000\nunits:\nelectrons\nEND\n"
+  },
+  "populations/field-3/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ORBOCC\nsize:\n3\nvalues:\n2.0000 2.0000 0.0000\nunits:\nelectrons\nEND\n"
+  },
+  "populations/field-3/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ORBOCC\nsize:\n3\nvalues:\n2.0000 2.0000 0.0000\nunits:\nelectrons\nEND\n"
+  },
+  "populations/field-4/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ORBOCC\nsize:\n3\nvalues:\n2.0000 2.0000 0.0000\nunits:\nelectrons\nEND\n"
+  },
+  "populations/field-4/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ORBOCC\nsize:\n3\nvalues:\n2.0000 2.0000 0.0000\nunits:\nelectrons\nEND\n"
+  },
+  "populations/field-4/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ORBOCC\nsize:\n3\nvalues:\n2.0000 2.0000 0.0000\nunits:\nelectrons\nEND\n"
+  },
+  "populations/field-4/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ORBOCC\nsize:\n3\nvalues:\n2.0000 2.0000 0.0000\nunits:\nelectrons\nEND\n"
+  },
+  "populations/field-4/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ORBOCC\nsize:\n3\nvalues:\n2.0000 2.0000 0.0000\nunits:\nelectrons\nEND\n"
+  },
+  "populations/field-4/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ORBOCC\nsize:\n3\nvalues:\n2.0000 2.0000 0.0000\nunits:\nelectrons\nEND\n"
+  },
+  "populations/field-4/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ORBOCC\nsize:\n3\nvalues:\n2.0000 2.0000 0.0000\nunits:\nelectrons\nEND\n"
+  },
+  "populations/field-5/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ORBOCC\nsize:\n3\nvalues:\n2.0000 2.0000 2.0000\nunits:\nelectrons\nEND\n"
+  },
+  "populations/field-5/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ORBOCC\nsize:\n3\nvalues:\n2.0000 2.0000 2.0000\nunits:\nelectrons\nEND\n"
+  },
+  "populations/field-5/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ORBOCC\nsize:\n3\nvalues:\n2.0000 2.0000 2.0000\nunits:\nelectrons\nEND\n"
+  },
+  "populations/field-5/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ORBOCC\nsize:\n3\nvalues:\n2.0000 2.0000 2.0000\nunits:\nelectrons\nEND\n"
+  },
+  "populations/field-5/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ORBOCC\nsize:\n3\nvalues:\n2.0000 2.0000 2.0000\nunits:\nelectrons\nEND\n"
+  },
+  "populations/field-5/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ORBOCC\nsize:\n3\nvalues:\n2.0000 2.0000 2.0000\nunits:\nelectrons\nEND\n"
+  },
+  "populations/field-5/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ORBOCC\nsize:\n3\nvalues:\n2.0000 2.0000 2.0000\nunits:\nelectrons\nEND\n"
+  },
+  "populations/leading-digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "populations/leading-empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ORBOCC\nsize:\n4\nvalues:\n2.0000 2.0000 2.0000 0.0000\nunits:\nelectrons\nEND\n"
+  },
+  "populations/leading-nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "populations/leading-overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "populations/leading-prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "populations/leading-stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "populations/leading-word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "populations/space-1/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "populations/space-1/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "populations/space-1/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "populations/space-1/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "populations/space-1/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "populations/space-1/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "populations/space-1/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "populations/space-2/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "populations/space-2/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "populations/space-2/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "populations/space-2/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "populations/space-2/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "populations/space-2/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "populations/space-2/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "populations/space-3/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ORBOCC\nsize:\n2\nvalues:\n2.0000 0.0000\nunits:\nelectrons\nEND\n"
+  },
+  "populations/space-3/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ORBOCC\nsize:\n2\nvalues:\n2.0000 0.0000\nunits:\nelectrons\nEND\n"
+  },
+  "populations/space-3/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ORBOCC\nsize:\n2\nvalues:\n2.0000 0.0000\nunits:\nelectrons\nEND\n"
+  },
+  "populations/space-3/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ORBOCC\nsize:\n2\nvalues:\n2.0000 0.0000\nunits:\nelectrons\nEND\n"
+  },
+  "populations/space-3/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ORBOCC\nsize:\n2\nvalues:\n2.0000 0.0000\nunits:\nelectrons\nEND\n"
+  },
+  "populations/space-3/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ORBOCC\nsize:\n2\nvalues:\n2.0000 0.0000\nunits:\nelectrons\nEND\n"
+  },
+  "populations/space-3/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ORBOCC\nsize:\n2\nvalues:\n2.0000 0.0000\nunits:\nelectrons\nEND\n"
+  },
+  "populations/space-4/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ORBOCC\nsize:\n2\nvalues:\n2.0000 0.0000\nunits:\nelectrons\nEND\n"
+  },
+  "populations/space-4/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ORBOCC\nsize:\n2\nvalues:\n2.0000 0.0000\nunits:\nelectrons\nEND\n"
+  },
+  "populations/space-4/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ORBOCC\nsize:\n2\nvalues:\n2.0000 0.0000\nunits:\nelectrons\nEND\n"
+  },
+  "populations/space-4/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ORBOCC\nsize:\n2\nvalues:\n2.0000 0.0000\nunits:\nelectrons\nEND\n"
+  },
+  "populations/space-4/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ORBOCC\nsize:\n2\nvalues:\n2.0000 0.0000\nunits:\nelectrons\nEND\n"
+  },
+  "populations/space-4/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ORBOCC\nsize:\n2\nvalues:\n2.0000 0.0000\nunits:\nelectrons\nEND\n"
+  },
+  "populations/space-4/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ORBOCC\nsize:\n2\nvalues:\n2.0000 0.0000\nunits:\nelectrons\nEND\n"
+  },
+  "populations/space-5/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ORBOCC\nsize:\n2\nvalues:\n2.0000 2.0000\nunits:\nelectrons\nEND\n"
+  },
+  "populations/space-5/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ORBOCC\nsize:\n2\nvalues:\n2.0000 2.0000\nunits:\nelectrons\nEND\n"
+  },
+  "populations/space-5/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ORBOCC\nsize:\n2\nvalues:\n2.0000 2.0000\nunits:\nelectrons\nEND\n"
+  },
+  "populations/space-5/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ORBOCC\nsize:\n2\nvalues:\n2.0000 2.0000\nunits:\nelectrons\nEND\n"
+  },
+  "populations/space-5/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ORBOCC\nsize:\n2\nvalues:\n2.0000 2.0000\nunits:\nelectrons\nEND\n"
+  },
+  "populations/space-5/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ORBOCC\nsize:\n2\nvalues:\n2.0000 2.0000\nunits:\nelectrons\nEND\n"
+  },
+  "populations/space-5/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ORBOCC\nsize:\n2\nvalues:\n2.0000 2.0000\nunits:\nelectrons\nEND\n"
+  },
+  "real/ammonia/mopac.charges/0": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: MULLIKEN\nsize:\n4\nvalues:\n-0.726512 0.242272 0.242123 0.242117\nunits:\ne\nEND\nkey: DIPOLE\nsize:\n3\nrowlabels:\nX Y Z\nvalues:\n0.000 0.000 -2.186\nunits:\nDebye\nEND\n"
+  },
+  "real/ammonia/mopac.energy/0": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: TE\nsize:\n1\nvalues:\n-4.26048\nunits:\nkcal/mol\nEND\nkey: TEVEC\nsize:\n1\nvalues:\n-4.26048\nunits:\nkcal/mol\nEND\nkey: HFENERGY\nsize:\n1\nvalues:\n-4.26048\nunits:\nkcal/mol\nEND\n"
+  },
+  "real/ammonia/mopac.energy/1": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: TE\nsize:\n1\nvalues:\n-4.260478\nunits:\nkcal/mol\nEND\nkey: HFENERGY\nsize:\n1\nvalues:\n-4.260478\nunits:\nkcal/mol\nEND\n"
+  },
+  "real/ammonia/mopac.energy/2": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: TE\nsize:\n1\nvalues:\n-4.260478\nunits:\nkcal/mol\nEND\nkey: HFENERGY\nsize:\n1\nvalues:\n-4.260478\nunits:\nkcal/mol\nEND\n"
+  },
+  "real/ammonia/mopac.etime/0": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ETIME\nsize:\n1\nvalues:\n0.11\nEND\n"
+  },
+  "real/ammonia/mopac.ezeropt/0": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: EZEROPT\nsize:\n1\nvalues:\n18.459\nunits:\nkcal/mol\nEND\n"
+  },
+  "real/ammonia/mopac.forceframe/0": {
+    "files": {
+      "mopacForceGeom": "N -0.0185 -0.0265 -0.0472\nH 0.9772 -0.0265 -0.0472\nH -0.3598 0.9085 -0.0472\nH -0.3598 -0.5133 0.7511\n"
+    },
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "real/ammonia/mopac.geomtrace/0": {
+    "files": {
+      "mopacInputGeom": "N 0.0000 0.0000 0.1200\nH 0.0000 0.9400 -0.2700\nH 0.8141 -0.4700 -0.2700\nH -0.8141 -0.4700 -0.2700\n"
+    },
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: GEOMTRACE\nsize:\n1 4 3\nrowlabels:\n 1-N 2-H 3-H 4-H\ncolumnlabels:\nX Y Z\nvalues:\n 0.0000 0.0000 0.1200\n 0.0000 0.9400 -0.2700\n 0.8141 -0.4700 -0.2700\n -0.8141 -0.4700 -0.2700\nunits:\nAngstrom\nEND\n"
+  },
+  "real/ammonia/mopac.geomtrace/1": {
+    "files": {
+      "mopacInputGeom": "N 0.000000785 0.000014412 0.089931179\nH -0.000012938 0.942124241 -0.232536943\nH 0.815330296 -0.471099302 -0.232685179\nH -0.815320285 -0.471078665 -0.232685625\n"
+    },
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: GEOMTRACE\nsize:\n1 4 3\nrowlabels:\n 1-N 2-H 3-H 4-H\ncolumnlabels:\nX Y Z\nvalues:\n 0.000000785 0.000014412 0.089931179\n -0.000012938 0.942124241 -0.232536943\n 0.815330296 -0.471099302 -0.232685179\n -0.815320285 -0.471078665 -0.232685625\nunits:\nAngstrom\nEND\n"
+  },
+  "real/ammonia/mopac.geomtrace/2": {
+    "files": {
+      "mopacInputGeom": "N 0.0000 0.0000 0.0899\nH -0.0000 0.9421 -0.2325\nH 0.8153 -0.4711 -0.2327\nH -0.8153 -0.4711 -0.2327\n"
+    },
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: GEOMTRACE\nsize:\n1 4 3\nrowlabels:\n 1-N 2-H 3-H 4-H\ncolumnlabels:\nX Y Z\nvalues:\n 0.0000 0.0000 0.0899\n -0.0000 0.9421 -0.2325\n 0.8153 -0.4711 -0.2327\n -0.8153 -0.4711 -0.2327\nunits:\nAngstrom\nEND\n"
+  },
+  "real/ammonia/mopac.ip/0": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: IP\nsize:\n1\nvalues:\n10.151614\nunits:\neV\nEND\n"
+  },
+  "real/ammonia/mopac.orbocc/0": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ORBOCC\nsize:\n7\nvalues:\n2.0000 2.0000 2.0000 2.0000 0.0000 0.0000 0.0000\nunits:\nelectrons\nEND\n"
+  },
+  "real/ammonia/mopac.pntgrp/0": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: PNTGRP\nsize: \n1\nvalues: \nC3v\nEND\n"
+  },
+  "real/ch3_uhf/mopac.charges/0": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: MULLIKEN\nsize:\n4\nvalues:\n-0.411272 0.137160 0.137056 0.137056\nunits:\ne\nEND\nkey: DIPOLE\nsize:\n3\nrowlabels:\nX Y Z\nvalues:\n0.000 -0.000 0.000\nunits:\nDebye\nEND\n"
+  },
+  "real/ch3_uhf/mopac.energy/0": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: TE\nsize:\n1\nvalues:\n28.40785\nunits:\nkcal/mol\nEND\nkey: TEVEC\nsize:\n1\nvalues:\n28.40785\nunits:\nkcal/mol\nEND\nkey: HFENERGY\nsize:\n1\nvalues:\n28.40785\nunits:\nkcal/mol\nEND\n"
+  },
+  "real/ch3_uhf/mopac.etime/0": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ETIME\nsize:\n1\nvalues:\n0.01\nEND\n"
+  },
+  "real/ch3_uhf/mopac.geomtrace/0": {
+    "files": {
+      "mopacInputGeom": "C 0.0000 0.0000 0.0000\nH 1.0780 0.0000 0.0000\nH -0.5390 0.9330 0.0000\nH -0.5390 -0.9330 0.0000\n"
+    },
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: GEOMTRACE\nsize:\n1 4 3\nrowlabels:\n 1-C 2-H 3-H 4-H\ncolumnlabels:\nX Y Z\nvalues:\n 0.0000 0.0000 0.0000\n 1.0780 0.0000 0.0000\n -0.5390 0.9330 0.0000\n -0.5390 -0.9330 0.0000\nunits:\nAngstrom\nEND\n"
+  },
+  "real/ch3_uhf/mopac.geomtrace/1": {
+    "files": {
+      "mopacInputGeom": "C 0.000000000 0.000000000 0.000000000\nH 1.078000000 0.000000000 0.000000000\nH -0.539000000 0.933000000 0.000000000\nH -0.539000000 -0.933000000 0.000000000\n"
+    },
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: GEOMTRACE\nsize:\n1 4 3\nrowlabels:\n 1-C 2-H 3-H 4-H\ncolumnlabels:\nX Y Z\nvalues:\n 0.000000000 0.000000000 0.000000000\n 1.078000000 0.000000000 0.000000000\n -0.539000000 0.933000000 0.000000000\n -0.539000000 -0.933000000 0.000000000\nunits:\nAngstrom\nEND\n"
+  },
+  "real/ch3_uhf/mopac.ip/0": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: IP\nsize:\n1\nvalues:\n9.910583\nunits:\neV\nEND\n"
+  },
+  "real/ch3_uhf/mopac.orbocc/0": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ORBOCC\nsize:\n7\nvalues:\n1.0000 1.0000 1.0000 1.0000 0.0000 0.0000 0.0000\nunits:\nelectrons\nEND\nkey: ORBOCCBETA\nsize:\n7\nvalues:\n1.0000 1.0000 1.0000 0.0000 0.0000 0.0000 0.0000\nunits:\nelectrons\nEND\n"
+  },
+  "real/ch3_uhf/mopac.pntgrp/0": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: PNTGRP\nsize: \n1\nvalues: \nD3h\nEND\n"
+  },
+  "real/ch3_uhf_mos/mopac.charges/0": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: MULLIKEN\nsize:\n4\nvalues:\n-0.406448 0.135521 0.135467 0.135461\nunits:\ne\nEND\nkey: DIPOLE\nsize:\n3\nrowlabels:\nX Y Z\nvalues:\n-0.000 -0.000 -0.000\nunits:\nDebye\nEND\n"
+  },
+  "real/ch3_uhf_mos/mopac.energy/0": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: TE\nsize:\n1\nvalues:\n27.96967\nunits:\nkcal/mol\nEND\nkey: TEVEC\nsize:\n1\nvalues:\n27.96967\nunits:\nkcal/mol\nEND\nkey: HFENERGY\nsize:\n1\nvalues:\n27.96967\nunits:\nkcal/mol\nEND\n"
+  },
+  "real/ch3_uhf_mos/mopac.etime/0": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ETIME\nsize:\n1\nvalues:\n0.02\nEND\n"
+  },
+  "real/ch3_uhf_mos/mopac.geomtrace/0": {
+    "files": {
+      "mopacInputGeom": "C 0.0000 0.0000 0.0000\nH 1.0780 0.0000 0.0000\nH -0.5390 0.9336 0.0000\nH -0.5390 -0.9336 0.0000\n"
+    },
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: GEOMTRACE\nsize:\n1 4 3\nrowlabels:\n 1-C 2-H 3-H 4-H\ncolumnlabels:\nX Y Z\nvalues:\n 0.0000 0.0000 0.0000\n 1.0780 0.0000 0.0000\n -0.5390 0.9336 0.0000\n -0.5390 -0.9336 0.0000\nunits:\nAngstrom\nEND\n"
+  },
+  "real/ch3_uhf_mos/mopac.geomtrace/1": {
+    "files": {
+      "mopacInputGeom": "C 0.000029813 0.000014485 0.000000000\nH 1.056632145 -0.000042227 -0.000000000\nH -0.528389825 0.914869580 -0.000000000\nH -0.528345236 -0.914877357 -0.000000000\n"
+    },
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: GEOMTRACE\nsize:\n1 4 3\nrowlabels:\n 1-C 2-H 3-H 4-H\ncolumnlabels:\nX Y Z\nvalues:\n 0.000029813 0.000014485 0.000000000\n 1.056632145 -0.000042227 -0.000000000\n -0.528389825 0.914869580 -0.000000000\n -0.528345236 -0.914877357 -0.000000000\nunits:\nAngstrom\nEND\n"
+  },
+  "real/ch3_uhf_mos/mopac.ip/0": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: IP\nsize:\n1\nvalues:\n9.967275\nunits:\neV\nEND\n"
+  },
+  "real/ch3_uhf_mos/mopac.orbocc/0": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ORBOCC\nsize:\n7\nvalues:\n1.0000 1.0000 1.0000 1.0000 0.0000 0.0000 0.0000\nunits:\nelectrons\nEND\nkey: ORBOCCBETA\nsize:\n7\nvalues:\n1.0000 1.0000 1.0000 0.0000 0.0000 0.0000 0.0000\nunits:\nelectrons\nEND\n"
+  },
+  "real/ch3_uhf_mos/mopac.pntgrp/0": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: PNTGRP\nsize: \n1\nvalues: \nD3h\nEND\n"
+  },
+  "real/ch4_force/mopac.energy/0": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: TE\nsize:\n1\nvalues:\n-14.404414\nunits:\nkcal/mol\nEND\nkey: HFENERGY\nsize:\n1\nvalues:\n-14.404414\nunits:\nkcal/mol\nEND\n"
+  },
+  "real/ch4_force/mopac.energy/1": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: TE\nsize:\n1\nvalues:\n-14.404414\nunits:\nkcal/mol\nEND\nkey: HFENERGY\nsize:\n1\nvalues:\n-14.404414\nunits:\nkcal/mol\nEND\n"
+  },
+  "real/ch4_force/mopac.etime/0": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ETIME\nsize:\n1\nvalues:\n0.02\nEND\n"
+  },
+  "real/ch4_force/mopac.ezeropt/0": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: EZEROPT\nsize:\n1\nvalues:\n24.854\nunits:\nkcal/mol\nEND\n"
+  },
+  "real/ch4_force/mopac.forceframe/0": {
+    "files": {
+      "mopacForceGeom": "C -0.0000 -0.0000 0.0000\nH 1.0852 -0.0000 0.0000\nH -0.3617 1.0231 0.0000\nH -0.3617 -0.5116 -0.8860\nH -0.3617 -0.5116 0.8860\n"
+    },
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "real/ch4_force/mopac.geomtrace/0": {
+    "files": {
+      "mopacInputGeom": "C 0.0000 0.0000 0.0000\nH 0.6265 0.6265 0.6265\nH -0.6265 -0.6265 0.6265\nH -0.6265 0.6265 -0.6265\nH 0.6265 -0.6265 -0.6265\n"
+    },
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: GEOMTRACE\nsize:\n1 5 3\nrowlabels:\n 1-C 2-H 3-H 4-H 5-H\ncolumnlabels:\nX Y Z\nvalues:\n 0.0000 0.0000 0.0000\n 0.6265 0.6265 0.6265\n -0.6265 -0.6265 0.6265\n -0.6265 0.6265 -0.6265\n 0.6265 -0.6265 -0.6265\nunits:\nAngstrom\nEND\n"
+  },
+  "real/ch4_force/mopac.pntgrp/0": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: PNTGRP\nsize: \n1\nvalues: \nTd\nEND\n"
+  },
+  "real/ch4_force_nothermo/mopac.charges/0": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: MULLIKEN\nsize:\n5\nvalues:\n-0.603104 0.150773 0.150788 0.150772 0.150770\nunits:\ne\nEND\nkey: DIPOLE\nsize:\n3\nrowlabels:\nX Y Z\nvalues:\n-0.000 -0.000 0.002\nunits:\nDebye\nEND\n"
+  },
+  "real/ch4_force_nothermo/mopac.energy/0": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: TE\nsize:\n1\nvalues:\n-14.40408\nunits:\nkcal/mol\nEND\nkey: TEVEC\nsize:\n1\nvalues:\n-14.40408\nunits:\nkcal/mol\nEND\nkey: HFENERGY\nsize:\n1\nvalues:\n-14.40408\nunits:\nkcal/mol\nEND\n"
+  },
+  "real/ch4_force_nothermo/mopac.energy/1": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: TE\nsize:\n1\nvalues:\n-14.404081\nunits:\nkcal/mol\nEND\nkey: HFENERGY\nsize:\n1\nvalues:\n-14.404081\nunits:\nkcal/mol\nEND\n"
+  },
+  "real/ch4_force_nothermo/mopac.energy/2": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: TE\nsize:\n1\nvalues:\n-14.404081\nunits:\nkcal/mol\nEND\nkey: HFENERGY\nsize:\n1\nvalues:\n-14.404081\nunits:\nkcal/mol\nEND\n"
+  },
+  "real/ch4_force_nothermo/mopac.etime/0": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ETIME\nsize:\n1\nvalues:\n0.09\nEND\n"
+  },
+  "real/ch4_force_nothermo/mopac.ezeropt/0": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: EZEROPT\nsize:\n1\nvalues:\n24.858\nunits:\nkcal/mol\nEND\n"
+  },
+  "real/ch4_force_nothermo/mopac.forceframe/0": {
+    "files": {
+      "mopacForceGeom": "C -0.0001 -0.0001 0.0000\nH 1.0848 -0.0001 0.0000\nH -0.3607 1.0232 0.0000\nH -0.3614 -0.5113 -0.8856\nH -0.3619 -0.5109 0.8856\n"
+    },
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "real/ch4_force_nothermo/mopac.geomtrace/0": {
+    "files": {
+      "mopacInputGeom": "C 0.0000 0.0000 0.0000\nH -0.6755 -0.6755 0.6755\nH 0.6755 0.6755 0.6755\nH 0.6755 -0.6755 -0.6755\nH -0.6755 0.6755 -0.6755\n"
+    },
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: GEOMTRACE\nsize:\n1 5 3\nrowlabels:\n 1-C 2-H 3-H 4-H 5-H\ncolumnlabels:\nX Y Z\nvalues:\n 0.0000 0.0000 0.0000\n -0.6755 -0.6755 0.6755\n 0.6755 0.6755 0.6755\n 0.6755 -0.6755 -0.6755\n -0.6755 0.6755 -0.6755\nunits:\nAngstrom\nEND\n"
+  },
+  "real/ch4_force_nothermo/mopac.geomtrace/1": {
+    "files": {
+      "mopacInputGeom": "C 0.000014049 0.000016106 -0.000199816\nH -0.626028658 -0.626250470 0.626557954\nH 0.626056681 0.626282595 0.626661871\nH 0.626089784 -0.626394559 -0.626269926\nH -0.626166304 0.626306835 -0.626260117\n"
+    },
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: GEOMTRACE\nsize:\n1 5 3\nrowlabels:\n 1-C 2-H 3-H 4-H 5-H\ncolumnlabels:\nX Y Z\nvalues:\n 0.000014049 0.000016106 -0.000199816\n -0.626028658 -0.626250470 0.626557954\n 0.626056681 0.626282595 0.626661871\n 0.626089784 -0.626394559 -0.626269926\n -0.626166304 0.626306835 -0.626260117\nunits:\nAngstrom\nEND\n"
+  },
+  "real/ch4_force_nothermo/mopac.geomtrace/2": {
+    "files": {
+      "mopacInputGeom": "C 0.0000 0.0000 -0.0002\nH -0.6260 -0.6263 0.6266\nH 0.6261 0.6263 0.6267\nH 0.6261 -0.6264 -0.6263\nH -0.6262 0.6263 -0.6263\n"
+    },
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: GEOMTRACE\nsize:\n1 5 3\nrowlabels:\n 1-C 2-H 3-H 4-H 5-H\ncolumnlabels:\nX Y Z\nvalues:\n 0.0000 0.0000 -0.0002\n -0.6260 -0.6263 0.6266\n 0.6261 0.6263 0.6267\n 0.6261 -0.6264 -0.6263\n -0.6262 0.6263 -0.6263\nunits:\nAngstrom\nEND\n"
+  },
+  "real/ch4_force_nothermo/mopac.ip/0": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: IP\nsize:\n1\nvalues:\n13.727188\nunits:\neV\nEND\n"
+  },
+  "real/ch4_force_nothermo/mopac.orbocc/0": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ORBOCC\nsize:\n8\nvalues:\n2.0000 2.0000 2.0000 2.0000 0.0000 0.0000 0.0000 0.0000\nunits:\nelectrons\nEND\n"
+  },
+  "real/ch4_force_nothermo/mopac.pntgrp/0": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: PNTGRP\nsize: \n1\nvalues: \nTd\nEND\n"
+  },
+  "real/ch4_geovib/mopac.charges/0": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: MULLIKEN\nsize:\n5\nvalues:\n-0.603058 0.150764 0.150764 0.150764 0.150764\nunits:\ne\nEND\nkey: DIPOLE\nsize:\n3\nrowlabels:\nX Y Z\nvalues:\n-0.000 0.000 0.000\nunits:\nDebye\nEND\n"
+  },
+  "real/ch4_geovib/mopac.energy/0": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: TE\nsize:\n1\nvalues:\n-14.40441\nunits:\nkcal/mol\nEND\nkey: TEVEC\nsize:\n1\nvalues:\n-14.40441\nunits:\nkcal/mol\nEND\nkey: HFENERGY\nsize:\n1\nvalues:\n-14.40441\nunits:\nkcal/mol\nEND\n"
+  },
+  "real/ch4_geovib/mopac.energy/1": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: TE\nsize:\n1\nvalues:\n-14.404414\nunits:\nkcal/mol\nEND\nkey: HFENERGY\nsize:\n1\nvalues:\n-14.404414\nunits:\nkcal/mol\nEND\n"
+  },
+  "real/ch4_geovib/mopac.energy/2": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: TE\nsize:\n1\nvalues:\n-14.404414\nunits:\nkcal/mol\nEND\nkey: HFENERGY\nsize:\n1\nvalues:\n-14.404414\nunits:\nkcal/mol\nEND\n"
+  },
+  "real/ch4_geovib/mopac.etime/0": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ETIME\nsize:\n1\nvalues:\n0.10\nEND\n"
+  },
+  "real/ch4_geovib/mopac.ezeropt/0": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: EZEROPT\nsize:\n1\nvalues:\n24.852\nunits:\nkcal/mol\nEND\n"
+  },
+  "real/ch4_geovib/mopac.forceframe/0": {
+    "files": {
+      "mopacForceGeom": "C -0.0000 -0.0000 0.0000\nH 1.0852 -0.0000 0.0000\nH -0.3617 1.0231 0.0000\nH -0.3617 -0.5116 -0.8860\nH -0.3617 -0.5116 0.8860\n"
+    },
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "real/ch4_geovib/mopac.geomtrace/0": {
+    "files": {
+      "mopacInputGeom": "C 0.0000 0.0000 0.0000\nH 0.6290 0.6290 0.6290\nH -0.6290 -0.6290 0.6290\nH -0.6290 0.6290 -0.6290\nH 0.6290 -0.6290 -0.6290\n"
+    },
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: GEOMTRACE\nsize:\n1 5 3\nrowlabels:\n 1-C 2-H 3-H 4-H 5-H\ncolumnlabels:\nX Y Z\nvalues:\n 0.0000 0.0000 0.0000\n 0.6290 0.6290 0.6290\n -0.6290 -0.6290 0.6290\n -0.6290 0.6290 -0.6290\n 0.6290 -0.6290 -0.6290\nunits:\nAngstrom\nEND\n"
+  },
+  "real/ch4_geovib/mopac.geomtrace/1": {
+    "files": {
+      "mopacInputGeom": "C 0.000000000 -0.000000000 -0.000000183\nH 0.626527549 0.626527282 0.626539585\nH -0.626527549 -0.626527282 0.626539585\nH -0.626527514 0.626527248 -0.626539269\nH 0.626527514 -0.626527247 -0.626539269\n"
+    },
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: GEOMTRACE\nsize:\n1 5 3\nrowlabels:\n 1-C 2-H 3-H 4-H 5-H\ncolumnlabels:\nX Y Z\nvalues:\n 0.000000000 -0.000000000 -0.000000183\n 0.626527549 0.626527282 0.626539585\n -0.626527549 -0.626527282 0.626539585\n -0.626527514 0.626527248 -0.626539269\n 0.626527514 -0.626527247 -0.626539269\nunits:\nAngstrom\nEND\n"
+  },
+  "real/ch4_geovib/mopac.geomtrace/2": {
+    "files": {
+      "mopacInputGeom": "C 0.0000 -0.0000 -0.0000\nH 0.6265 0.6265 0.6265\nH -0.6265 -0.6265 0.6265\nH -0.6265 0.6265 -0.6265\nH 0.6265 -0.6265 -0.6265\n"
+    },
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: GEOMTRACE\nsize:\n1 5 3\nrowlabels:\n 1-C 2-H 3-H 4-H 5-H\ncolumnlabels:\nX Y Z\nvalues:\n 0.0000 -0.0000 -0.0000\n 0.6265 0.6265 0.6265\n -0.6265 -0.6265 0.6265\n -0.6265 0.6265 -0.6265\n 0.6265 -0.6265 -0.6265\nunits:\nAngstrom\nEND\n"
+  },
+  "real/ch4_geovib/mopac.ip/0": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: IP\nsize:\n1\nvalues:\n13.727659\nunits:\neV\nEND\n"
+  },
+  "real/ch4_geovib/mopac.orbocc/0": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ORBOCC\nsize:\n8\nvalues:\n2.0000 2.0000 2.0000 2.0000 0.0000 0.0000 0.0000 0.0000\nunits:\nelectrons\nEND\n"
+  },
+  "real/ch4_geovib/mopac.pntgrp/0": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: PNTGRP\nsize: \n1\nvalues: \nTd\nEND\n"
+  },
+  "real/ch4_mos/mopac.charges/0": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: MULLIKEN\nsize:\n5\nvalues:\n-0.603037 0.150765 0.150756 0.150757 0.150759\nunits:\ne\nEND\nkey: DIPOLE\nsize:\n3\nrowlabels:\nX Y Z\nvalues:\n-0.000 -0.000 -0.000\nunits:\nDebye\nEND\n"
+  },
+  "real/ch4_mos/mopac.energy/0": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: TE\nsize:\n1\nvalues:\n-14.40341\nunits:\nkcal/mol\nEND\nkey: TEVEC\nsize:\n1\nvalues:\n-14.40341\nunits:\nkcal/mol\nEND\nkey: HFENERGY\nsize:\n1\nvalues:\n-14.40341\nunits:\nkcal/mol\nEND\n"
+  },
+  "real/ch4_mos/mopac.etime/0": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ETIME\nsize:\n1\nvalues:\n0.02\nEND\n"
+  },
+  "real/ch4_mos/mopac.geomtrace/0": {
+    "files": {
+      "mopacInputGeom": "C 0.0000 0.0000 0.0000\nH 0.6291 0.6291 0.6291\nH -0.6291 -0.6291 0.6291\nH -0.6291 0.6291 -0.6291\nH 0.6291 -0.6291 -0.6291\n"
+    },
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: GEOMTRACE\nsize:\n1 5 3\nrowlabels:\n 1-C 2-H 3-H 4-H 5-H\ncolumnlabels:\nX Y Z\nvalues:\n 0.0000 0.0000 0.0000\n 0.6291 0.6291 0.6291\n -0.6291 -0.6291 0.6291\n -0.6291 0.6291 -0.6291\n 0.6291 -0.6291 -0.6291\nunits:\nAngstrom\nEND\n"
+  },
+  "real/ch4_mos/mopac.geomtrace/1": {
+    "files": {
+      "mopacInputGeom": "C 0.000005542 0.000006451 0.000012821\nH 0.627878211 0.626873645 0.625352870\nH -0.627859693 -0.626848612 0.625289032\nH -0.627863854 0.626813590 -0.625339033\nH 0.627826205 -0.626860891 -0.625347129\n"
+    },
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: GEOMTRACE\nsize:\n1 5 3\nrowlabels:\n 1-C 2-H 3-H 4-H 5-H\ncolumnlabels:\nX Y Z\nvalues:\n 0.000005542 0.000006451 0.000012821\n 0.627878211 0.626873645 0.625352870\n -0.627859693 -0.626848612 0.625289032\n -0.627863854 0.626813590 -0.625339033\n 0.627826205 -0.626860891 -0.625347129\nunits:\nAngstrom\nEND\n"
+  },
+  "real/ch4_mos/mopac.ip/0": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: IP\nsize:\n1\nvalues:\n13.710897\nunits:\neV\nEND\n"
+  },
+  "real/ch4_mos/mopac.orbocc/0": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ORBOCC\nsize:\n8\nvalues:\n2.0000 2.0000 2.0000 2.0000 0.0000 0.0000 0.0000 0.0000\nunits:\nelectrons\nEND\n"
+  },
+  "real/ch4_mos/mopac.pntgrp/0": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: PNTGRP\nsize: \n1\nvalues: \nD2d\nEND\n"
+  },
+  "real/ch4_opt/mopac.charges/0": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: MULLIKEN\nsize:\n5\nvalues:\n-0.603058 0.150764 0.150764 0.150764 0.150764\nunits:\ne\nEND\nkey: DIPOLE\nsize:\n3\nrowlabels:\nX Y Z\nvalues:\n-0.000 0.000 0.000\nunits:\nDebye\nEND\n"
+  },
+  "real/ch4_opt/mopac.energy/0": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: TE\nsize:\n1\nvalues:\n-14.40441\nunits:\nkcal/mol\nEND\nkey: TEVEC\nsize:\n1\nvalues:\n-14.40441\nunits:\nkcal/mol\nEND\nkey: HFENERGY\nsize:\n1\nvalues:\n-14.40441\nunits:\nkcal/mol\nEND\n"
+  },
+  "real/ch4_opt/mopac.etime/0": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ETIME\nsize:\n1\nvalues:\n0.01\nEND\n"
+  },
+  "real/ch4_opt/mopac.geomtrace/0": {
+    "files": {
+      "mopacInputGeom": "C 0.0000 0.0000 0.0000\nH 0.6290 0.6290 0.6290\nH -0.6290 -0.6290 0.6290\nH -0.6290 0.6290 -0.6290\nH 0.6290 -0.6290 -0.6290\n"
+    },
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: GEOMTRACE\nsize:\n1 5 3\nrowlabels:\n 1-C 2-H 3-H 4-H 5-H\ncolumnlabels:\nX Y Z\nvalues:\n 0.0000 0.0000 0.0000\n 0.6290 0.6290 0.6290\n -0.6290 -0.6290 0.6290\n -0.6290 0.6290 -0.6290\n 0.6290 -0.6290 -0.6290\nunits:\nAngstrom\nEND\n"
+  },
+  "real/ch4_opt/mopac.geomtrace/1": {
+    "files": {
+      "mopacInputGeom": "C 0.000000000 -0.000000000 -0.000000183\nH 0.626527549 0.626527282 0.626539585\nH -0.626527549 -0.626527282 0.626539585\nH -0.626527514 0.626527248 -0.626539269\nH 0.626527514 -0.626527247 -0.626539269\n"
+    },
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: GEOMTRACE\nsize:\n1 5 3\nrowlabels:\n 1-C 2-H 3-H 4-H 5-H\ncolumnlabels:\nX Y Z\nvalues:\n 0.000000000 -0.000000000 -0.000000183\n 0.626527549 0.626527282 0.626539585\n -0.626527549 -0.626527282 0.626539585\n -0.626527514 0.626527248 -0.626539269\n 0.626527514 -0.626527247 -0.626539269\nunits:\nAngstrom\nEND\n"
+  },
+  "real/ch4_opt/mopac.ip/0": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: IP\nsize:\n1\nvalues:\n13.727659\nunits:\neV\nEND\n"
+  },
+  "real/ch4_opt/mopac.orbocc/0": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ORBOCC\nsize:\n8\nvalues:\n2.0000 2.0000 2.0000 2.0000 0.0000 0.0000 0.0000 0.0000\nunits:\nelectrons\nEND\n"
+  },
+  "real/ch4_opt/mopac.pntgrp/0": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: PNTGRP\nsize: \n1\nvalues: \nTd\nEND\n"
+  },
+  "real/h2o_cosmo/mopac.charges/0": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: MULLIKEN\nsize:\n3\nvalues:\n-0.747151 0.373639 0.373512\nunits:\ne\nEND\nkey: DIPOLE\nsize:\n3\nrowlabels:\nX Y Z\nvalues:\n-0.000 0.000 -2.416\nunits:\nDebye\nEND\n"
+  },
+  "real/h2o_cosmo/mopac.energy/0": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: TE\nsize:\n1\nvalues:\n-65.17020\nunits:\nkcal/mol\nEND\nkey: TEVEC\nsize:\n1\nvalues:\n-65.17020\nunits:\nkcal/mol\nEND\nkey: HFENERGY\nsize:\n1\nvalues:\n-65.17020\nunits:\nkcal/mol\nEND\n"
+  },
+  "real/h2o_cosmo/mopac.etime/0": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ETIME\nsize:\n1\nvalues:\n0.01\nEND\n"
+  },
+  "real/h2o_cosmo/mopac.geomtrace/0": {
+    "files": {
+      "mopacInputGeom": "O 0.0000 0.0000 0.1173\nH 0.0000 0.7572 -0.4692\nH 0.0000 -0.7572 -0.4692\n"
+    },
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: GEOMTRACE\nsize:\n1 3 3\nrowlabels:\n 1-O 2-H 3-H\ncolumnlabels:\nX Y Z\nvalues:\n 0.0000 0.0000 0.1173\n 0.0000 0.7572 -0.4692\n 0.0000 -0.7572 -0.4692\nunits:\nAngstrom\nEND\n"
+  },
+  "real/h2o_cosmo/mopac.geomtrace/1": {
+    "files": {
+      "mopacInputGeom": "O 0.000000000 0.000000000 0.117300000\nH 0.000000000 0.757200000 -0.469200000\nH 0.000000000 -0.757200000 -0.469200000\n"
+    },
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: GEOMTRACE\nsize:\n1 3 3\nrowlabels:\n 1-O 2-H 3-H\ncolumnlabels:\nX Y Z\nvalues:\n 0.000000000 0.000000000 0.117300000\n 0.000000000 0.757200000 -0.469200000\n 0.000000000 -0.757200000 -0.469200000\nunits:\nAngstrom\nEND\n"
+  },
+  "real/h2o_cosmo/mopac.ip/0": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: IP\nsize:\n1\nvalues:\n12.444703\nunits:\neV\nEND\n"
+  },
+  "real/h2o_cosmo/mopac.orbocc/0": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ORBOCC\nsize:\n6\nvalues:\n2.0000 2.0000 2.0000 2.0000 0.0000 0.0000\nunits:\nelectrons\nEND\n"
+  },
+  "real/h2o_cosmo/mopac.pntgrp/0": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: PNTGRP\nsize: \n1\nvalues: \nC2v\nEND\n"
+  },
+  "real/h2o_cosmo/mopac.solvmodel/0": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: SOLVMODEL\nsize:\n1\nvalues:\nCOSMO, \u00ce\u00b5 = 78.4\nunits:\nNA\nEND\n"
+  },
+  "real/h2o_cosmo_bytes/mopac.charges/0": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: MULLIKEN\nsize:\n3\nvalues:\n-0.747151 0.373639 0.373512\nunits:\ne\nEND\nkey: DIPOLE\nsize:\n3\nrowlabels:\nX Y Z\nvalues:\n-0.000 0.000 -2.416\nunits:\nDebye\nEND\n"
+  },
+  "real/h2o_cosmo_bytes/mopac.energy/0": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: TE\nsize:\n1\nvalues:\n-65.17020\nunits:\nkcal/mol\nEND\nkey: TEVEC\nsize:\n1\nvalues:\n-65.17020\nunits:\nkcal/mol\nEND\nkey: HFENERGY\nsize:\n1\nvalues:\n-65.17020\nunits:\nkcal/mol\nEND\n"
+  },
+  "real/h2o_cosmo_bytes/mopac.etime/0": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ETIME\nsize:\n1\nvalues:\n0.01\nEND\n"
+  },
+  "real/h2o_cosmo_bytes/mopac.geomtrace/0": {
+    "files": {
+      "mopacInputGeom": "O 0.0000 0.0000 0.1173\nH 0.0000 0.7572 -0.4692\nH 0.0000 -0.7572 -0.4692\n"
+    },
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: GEOMTRACE\nsize:\n1 3 3\nrowlabels:\n 1-O 2-H 3-H\ncolumnlabels:\nX Y Z\nvalues:\n 0.0000 0.0000 0.1173\n 0.0000 0.7572 -0.4692\n 0.0000 -0.7572 -0.4692\nunits:\nAngstrom\nEND\n"
+  },
+  "real/h2o_cosmo_bytes/mopac.geomtrace/1": {
+    "files": {
+      "mopacInputGeom": "O 0.000000000 0.000000000 0.117300000\nH 0.000000000 0.757200000 -0.469200000\nH 0.000000000 -0.757200000 -0.469200000\n"
+    },
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: GEOMTRACE\nsize:\n1 3 3\nrowlabels:\n 1-O 2-H 3-H\ncolumnlabels:\nX Y Z\nvalues:\n 0.000000000 0.000000000 0.117300000\n 0.000000000 0.757200000 -0.469200000\n 0.000000000 -0.757200000 -0.469200000\nunits:\nAngstrom\nEND\n"
+  },
+  "real/h2o_cosmo_bytes/mopac.ip/0": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: IP\nsize:\n1\nvalues:\n12.444703\nunits:\neV\nEND\n"
+  },
+  "real/h2o_cosmo_bytes/mopac.orbocc/0": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ORBOCC\nsize:\n6\nvalues:\n2.0000 2.0000 2.0000 2.0000 0.0000 0.0000\nunits:\nelectrons\nEND\n"
+  },
+  "real/h2o_cosmo_bytes/mopac.pntgrp/0": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: PNTGRP\nsize: \n1\nvalues: \nC2v\nEND\n"
+  },
+  "real/h2o_cosmo_bytes/mopac.solvmodel/0": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: SOLVMODEL\nsize:\n1\nvalues:\nCOSMO, \u00ce\u00b5 = 78.4\nunits:\nNA\nEND\n"
+  },
+  "real/h2o_esp/mopac.charges/0": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: MULLIKEN\nsize:\n3\nvalues:\n-0.645360 0.322680 0.322680\nunits:\ne\nEND\nkey: DIPOLE\nsize:\n3\nrowlabels:\nX Y Z\nvalues:\n-0.000 -0.000 -2.141\nunits:\nDebye\nEND\n"
+  },
+  "real/h2o_esp/mopac.energy/0": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: TE\nsize:\n1\nvalues:\n-57.79007\nunits:\nkcal/mol\nEND\nkey: TEVEC\nsize:\n1\nvalues:\n-57.79007\nunits:\nkcal/mol\nEND\nkey: HFENERGY\nsize:\n1\nvalues:\n-57.79007\nunits:\nkcal/mol\nEND\n"
+  },
+  "real/h2o_esp/mopac.espcharge/0": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ESPFIT\nsize:\n3\nvalues:\n-0.5889 0.2944 0.2944\nunits:\ne\nEND\n"
+  },
+  "real/h2o_esp/mopac.etime/0": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ETIME\nsize:\n1\nvalues:\n0.08\nEND\n"
+  },
+  "real/h2o_esp/mopac.geomtrace/0": {
+    "files": {
+      "mopacInputGeom": "O 0.0000 0.0000 0.1173\nH 0.0000 0.7572 -0.4692\nH 0.0000 -0.7572 -0.4692\n"
+    },
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: GEOMTRACE\nsize:\n1 3 3\nrowlabels:\n 1-O 2-H 3-H\ncolumnlabels:\nX Y Z\nvalues:\n 0.0000 0.0000 0.1173\n 0.0000 0.7572 -0.4692\n 0.0000 -0.7572 -0.4692\nunits:\nAngstrom\nEND\n"
+  },
+  "real/h2o_esp/mopac.geomtrace/1": {
+    "files": {
+      "mopacInputGeom": "O 0.000000000 0.000000000 0.117300000\nH 0.000000000 0.757200000 -0.469200000\nH 0.000000000 -0.757200000 -0.469200000\n"
+    },
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: GEOMTRACE\nsize:\n1 3 3\nrowlabels:\n 1-O 2-H 3-H\ncolumnlabels:\nX Y Z\nvalues:\n 0.000000000 0.000000000 0.117300000\n 0.000000000 0.757200000 -0.469200000\n 0.000000000 -0.757200000 -0.469200000\nunits:\nAngstrom\nEND\n"
+  },
+  "real/h2o_esp/mopac.ip/0": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: IP\nsize:\n1\nvalues:\n12.095147\nunits:\neV\nEND\n"
+  },
+  "real/h2o_esp/mopac.orbocc/0": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ORBOCC\nsize:\n6\nvalues:\n2.0000 2.0000 2.0000 2.0000 0.0000 0.0000\nunits:\nelectrons\nEND\n"
+  },
+  "real/h2o_esp/mopac.pntgrp/0": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: PNTGRP\nsize: \n1\nvalues: \nC2v\nEND\n"
+  },
+  "real/h2o_geovib/mopac.charges/0": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: MULLIKEN\nsize:\n3\nvalues:\n-0.649387 0.324694 0.324693\nunits:\ne\nEND\nkey: DIPOLE\nsize:\n3\nrowlabels:\nX Y Z\nvalues:\n1.684 -0.000 1.303\nunits:\nDebye\nEND\n"
+  },
+  "real/h2o_geovib/mopac.energy/0": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: TE\nsize:\n1\nvalues:\n-57.79986\nunits:\nkcal/mol\nEND\nkey: TEVEC\nsize:\n1\nvalues:\n-57.79986\nunits:\nkcal/mol\nEND\nkey: HFENERGY\nsize:\n1\nvalues:\n-57.79986\nunits:\nkcal/mol\nEND\n"
+  },
+  "real/h2o_geovib/mopac.energy/1": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: TE\nsize:\n1\nvalues:\n-57.799860\nunits:\nkcal/mol\nEND\nkey: HFENERGY\nsize:\n1\nvalues:\n-57.799860\nunits:\nkcal/mol\nEND\n"
+  },
+  "real/h2o_geovib/mopac.energy/2": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: TE\nsize:\n1\nvalues:\n-57.799860\nunits:\nkcal/mol\nEND\nkey: HFENERGY\nsize:\n1\nvalues:\n-57.799860\nunits:\nkcal/mol\nEND\n"
+  },
+  "real/h2o_geovib/mopac.etime/0": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ETIME\nsize:\n1\nvalues:\n0.05\nEND\n"
+  },
+  "real/h2o_geovib/mopac.ezeropt/0": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: EZEROPT\nsize:\n1\nvalues:\n10.093\nunits:\nkcal/mol\nEND\n"
+  },
+  "real/h2o_geovib/mopac.forceframe/0": {
+    "files": {
+      "mopacForceGeom": "O -0.0393 -0.0515 0.0000\nH 0.9160 -0.0515 0.0000\nH -0.2927 0.8695 -0.0000\n"
+    },
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "real/h2o_geovib/mopac.geomtrace/0": {
+    "files": {
+      "mopacInputGeom": "O 0.0000 0.0000 0.0000\nH 0.0000 0.0000 0.9600\nH 0.9260 0.0000 -0.2400\n"
+    },
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: GEOMTRACE\nsize:\n1 3 3\nrowlabels:\n 1-O 2-H 3-H\ncolumnlabels:\nX Y Z\nvalues:\n 0.0000 0.0000 0.0000\n 0.0000 0.0000 0.9600\n 0.9260 0.0000 -0.2400\nunits:\nAngstrom\nEND\n"
+  },
+  "real/h2o_geovib/mopac.geomtrace/1": {
+    "files": {
+      "mopacInputGeom": "O 0.001661430 0.000000000 0.001931637\nH -0.005141272 0.000000000 0.957216794\nH 0.924521773 0.000000000 -0.244912856\n"
+    },
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: GEOMTRACE\nsize:\n1 3 3\nrowlabels:\n 1-O 2-H 3-H\ncolumnlabels:\nX Y Z\nvalues:\n 0.001661430 0.000000000 0.001931637\n -0.005141272 0.000000000 0.957216794\n 0.924521773 0.000000000 -0.244912856\nunits:\nAngstrom\nEND\n"
+  },
+  "real/h2o_geovib/mopac.geomtrace/2": {
+    "files": {
+      "mopacInputGeom": "O 0.0017 0.0000 0.0019\nH -0.0051 0.0000 0.9572\nH 0.9245 0.0000 -0.2449\n"
+    },
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: GEOMTRACE\nsize:\n1 3 3\nrowlabels:\n 1-O 2-H 3-H\ncolumnlabels:\nX Y Z\nvalues:\n 0.0017 0.0000 0.0019\n -0.0051 0.0000 0.9572\n 0.9245 0.0000 -0.2449\nunits:\nAngstrom\nEND\n"
+  },
+  "real/h2o_geovib/mopac.ip/0": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: IP\nsize:\n1\nvalues:\n12.115494\nunits:\neV\nEND\n"
+  },
+  "real/h2o_geovib/mopac.orbocc/0": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ORBOCC\nsize:\n6\nvalues:\n2.0000 2.0000 2.0000 2.0000 0.0000 0.0000\nunits:\nelectrons\nEND\n"
+  },
+  "real/h2o_geovib/mopac.pntgrp/0": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: PNTGRP\nsize: \n1\nvalues: \nC2v\nEND\n"
+  },
+  "real/h2o_grad/mopac.charges/0": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: MULLIKEN\nsize:\n3\nvalues:\n-0.645579 0.323084 0.322495\nunits:\ne\nEND\nkey: DIPOLE\nsize:\n3\nrowlabels:\nX Y Z\nvalues:\n1.690 -0.000 1.315\nunits:\nDebye\nEND\n"
+  },
+  "real/h2o_grad/mopac.egradvec/0": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: EGRADVEC\nsize:\n3 3\nrowlabels:\n 1  2  3 \ncolumnlabels:\nX Y Z\nvalues:\n -0.0010562327 0.0000000000 -0.0026106831\n 0.0007823575 0.0000000000 0.0018591557\n 0.0002738752 0.0000000000 0.0007515265\nunits:\nHartree/Bohr\nEND\n"
+  },
+  "real/h2o_grad/mopac.energy/0": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: TE\nsize:\n1\nvalues:\n-57.78812\nunits:\nkcal/mol\nEND\nkey: TEVEC\nsize:\n1\nvalues:\n-57.78812\nunits:\nkcal/mol\nEND\nkey: HFENERGY\nsize:\n1\nvalues:\n-57.78812\nunits:\nkcal/mol\nEND\n"
+  },
+  "real/h2o_grad/mopac.etime/0": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ETIME\nsize:\n1\nvalues:\n0.02\nEND\n"
+  },
+  "real/h2o_grad/mopac.geomtrace/0": {
+    "files": {
+      "mopacInputGeom": "O 0.0000 0.0000 0.0000\nH 0.0000 0.0000 0.9600\nH 0.9260 0.0000 -0.2400\n"
+    },
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: GEOMTRACE\nsize:\n1 3 3\nrowlabels:\n 1-O 2-H 3-H\ncolumnlabels:\nX Y Z\nvalues:\n 0.0000 0.0000 0.0000\n 0.0000 0.0000 0.9600\n 0.9260 0.0000 -0.2400\nunits:\nAngstrom\nEND\n"
+  },
+  "real/h2o_grad/mopac.geomtrace/1": {
+    "files": {
+      "mopacInputGeom": "O 0.000000000 0.000000000 0.000000000\nH 0.000000000 0.000000000 0.960000000\nH 0.926000000 0.000000000 -0.240000000\n"
+    },
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: GEOMTRACE\nsize:\n1 3 3\nrowlabels:\n 1-O 2-H 3-H\ncolumnlabels:\nX Y Z\nvalues:\n 0.000000000 0.000000000 0.000000000\n 0.000000000 0.000000000 0.960000000\n 0.926000000 0.000000000 -0.240000000\nunits:\nAngstrom\nEND\n"
+  },
+  "real/h2o_grad/mopac.ip/0": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: IP\nsize:\n1\nvalues:\n12.092724\nunits:\neV\nEND\n"
+  },
+  "real/h2o_grad/mopac.orbocc/0": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ORBOCC\nsize:\n6\nvalues:\n2.0000 2.0000 2.0000 2.0000 0.0000 0.0000\nunits:\nelectrons\nEND\n"
+  },
+  "real/h2o_grad/mopac.pntgrp/0": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: PNTGRP\nsize: \n1\nvalues: \nC2v\nEND\n"
+  },
+  "real/nh3_geovib/mopac.charges/0": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: MULLIKEN\nsize:\n4\nvalues:\n-0.726530 0.242176 0.242177 0.242177\nunits:\ne\nEND\nkey: DIPOLE\nsize:\n3\nrowlabels:\nX Y Z\nvalues:\n0.000 0.000 2.184\nunits:\nDebye\nEND\n"
+  },
+  "real/nh3_geovib/mopac.energy/0": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: TE\nsize:\n1\nvalues:\n-4.26064\nunits:\nkcal/mol\nEND\nkey: TEVEC\nsize:\n1\nvalues:\n-4.26064\nunits:\nkcal/mol\nEND\nkey: HFENERGY\nsize:\n1\nvalues:\n-4.26064\nunits:\nkcal/mol\nEND\n"
+  },
+  "real/nh3_geovib/mopac.energy/1": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: TE\nsize:\n1\nvalues:\n-4.260636\nunits:\nkcal/mol\nEND\nkey: HFENERGY\nsize:\n1\nvalues:\n-4.260636\nunits:\nkcal/mol\nEND\n"
+  },
+  "real/nh3_geovib/mopac.energy/2": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: TE\nsize:\n1\nvalues:\n-4.260636\nunits:\nkcal/mol\nEND\nkey: HFENERGY\nsize:\n1\nvalues:\n-4.260636\nunits:\nkcal/mol\nEND\n"
+  },
+  "real/nh3_geovib/mopac.etime/0": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ETIME\nsize:\n1\nvalues:\n0.09\nEND\n"
+  },
+  "real/nh3_geovib/mopac.ezeropt/0": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: EZEROPT\nsize:\n1\nvalues:\n18.463\nunits:\nkcal/mol\nEND\n"
+  },
+  "real/nh3_geovib/mopac.forceframe/0": {
+    "files": {
+      "mopacForceGeom": "N -0.0185 -0.0265 0.0472\nH 0.9767 -0.0265 0.0472\nH -0.3596 0.9084 0.0472\nH -0.3596 -0.5140 -0.7505\n"
+    },
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "real/nh3_geovib/mopac.geomtrace/0": {
+    "files": {
+      "mopacInputGeom": "N 0.0000 0.0000 0.0000\nH 0.0000 0.9500 0.3800\nH 0.8227 -0.4750 0.3800\nH -0.8227 -0.4750 0.3800\n"
+    },
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: GEOMTRACE\nsize:\n1 4 3\nrowlabels:\n 1-N 2-H 3-H 4-H\ncolumnlabels:\nX Y Z\nvalues:\n 0.0000 0.0000 0.0000\n 0.0000 0.9500 0.3800\n 0.8227 -0.4750 0.3800\n -0.8227 -0.4750 0.3800\nunits:\nAngstrom\nEND\n"
+  },
+  "real/nh3_geovib/mopac.geomtrace/1": {
+    "files": {
+      "mopacInputGeom": "N -0.000000000 -0.000025996 0.025758376\nH -0.000000000 0.941616045 0.347817802\nH 0.815436796 -0.470759567 0.348079333\nH -0.815436796 -0.470759567 0.348079333\n"
+    },
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: GEOMTRACE\nsize:\n1 4 3\nrowlabels:\n 1-N 2-H 3-H 4-H\ncolumnlabels:\nX Y Z\nvalues:\n -0.000000000 -0.000025996 0.025758376\n -0.000000000 0.941616045 0.347817802\n 0.815436796 -0.470759567 0.348079333\n -0.815436796 -0.470759567 0.348079333\nunits:\nAngstrom\nEND\n"
+  },
+  "real/nh3_geovib/mopac.geomtrace/2": {
+    "files": {
+      "mopacInputGeom": "N -0.0000 -0.0000 0.0258\nH -0.0000 0.9416 0.3478\nH 0.8154 -0.4708 0.3481\nH -0.8154 -0.4708 0.3481\n"
+    },
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: GEOMTRACE\nsize:\n1 4 3\nrowlabels:\n 1-N 2-H 3-H 4-H\ncolumnlabels:\nX Y Z\nvalues:\n -0.0000 -0.0000 0.0258\n -0.0000 0.9416 0.3478\n 0.8154 -0.4708 0.3481\n -0.8154 -0.4708 0.3481\nunits:\nAngstrom\nEND\n"
+  },
+  "real/nh3_geovib/mopac.ip/0": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: IP\nsize:\n1\nvalues:\n10.150636\nunits:\neV\nEND\n"
+  },
+  "real/nh3_geovib/mopac.orbocc/0": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ORBOCC\nsize:\n7\nvalues:\n2.0000 2.0000 2.0000 2.0000 0.0000 0.0000 0.0000\nunits:\nelectrons\nEND\n"
+  },
+  "real/nh3_geovib/mopac.pntgrp/0": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: PNTGRP\nsize: \n1\nvalues: \nC3v\nEND\n"
+  },
+  "real/nh3x_dummy_opt/mopac.charges/0": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: MULLIKEN\nsize:\n4\nvalues:\n-0.725937 0.242349 0.241798 0.241790\nunits:\ne\nEND\nkey: DIPOLE\nsize:\n3\nrowlabels:\nX Y Z\nvalues:\n-0.000 -0.003 -2.187\nunits:\nDebye\nEND\n"
+  },
+  "real/nh3x_dummy_opt/mopac.energy/0": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: TE\nsize:\n1\nvalues:\n-4.25976\nunits:\nkcal/mol\nEND\nkey: TEVEC\nsize:\n1\nvalues:\n-4.25976\nunits:\nkcal/mol\nEND\nkey: HFENERGY\nsize:\n1\nvalues:\n-4.25976\nunits:\nkcal/mol\nEND\n"
+  },
+  "real/nh3x_dummy_opt/mopac.etime/0": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ETIME\nsize:\n1\nvalues:\n0.01\nEND\n"
+  },
+  "real/nh3x_dummy_opt/mopac.geomtrace/0": {
+    "files": {
+      "mopacInputGeom": "N 0.0000 0.0000 0.1000\nH 0.0000 0.9400 -0.3000\nH 0.8100 -0.4700 -0.3000\nH -0.8100 -0.4700 -0.3000\n"
+    },
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: GEOMTRACE\nsize:\n1 4 3\nrowlabels:\n 1-N 2-H 3-H 4-H\ncolumnlabels:\nX Y Z\nvalues:\n 0.0000 0.0000 0.1000\n 0.0000 0.9400 -0.3000\n 0.8100 -0.4700 -0.3000\n -0.8100 -0.4700 -0.3000\nunits:\nAngstrom\nEND\n"
+  },
+  "real/nh3x_dummy_opt/mopac.geomtrace/1": {
+    "files": {
+      "mopacInputGeom": "N 0.000021803 0.000819154 0.042135671\nH 0.000005517 0.942189030 -0.281202607\nH 0.814101136 -0.471542130 -0.280543433\nH -0.814128454 -0.471466052 -0.280389632\n"
+    },
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: GEOMTRACE\nsize:\n1 4 3\nrowlabels:\n 1-N 2-H 3-H 4-H\ncolumnlabels:\nX Y Z\nvalues:\n 0.000021803 0.000819154 0.042135671\n 0.000005517 0.942189030 -0.281202607\n 0.814101136 -0.471542130 -0.280543433\n -0.814128454 -0.471466052 -0.280389632\nunits:\nAngstrom\nEND\n"
+  },
+  "real/nh3x_dummy_opt/mopac.ip/0": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: IP\nsize:\n1\nvalues:\n10.154252\nunits:\neV\nEND\n"
+  },
+  "real/nh3x_dummy_opt/mopac.orbocc/0": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ORBOCC\nsize:\n7\nvalues:\n2.0000 2.0000 2.0000 2.0000 0.0000 0.0000 0.0000\nunits:\nelectrons\nEND\n"
+  },
+  "real/nh3x_dummy_opt/mopac.pntgrp/0": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: PNTGRP\nsize: \n1\nvalues: \nC3v\nEND\n"
+  },
+  "theory/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ORBOCC\nsize:\n1\nvalues:\n2.0000\nunits:\nelectrons\nEND\n"
+  },
+  "theory/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ORBOCC\nsize:\n1\nvalues:\n2.0000\nunits:\nelectrons\nEND\n"
+  },
+  "theory/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ORBOCC\nsize:\n1\nvalues:\n2.0000\nunits:\nelectrons\nEND\n"
+  },
+  "theory/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ORBOCC\nsize:\n1\nvalues:\n2.0000\nunits:\nelectrons\nEND\n"
+  },
+  "theory/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ORBOCC\nsize:\n1\nvalues:\n2.0000\nunits:\nelectrons\nEND\n"
+  },
+  "theory/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ORBOCC\nsize:\n1\nvalues:\n2.0000\nunits:\nelectrons\nEND\n"
+  },
+  "theory/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ORBOCC\nsize:\n1\nvalues:\n2.0000\nunits:\nelectrons\nEND\n"
+  },
+  "time/clean": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ETIME\nsize:\n1\nvalues:\n0.14\nEND\n"
+  },
+  "time/ending-": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ETIME\nsize:\n1\nvalues:\n0.14\nEND\n"
+  },
+  "time/ending-0d": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ETIME\nsize:\n1\nvalues:\n0.14\nEND\n"
+  },
+  "time/ending-0d0a": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ETIME\nsize:\n1\nvalues:\n0.14\nEND\n"
+  },
+  "time/field-0/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ETIME\nsize:\n1\nvalues:\n0\nEND\n"
+  },
+  "time/field-0/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ETIME\nsize:\n1\nvalues:\n0\nEND\n"
+  },
+  "time/field-0/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ETIME\nsize:\n1\nvalues:\n0\nEND\n"
+  },
+  "time/field-0/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ETIME\nsize:\n1\nvalues:\n0\nEND\n"
+  },
+  "time/field-0/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ETIME\nsize:\n1\nvalues:\n0\nEND\n"
+  },
+  "time/field-0/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ETIME\nsize:\n1\nvalues:\n0\nEND\n"
+  },
+  "time/field-0/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ETIME\nsize:\n1\nvalues:\n0\nEND\n"
+  },
+  "time/field-1/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ETIME\nsize:\n1\nvalues:\n0\nEND\n"
+  },
+  "time/field-1/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ETIME\nsize:\n1\nvalues:\n0\nEND\n"
+  },
+  "time/field-1/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ETIME\nsize:\n1\nvalues:\n0\nEND\n"
+  },
+  "time/field-1/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ETIME\nsize:\n1\nvalues:\n0\nEND\n"
+  },
+  "time/field-1/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ETIME\nsize:\n1\nvalues:\n0\nEND\n"
+  },
+  "time/field-1/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ETIME\nsize:\n1\nvalues:\n0\nEND\n"
+  },
+  "time/field-1/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ETIME\nsize:\n1\nvalues:\n0\nEND\n"
+  },
+  "time/field-2/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ETIME\nsize:\n1\nvalues:\n0\nEND\n"
+  },
+  "time/field-2/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ETIME\nsize:\n1\nvalues:\n0\nEND\n"
+  },
+  "time/field-2/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ETIME\nsize:\n1\nvalues:\n0\nEND\n"
+  },
+  "time/field-2/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ETIME\nsize:\n1\nvalues:\n0\nEND\n"
+  },
+  "time/field-2/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ETIME\nsize:\n1\nvalues:\n0\nEND\n"
+  },
+  "time/field-2/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ETIME\nsize:\n1\nvalues:\n0\nEND\n"
+  },
+  "time/field-2/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ETIME\nsize:\n1\nvalues:\n0\nEND\n"
+  },
+  "time/field-3/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ETIME\nsize:\n1\nvalues:\n0\nEND\n"
+  },
+  "time/field-3/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ETIME\nsize:\n1\nvalues:\n0\nEND\n"
+  },
+  "time/field-3/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ETIME\nsize:\n1\nvalues:\n0\nEND\n"
+  },
+  "time/field-3/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ETIME\nsize:\n1\nvalues:\n0\nEND\n"
+  },
+  "time/field-3/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ETIME\nsize:\n1\nvalues:\n3\nEND\n"
+  },
+  "time/field-3/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ETIME\nsize:\n1\nvalues:\n0\nEND\n"
+  },
+  "time/field-3/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ETIME\nsize:\n1\nvalues:\n0\nEND\n"
+  },
+  "time/leading-digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ETIME\nsize:\n1\nvalues:\n0.14\nEND\n"
+  },
+  "time/leading-empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ETIME\nsize:\n1\nvalues:\n0.14\nEND\n"
+  },
+  "time/leading-nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ETIME\nsize:\n1\nvalues:\n0.14\nEND\n"
+  },
+  "time/leading-overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ETIME\nsize:\n1\nvalues:\n0.14\nEND\n"
+  },
+  "time/leading-prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ETIME\nsize:\n1\nvalues:\n0.14\nEND\n"
+  },
+  "time/leading-stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ETIME\nsize:\n1\nvalues:\n0.14\nEND\n"
+  },
+  "time/leading-word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ETIME\nsize:\n1\nvalues:\n0.14\nEND\n"
+  },
+  "time/space-1/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ETIME\nsize:\n1\nvalues:\n0\nEND\n"
+  },
+  "time/space-1/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ETIME\nsize:\n1\nvalues:\n0\nEND\n"
+  },
+  "time/space-1/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ETIME\nsize:\n1\nvalues:\n0\nEND\n"
+  },
+  "time/space-1/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ETIME\nsize:\n1\nvalues:\n0\nEND\n"
+  },
+  "time/space-1/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ETIME\nsize:\n1\nvalues:\n0\nEND\n"
+  },
+  "time/space-1/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ETIME\nsize:\n1\nvalues:\n0\nEND\n"
+  },
+  "time/space-1/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ETIME\nsize:\n1\nvalues:\n0\nEND\n"
+  },
+  "time/space-2/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ETIME\nsize:\n1\nvalues:\n0\nEND\n"
+  },
+  "time/space-2/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ETIME\nsize:\n1\nvalues:\n0\nEND\n"
+  },
+  "time/space-2/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ETIME\nsize:\n1\nvalues:\n0\nEND\n"
+  },
+  "time/space-2/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ETIME\nsize:\n1\nvalues:\n0\nEND\n"
+  },
+  "time/space-2/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ETIME\nsize:\n1\nvalues:\n0\nEND\n"
+  },
+  "time/space-2/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ETIME\nsize:\n1\nvalues:\n0\nEND\n"
+  },
+  "time/space-2/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ETIME\nsize:\n1\nvalues:\n0\nEND\n"
+  },
+  "time/space-3/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ETIME\nsize:\n1\nvalues:\n0\nEND\n"
+  },
+  "time/space-3/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ETIME\nsize:\n1\nvalues:\n0.14\nEND\n"
+  },
+  "time/space-3/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ETIME\nsize:\n1\nvalues:\n0\nEND\n"
+  },
+  "time/space-3/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ETIME\nsize:\n1\nvalues:\n0\nEND\n"
+  },
+  "time/space-3/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ETIME\nsize:\n1\nvalues:\n3\nEND\n"
+  },
+  "time/space-3/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ETIME\nsize:\n1\nvalues:\n0\nEND\n"
+  },
+  "time/space-3/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: ETIME\nsize:\n1\nvalues:\n0\nEND\n"
+  },
+  "zpe/clean": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: EZEROPT\nsize:\n1\nvalues:\n10.115\nunits:\nkcal/mol\nEND\n"
+  },
+  "zpe/ending-": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: EZEROPT\nsize:\n1\nvalues:\n10.115\nunits:\nkcal/mol\nEND\n"
+  },
+  "zpe/ending-0d": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: EZEROPT\nsize:\n1\nvalues:\n10.115\nunits:\nkcal/mol\nEND\n"
+  },
+  "zpe/ending-0d0a": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: EZEROPT\nsize:\n1\nvalues:\n10.115\nunits:\nkcal/mol\nEND\n"
+  },
+  "zpe/field-0/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "zpe/field-0/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "zpe/field-0/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "zpe/field-0/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "zpe/field-0/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "zpe/field-0/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "zpe/field-0/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "zpe/field-1/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "zpe/field-1/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "zpe/field-1/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "zpe/field-1/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "zpe/field-1/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "zpe/field-1/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "zpe/field-1/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "zpe/field-2/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "zpe/field-2/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "zpe/field-2/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "zpe/field-2/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "zpe/field-2/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "zpe/field-2/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "zpe/field-2/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "zpe/field-3/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "zpe/field-3/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "zpe/field-3/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "zpe/field-3/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "zpe/field-3/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: EZEROPT\nsize:\n1\nvalues:\n3\nunits:\nkcal/mol\nEND\n"
+  },
+  "zpe/field-3/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "zpe/field-3/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "zpe/leading-digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: EZEROPT\nsize:\n1\nvalues:\n10.115\nunits:\nkcal/mol\nEND\n"
+  },
+  "zpe/leading-empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: EZEROPT\nsize:\n1\nvalues:\n10.115\nunits:\nkcal/mol\nEND\n"
+  },
+  "zpe/leading-nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: EZEROPT\nsize:\n1\nvalues:\n10.115\nunits:\nkcal/mol\nEND\n"
+  },
+  "zpe/leading-overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: EZEROPT\nsize:\n1\nvalues:\n10.115\nunits:\nkcal/mol\nEND\n"
+  },
+  "zpe/leading-prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: EZEROPT\nsize:\n1\nvalues:\n10.115\nunits:\nkcal/mol\nEND\n"
+  },
+  "zpe/leading-stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: EZEROPT\nsize:\n1\nvalues:\n10.115\nunits:\nkcal/mol\nEND\n"
+  },
+  "zpe/leading-word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": "key: EZEROPT\nsize:\n1\nvalues:\n10.115\nunits:\nkcal/mol\nEND\n"
+  },
+  "zpe/space-1/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "zpe/space-1/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "zpe/space-1/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "zpe/space-1/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "zpe/space-1/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "zpe/space-1/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "zpe/space-1/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "zpe/space-2/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "zpe/space-2/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "zpe/space-2/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "zpe/space-2/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "zpe/space-2/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "zpe/space-2/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "zpe/space-2/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "zpe/space-3/digit": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "zpe/space-3/empty": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "zpe/space-3/nbsp": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "zpe/space-3/overflow": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "zpe/space-3/prefix": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "zpe/space-3/stray": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "zpe/space-3/word": {
+    "files": {},
+    "rc": 0,
+    "stderr": "",
+    "stdout": ""
+  }
+}

@@ -3240,6 +3240,12 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/parsers/run_tests.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/parsers)
 
+  add_test(NAME parsers_mopac_a_bytes
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/parsers/mopac_a_bytes_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/parsers)
+  set_tests_properties(parsers_mopac_a_bytes PROPERTIES TIMEOUT 180)
+
   add_test(NAME parsers_xtb_bytes
            COMMAND ${PYTHON3_EXECUTABLE}
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/parsers/xtb_bytes_test.py
