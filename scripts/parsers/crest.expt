@@ -1,4 +1,4 @@
-#!/usr/bin/env perl
+#!/usr/bin/env python3
 ###############################################################################
 # FILENAME:  crest.expt
 #
@@ -15,160 +15,160 @@
 #       ensemble has other atoms), read from the deck or crest.xyz next to
 #       the output; a conformer search without one uses its lowest conformer.
 ###############################################################################
+import os
+import re
+import sys
+from xtb_parse import configure_streams, number, options
 
-use Getopt::Std;
-use Cwd 'abs_path';
+configure_streams()
 
-$| = 1;
-&getopts(':hv');
-&usage if ($opt_h || $opt_help);
-exit if ($opt_v);
-&usage if ($#ARGV != 0 && $#ARGV != 1);
 
-my $file = $ARGV[0];
-open(INPUT, $file) || die "Can't locate output file $file";
-local $/;
-my $text = <INPUT>;
-close(INPUT);
-$/ = "\n";
+def search(pattern, text, flags=0):
+    return re.search(pattern, text, re.ASCII | flags)
 
-if ($text !~ /Conformer-Rotamer Ensemble Sampling Tool/) {
-  print "$file is not a CREST output\n";
-  exit(1);
-}
-if ($text !~ /^ECCE-CREST-FRAME\s/m) {
-  print "$file has no ensemble: CREST writes it to a separate file, which " .
-        "ECCE appends to the outputs of the runs it launches\n";
-  exit(1);
-}
 
-my ($call) = $text =~ /^\s*Command line input:\s*\n\s*\$\s*(.*)$/m;
-$call = "" unless (defined($call));
-my ($version) = $text =~ /Version\s+(\d[\w.]*)/;
+def read(path):
+    with open(path, encoding="utf-8", errors="replace", newline="") as stream:
+        text = stream.read()
+    with open(path, "rb") as stream:
+        raw = stream.read()
+    return text, raw
 
-my $theory = "GFN2-xTB";
-$theory = "GFN-FF" if ($call =~ /--gfnff(\s|$)/);
-$theory = "GFN2//GFN-FF" if ($call =~ /--gfn2\/\/gfnff/);
 
-my $runType = "Conformer Search";
-$runType = "Protonation Sites" if ($call =~ /--protonate(\s|$)/);
-$runType = "Tautomers" if ($call =~ /--tautomeri[sz]e(\s|$)/);
-$runType = "Solvation Shell" if ($call =~ /--qcg(\s|$)/);
+def usage():
+    print("Usage: crest.expt <outfile> [<sourcedir>]\nOptions:    -h        this help\n            -v        version")
+    sys.exit(0)
 
-my $charge = 0;
-$charge = $1 if ($call =~ /--chrg\s+(-?\d+)/);
-my $uhf = 0;
-$uhf = $1 if ($call =~ /--uhf\s+(\d+)/);
-my $mult = $uhf + 1;
 
-my ($model, $solvent);
-if ($call =~ /--alpb\s+(\S+)/) {
-  ($model, $solvent) = ("ALPB", lc($1));
-} elsif ($call =~ /--gbsa\s+(\S+)/) {
-  ($model, $solvent) = ("GBSA", lc($1));
-  $solvent = "water" if ($solvent eq "h2o");
-  $solvent = "hexane" if ($solvent eq "n-hexane");
-}
-my ($ewin) = $call =~ /--ewin\s+(\d*\.?\d+)/;
-my ($nsolv) = $call =~ /--nsolv\s+(\d+)/;
-my $noreftopo = ($call =~ /--noreftopo(\s|$)/) ? 1 : 0;
-my $notopo = ($call =~ /--notopo(\s|$)/) ? 1 : 0;
+opts, args = options(":hv", sys.argv[1:])
+if "h" in opts:
+    usage()
+if "v" in opts:
+    sys.exit(0)
+if len(args) not in (1, 2):
+    usage()
+file = args[0]
+try:
+    text, raw = read(file)
+except OSError as exc:
+    sys.stderr.write("Can't locate output file {} at {} line 29.\n".format(file, sys.argv[0]))
+    sys.exit(exc.errno or 255)
+if not search(r"Conformer-Rotamer Ensemble Sampling Tool", text):
+    print(file + " is not a CREST output")
+    sys.exit(1)
+if not search(r"^ECCE-CREST-FRAME\s", text, re.M):
+    print(file + " has no ensemble: CREST writes it to a separate file, which ECCE appends to the outputs of the runs it launches")
+    sys.exit(1)
+m = search(r"^\s*Command line input:\s*\n\s*\$\s*(.*)$", text, re.M)
+call = m.group(1) if m else ""
+m = search(r"Version\s+(\d[\w.]*)", text)
+version = m.group(1) if m else None
+theory = "GFN2-xTB"
+if search(r"--gfnff(\s|$)", call):
+    theory = "GFN-FF"
+if search(r"--gfn2//gfnff", call):
+    theory = "GFN2//GFN-FF"
+runtype = "Conformer Search"
+if search(r"--protonate(\s|$)", call):
+    runtype = "Protonation Sites"
+if search(r"--tautomeri[sz]e(\s|$)", call):
+    runtype = "Tautomers"
+if search(r"--qcg(\s|$)", call):
+    runtype = "Solvation Shell"
+m = search(r"--chrg\s+(-?\d+)", call)
+charge = m.group(1) if m else "0"
+m = search(r"--uhf\s+(\d+)", call)
+mult = number(m.group(1) if m else "0") + 1
+model, solvent = None, None
+# Solvent names are free text: Perl's byte-oriented lc changes ASCII only.
+m = search(rb"^\s*Command line input:\s*\n\s*\$\s*(.*)$", raw, re.M)
+raw_call = m.group(1) if m else b""
+m = search(rb"--alpb\s+(\S+)", raw_call)
+g = search(rb"--gbsa\s+(\S+)", raw_call)
+if m:
+    model, solvent = "ALPB", m.group(1).lower()
+elif g:
+    model, solvent = "GBSA", g.group(1).lower()
+    solvent = {b"h2o": b"water", b"n-hexane": b"hexane"}.get(solvent, solvent)
+m = search(r"--ewin\s+(\d*\.?\d+)", call)
+ewin = m.group(1) if m else None
+m = search(r"--nsolv\s+(\d+)", call)
+nsolv = m.group(1) if m else None
+noreftopo = search(r"--noreftopo(\s|$)", call)
+notopo = search(r"--notopo(\s|$)", call)
 
 # --- the input molecule ------------------------------------------------------
-my $dir = ".";
-if (-l $file) {
-  my $real = abs_path($file);
-  ($dir = $real) =~ s{/[^/]*$}{} if (defined($real));
-} elsif (defined($ARGV[1]) && $ARGV[1] ne "") {
-  $dir = $ARGV[1];
-  $dir =~ s{/+$}{};
-}
-(my $stem = $file) =~ s{.*/}{};
-$stem =~ s/\.[^.]*$//;
-
-my @atoms;
-foreach my $c ("$dir/$stem.crestin", "$dir/crest.crestin", "$dir/crest.xyz") {
-  next unless (-s $c);
-  open(X, $c) || next;
-  my @x = <X>;
-  close(X);
-  # a deck: line 1 is the option line, then any $solvent block
-  if ($c =~ /\.crestin$/) {
-    shift(@x);
-    if (@x && $x[0] =~ /^\s*\$solvent/) {
-      shift(@x) while (@x && $x[0] !~ /^\s*\$end/);
-      shift(@x);
-    }
-  }
-  next unless (@x >= 2 && $x[0] =~ /^\s*(\d+)\s*$/);
-  my $n = $1;
-  for (my $i = 2; $i < 2 + $n && $i < @x; $i++) {
-    push(@atoms, [$1, $2, $3, $4])
-      if ($x[$i] =~ /^\s*([A-Za-z]{1,2})\s+(-?\d+\.?\d*)\s+(-?\d+\.?\d*)\s+(-?\d+\.?\d*)/);
-  }
-  last if (@atoms == $n);
-  @atoms = ();
-}
-if (!@atoms && $runType eq "Conformer Search" &&
-    $text =~ /^ECCE-CREST-FRAME 1 (\d+)\n[^\n]*\n((?:[^\n]*\n)*?)ECCE-CREST-ENDFRAME/m) {
-  foreach (split(/\n/, $2)) {
-    push(@atoms, [$1, $2, $3, $4])
-      if (/^\s*([A-Za-z]{1,2})\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)/);
-  }
-}
-if (!@atoms) {
-  print "No input molecule found for $file: put the deck ($stem.crestin) " .
-        "or crest.xyz in the same directory\n";
-  exit(1);
-}
-foreach my $a (@atoms) {
-  $a->[0] = ucfirst(lc($a->[0]));
-}
-
-(my $root = $file) =~ s/\.[^.]*$//;
-(my $title = $root) =~ s{.*/}{};
-
-open(PARAMS, ">$root.param");
-print(PARAMS "title:\t$title\n");
-print(PARAMS "version:\t$version\n") if (defined($version));
-print(PARAMS "Category:\tSE\n");
-print(PARAMS "Theory:\t$theory\n");
-print(PARAMS "RunType:\t$runType\n");
-print(PARAMS "Charge:\t$charge\n");
-print(PARAMS "ES.ChemSys.Multiplicity:\t$mult\n");
-if (defined($model)) {
-  print(PARAMS "ES.Theory.Solvent.Model:\t$model\n");
-  print(PARAMS "ES.Theory.Solvent.Name:\t$solvent\n");
-}
-if (defined($ewin)) {
-  my $key = $runType =~ /^(Protonation Sites|Tautomers)$/
-          ? "ES.Runtype.Sites.EnergyWindow" : "ES.Runtype.Conformers.EnergyWindow";
-  print(PARAMS "$key:\t$ewin\n");
-}
-if ($runType eq "Conformer Search") {
-  print(PARAMS "ES.Runtype.Conformers.NoRefTopo:\t1\n") if ($noreftopo);
-  print(PARAMS "ES.Runtype.Conformers.NoTopo:\t1\n") if ($notopo);
-}
-if ($runType eq "Solvation Shell") {
-  print(PARAMS "ES.Runtype.QCG.Number:\t$nsolv\n") if (defined($nsolv));
-  print(PARAMS "ES.Runtype.QCG.Solvent:\t" . (defined($solvent) ? $solvent : "water") . "\n");
-}
-close(PARAMS);
-
-open(MOL, ">$root.frag");
-print(MOL "title:\t$title\ntype:\tmolecule\n");
-print(MOL "charge:\t$charge\n");
-print(MOL "num_atoms:\t" . scalar(@atoms) . "\n");
-print(MOL "atom_info:\tsymbol cart\natom_list:\n");
-foreach my $a (@atoms) {
-  print(MOL " $a->[0] $a->[1] $a->[2] $a->[3]\n");
-}
-close(MOL);
-exit(0);
-
-sub usage {
-  print "Usage: crest.expt <outfile> [<sourcedir>]\n";
-  print "Options:    -h        this help\n";
-  print "            -v        version\n";
-  exit;
-}
+dirname = "."
+if os.path.islink(file):
+    dirname = os.path.dirname(os.path.realpath(file))
+elif len(args) > 1 and args[1]:
+    dirname = args[1].rstrip("/")
+stem = re.sub(r".*/", "", file, flags=re.ASCII)
+stem = re.sub(r"\.[^.]*$", "", stem, flags=re.ASCII)
+atoms = []
+for candidate in (dirname + "/" + stem + ".crestin", dirname + "/crest.crestin", dirname + "/crest.xyz"):
+    try:
+        if os.path.getsize(candidate) == 0:
+            continue
+        x = read(candidate)[0]
+    except OSError:
+        continue
+    lines = x.split("\n")
+    lines = [line + "\n" for line in lines[:-1]] + ([lines[-1]] if lines[-1] else [])
+    # a deck: line 1 is the option line, then any $solvent block
+    if search(r"\.crestin$", candidate):
+        lines = lines[1:]
+        if lines and search(r"^\s*\$solvent", lines[0]):
+            while lines and not search(r"^\s*\$end", lines[0]):
+                lines.pop(0)
+            lines = lines[1:]
+    m = search(r"^\s*(\d+)\s*$", lines[0]) if len(lines) >= 2 else None
+    if not m:
+        continue
+    n = number(m.group(1), integer=True)
+    for line in lines[2:2+n]:
+        m = search(r"^\s*([A-Za-z]{1,2})\s+(-?\d+\.?\d*)\s+(-?\d+\.?\d*)\s+(-?\d+\.?\d*)", line)
+        if m:
+            atoms.append(m.groups())
+    if len(atoms) == n:
+        break
+    atoms = []
+if not atoms and runtype == "Conformer Search":
+    m = search(r"^ECCE-CREST-FRAME 1 (\d+)\n[^\n]*\n((?:[^\n]*\n)*?)ECCE-CREST-ENDFRAME", text, re.M)
+    if m:
+        for line in m.group(2).split("\n"):
+            m = search(r"^\s*([A-Za-z]{1,2})\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)", line)
+            if m:
+                atoms.append(m.groups())
+if not atoms:
+    print("No input molecule found for {}: put the deck ({}.crestin) or crest.xyz in the same directory".format(file, stem))
+    sys.exit(1)
+root = re.sub(r"\.[^.]*$", "", file, flags=re.ASCII)
+title = re.sub(r".*/", "", root, flags=re.ASCII)
+params = [("title", title)]
+if version is not None:
+    params.append(("version", version))
+params += [("Category", "SE"), ("Theory", theory), ("RunType", runtype),
+           ("Charge", charge), ("ES.ChemSys.Multiplicity", "%.15g" % mult)]
+if model is not None:
+    params += [("ES.Theory.Solvent.Model", model), ("ES.Theory.Solvent.Name", solvent)]
+if ewin is not None:
+    key = "ES.Runtype.Sites.EnergyWindow" if runtype in ("Protonation Sites", "Tautomers") else "ES.Runtype.Conformers.EnergyWindow"
+    params.append((key, ewin))
+if runtype == "Conformer Search":
+    if noreftopo:
+        params.append(("ES.Runtype.Conformers.NoRefTopo", "1"))
+    if notopo:
+        params.append(("ES.Runtype.Conformers.NoTopo", "1"))
+if runtype == "Solvation Shell":
+    if nsolv is not None:
+        params.append(("ES.Runtype.QCG.Number", nsolv))
+    params.append(("ES.Runtype.QCG.Solvent", solvent if solvent is not None else b"water"))
+with open(root + ".param", "wb") as stream:
+    for key, value in params:
+        value = value if isinstance(value, bytes) else value.encode("utf-8", "replace")
+        stream.write(key.encode("ascii") + b":\t" + value + b"\n")
+with open(root + ".frag", "w", encoding="utf-8", errors="replace", newline="") as stream:
+    stream.write("title:\t{}\ntype:\tmolecule\ncharge:\t{}\nnum_atoms:\t{}\natom_info:\tsymbol cart\natom_list:\n".format(title, charge, len(atoms)))
+    for atom in atoms:
+        stream.write(" {} {}\n".format(atom[0].capitalize(), " ".join(atom[1:])))

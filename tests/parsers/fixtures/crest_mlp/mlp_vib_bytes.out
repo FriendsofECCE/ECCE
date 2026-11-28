@@ -1,0 +1,67 @@
+ecce-mlp 1.0
+Model:        mock (Lennard-Jones, built in)
+Version:      ecce-mlp-driver
+Licence:      none (test calculator)
+Precision:    float32
+Dispersion:   off
+Engine:       ECCE (ecce-mlp-driver)
+Run type:     Vibration
+Atoms:        2   periodic: no
+Hessian:      central differences of the forces, step 0.01 A, 12 force calls
+Note:         energies are for screening, not for reporting.
+
+Energy:       -0.06094966 eV
+Fmax:         0.08550 eV/A
+ECCE-MLP-FRAME 1 2
+energy: -0.0609496621
+Na     0.0000000000     0.0000000000     0.0000000000
+Cl     0.0000000000     0.0000000000     3.3000000000
+Â H 9.000 9.000 9.000
+ÿ ignored
+ECCE-MLP-ENDFRAME
+Warning:      the forces are not small (Fmax 0.086 eV/A); the frequencies are only meaningful at a minimum.
+Displacement 1 of 6   Time 0.0 s
+Displacement 2 of 6   Time 0.0 s
+Displacement 3 of 6   Time 0.0 s
+Displacement 4 of 6   Time 0.0 s
+Displacement 5 of 6   Time 0.0 s
+Displacement 6 of 6   Time 0.0 s
+
+ECCE-MLP-VIB 6 2
+mode 1 0.0000
+    0.0000000000     0.0000000000     0.0000000000
+    0.0000000000     0.0000000000     0.0000000000
+mode 2 0.0000
+    0.0000000000     0.0000000000     0.0000000000
+    0.0000000000     0.0000000000     0.0000000000
+mode 3 0.0000
+    0.0000000000     0.0000000000     0.0000000000
+    0.0000000000     0.0000000000     0.0000000000
+mode 4 0.0000
+    0.0000000000     0.0000000000     0.0000000000
+    0.0000000000     0.0000000000     0.0000000000
+mode 5 0.0000
+    0.0000000000     0.0000000000     0.0000000000
+    0.0000000000     0.0000000000     0.0000000000
+mode 6 -41.1472
+    0.0000000000     0.0000000000     0.8390134263
+    0.0000000000     0.0000000000    -0.5441107153
+Â 9.000 9.000 9.000
+ÿ ignored
+ECCE-MLP-ENDVIB
+
+Frequencies (cm-1; negative = imaginary), 5 rigid motions removed:
+      -41.15
+Imaginary frequencies: 1
+
+ECCE-MLP-FINAL
+energy: -0.0609496621
+forces:
+Na     0.0000000000     0.0000000000     0.0855040319
+Cl     0.0000000000     0.0000000000    -0.0855040319
+Â 9.000 9.000 9.000
+ÿ ignored
+ECCE-MLP-ENDFINAL
+
+Total energy: -0.06094966 eV (-0.00223986 Hartree)
+ecce-mlp terminated normally

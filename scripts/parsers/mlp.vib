@@ -1,30 +1,41 @@
-#!/usr/bin/env perl
+#!/usr/bin/env python3
 # The ECCE-MLP-VIB block of a Vibration run: "mode <k> <cm-1>" then one
 # displacement row per atom.  ecce-mlp already orders the modes (rigid ones
 # first, at 0) and normalises the Cartesian vectors, so this only reshapes
 # them into VIBFREQ and VIB, row-aligned like xtb.vibspec/xtb.vib.
-$| = 1;
-my ($nmodes, $natoms, @freq, @rows);
-while (<STDIN>) {
-  if (/^ECCE-MLP-VIB\s+(\d+)\s+(\d+)/) { ($nmodes, $natoms) = ($1, $2); next; }
-  if (/^mode\s+\d+\s+(-?\d+\.\d+)/) { push(@freq, $1); next; }
-  if (/^\s*(-?\d+\.\d+)\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s*$/) { push(@rows, "$1 $2 $3"); }
-}
-exit(0) if (!$nmodes || scalar(@freq) != $nmodes || scalar(@rows) != $nmodes * $natoms);
+import re
+import sys
+from xtb_parse import configure_streams, number
 
-sub labels {
-  my ($n, $word) = @_;
-  my $s = "";
-  foreach my $i (1 .. $n) {
-    $s .= " " . (defined($word) ? $word : $i);
-    $s .= "\n" if ($i % 10 == 0);
-  }
-  $s .= "\n" if ($n % 10);
-  return $s;
-}
-print "key: VIBFREQ\nsize:\n$nmodes\nrowlabels:\n", &labels($nmodes),
-      "values:\n", join("\n", @freq), "\nunits:\ncm-1\nEND\n";
-print "key: VIB\nsize:\n$nmodes $natoms 3\nvectorlabels:\n", &labels($nmodes, "NA"),
-      "rowlabels:\n", &labels($natoms), "columnlabels:\nX Y Z\nvalues:\n",
-      join("\n", @rows), "\nunits:\nAngstrom\nEND\n";
-exit(0);
+configure_streams()
+nmodes, natoms, freq, rows = None, None, [], []
+for line in sys.stdin:
+    m = re.search(r"^ECCE-MLP-VIB\s+(\d+)\s+(\d+)", line, re.ASCII)
+    if m:
+        nmodes, natoms = m.groups()
+        continue
+    m = re.search(r"^mode\s+\d+\s+(-?\d+\.\d+)", line, re.ASCII)
+    if m:
+        freq.append(m.group(1))
+        continue
+    m = re.search(r"^\s*(-?\d+\.\d+)\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s*$", line, re.ASCII)
+    if m:
+        rows.append(" ".join(m.groups()))
+n, a = number(nmodes, integer=True), number(natoms, integer=True)
+if not nmodes or nmodes == "0" or len(freq) != n or len(rows) != n * a:
+    sys.exit(0)
+
+
+def labels(n, word=None):
+    result = ""
+    for i in range(1, n + 1):
+        result += " " + (str(i) if word is None else word)
+        if i % 10 == 0:
+            result += "\n"
+    if n % 10:
+        result += "\n"
+    return result
+
+
+sys.stdout.write("key: VIBFREQ\nsize:\n{}\nrowlabels:\n{}values:\n{}\nunits:\ncm-1\nEND\n".format(nmodes, labels(n), "\n".join(freq)))
+sys.stdout.write("key: VIB\nsize:\n{} {} 3\nvectorlabels:\n{}rowlabels:\n{}columnlabels:\nX Y Z\nvalues:\n{}\nunits:\nAngstrom\nEND\n".format(nmodes, natoms, labels(n, "NA"), labels(a), "\n".join(rows)))

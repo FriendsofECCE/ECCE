@@ -1,15 +1,13 @@
-#!/usr/bin/env perl
+#!/usr/bin/env python3
 ###############################################################################
 # Nothing in a crest deck depends on the launch (gensub passes the processor
 # count to -T), but Launch::postProcessInput() shells out to the code's launch
 # preprocessor unconditionally, so there has to be one.
 ###############################################################################
-use Getopt::Std;
+import sys
+from xtb_parse import configure_streams, options
 
-&getopts('p:v');
-
-if ($opt_v) {
-  print "Revision: 1.0\n";
-  exit 0;
-}
-exit 0;
+configure_streams()
+opts, args = options("p:v", sys.argv[1:])
+if "v" in opts:
+    print("Revision: 1.0")

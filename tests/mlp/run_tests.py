@@ -75,7 +75,7 @@ def parse(script, key, text, begin, end, skip):
     start = next(i for i, l in enumerate(lines) if re.match(begin, l))
     stop = next(i for i in range(start, len(lines)) if re.match(end, lines[i]))
     block = "\n".join(lines[start + skip:stop]) + "\n"
-    res = subprocess.run(["perl", os.path.join(PARSERS, script), key, "Energy", "SE", "MACE"],
+    res = subprocess.run([sys.executable, os.path.join(PARSERS, script), key, "Energy", "SE", "MACE"],
                          input=block, stdout=subprocess.PIPE, universal_newlines=True)
     return res.stdout
 

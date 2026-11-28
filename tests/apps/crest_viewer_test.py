@@ -82,7 +82,7 @@ def main():
                      "PATH": wrappers + os.pathsep + s.env()["PATH"]})
         out, shots = bo.runScript(
             s, display, env, wrappers, ["-context", "file://" + dest + "/"],
-            ["wait 4000", "shot ensemble", "quit"], png, "ensemble",
+            ["wait 4000", "background 1 1 1", "shot ensemble", "quit"], png, "ensemble",
             {"ECCE_PANEL_MODE": "detail", "ECCE_OPEN_PANEL": "Conformers"})
         ct.check("ensemble" in shots, "the window was photographed")
         ct.check("no property panel named" not in out,

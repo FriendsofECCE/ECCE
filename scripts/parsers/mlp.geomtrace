@@ -1,51 +1,46 @@
-#!/usr/bin/env perl
+#!/usr/bin/env python3
 # One ECCE-MLP-FRAME block of the output: the energy (eV), for an MD frame
 # its time (ps, TIMEVEC, the MD plots' time axis), the cell of a periodic
 # structure (9 numbers), then the atoms.  GEOMTRACE, TEVEC and
 # LATTICEVEC come from the same frame so they stay the same length.
-$| = 1;
-($key, $runtype, $ucCategory, $theory) = @ARGV;
+import re
+import sys
+from xtb_parse import configure_streams, number
 
-use constant EV_TO_HARTREE => 1.0 / 27.211386245988;
-
-my (@coordlines, $rowLabels, $energy, $time, @cell);
-$rowLabels = "";
-while (<STDIN>) {
-  if (/^energy:\s*(-?\d+\.\d+)/) {
-    $energy = $1;
-  } elsif (/^time:\s*(\d+\.\d+)/) {
-    $time = $1;
-  } elsif (/^cell:\s*(.+?)\s*$/) {
-    @cell = split(/\s+/, $1);
-  } elsif (/^\s*([A-Za-z]{1,2})\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s*$/) {
-    push(@coordlines, "$2 $3 $4");
-    $rowLabels .= " " . scalar(@coordlines) . "-$1";
-  }
-}
-
-my $size = scalar(@coordlines);
-exit(0) if ($size < 1);
-
-print "key: GEOMTRACE\nsize:\n1 $size 3\nrowlabels:\n$rowLabels\n";
-print "columnlabels:\nX Y Z\nvalues:\n";
-print " $_\n" foreach (@coordlines);
-print "units:\nAngstrom\nEND\n";
-
-if (defined($energy)) {
-  printf("key: TEVEC\nsize:\n1\nvalues:\n%.10f\nunits:\nHartree\nEND\n",
-         $energy * EV_TO_HARTREE);
-}
-
-if (defined($time)) {
-  print "key: TIMEVEC\nsize:\n1\nvalues:\n$time\nunits:\nps\nEND\n";
-}
-
-if (scalar(@cell) == 9) {
-  print "key: LATTICEVEC\nsize:\n1 3 3\nrowlabels:\n0 1 2\ncolumnlabels:\nX Y Z\nvalues:\n";
-  for (my $i = 0; $i < 9; $i++) {
-    print "$cell[$i] ";
-    print "\n" if ($i % 3 == 2);
-  }
-  print "units:\nAngstrom\nEND\n";
-}
-exit(0);
+configure_streams()
+EV_TO_HARTREE = 1.0 / 27.211386245988
+coords, labels, energy, time, cell = [], "", None, None, []
+for raw in sys.stdin.buffer:
+    line = raw.decode("utf-8", "replace")
+    m = re.search(r"^energy:\s*(-?\d+\.\d+)", line, re.ASCII)
+    t = re.search(r"^time:\s*(\d+\.\d+)", line, re.ASCII)
+    c = re.search(r"^cell:\s*(.+?)\s*$", line, re.ASCII)
+    a = re.search(r"^\s*([A-Za-z]{1,2})\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s*$", line, re.ASCII)
+    if m:
+        energy = m.group(1)
+    elif t:
+        time = t.group(1)
+    elif c:
+        # Cell entries are copied verbatim, including malformed bytes.
+        raw_cell = re.search(rb"^cell:\s*(.+?)\s*$", raw, re.ASCII).group(1)
+        cell = re.findall(rb"[^ \t\n\r\f\v]+", raw_cell, re.ASCII)
+    elif a:
+        coords.append(" ".join(a.groups()[1:]))
+        labels += " {}-{}".format(len(coords), a.group(1))
+if not coords:
+    sys.exit(0)
+print("key: GEOMTRACE\nsize:\n1 {} 3\nrowlabels:\n{}".format(len(coords), labels))
+print("columnlabels:\nX Y Z\nvalues:")
+for coord in coords:
+    print(" " + coord)
+print("units:\nAngstrom\nEND")
+if energy is not None:
+    print("key: TEVEC\nsize:\n1\nvalues:\n%.10f\nunits:\nHartree\nEND" % (number(energy) * EV_TO_HARTREE))
+if time is not None:
+    print("key: TIMEVEC\nsize:\n1\nvalues:\n{}\nunits:\nps\nEND".format(time))
+if len(cell) == 9:
+    print("key: LATTICEVEC\nsize:\n1 3 3\nrowlabels:\n0 1 2\ncolumnlabels:\nX Y Z\nvalues:")
+    sys.stdout.flush()
+    for i in range(0, 9, 3):
+        sys.stdout.buffer.write(b" ".join(cell[i:i+3]) + b" \n")
+    sys.stdout.buffer.write(b"units:\nAngstrom\nEND\n")

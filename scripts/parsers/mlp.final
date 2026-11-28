@@ -1,51 +1,51 @@
-#!/usr/bin/env perl
+#!/usr/bin/env python3
 # The ECCE-MLP-FINAL block: total energy (eV), forces (eV/A) and, for a
 # periodic structure, the stress in kbar with the sign of the pressure.
 # TE, EGRADVEC, STRESS and PRESSURE are all emitted from one invocation
 # (two entries on one Begin would starve one of them).
-$| = 1;
-($key, $runtype, $ucCategory, $theory) = @ARGV;
+import re
+import sys
+from xtb_parse import configure_streams, number
 
-use constant EV_TO_HARTREE => 1.0 / 27.211386245988;
-use constant BOHR => 0.529177210903;
-
-my ($energy, @labels, @grad, @stress, $section);
-while (<STDIN>) {
-  if (/^energy:\s*(-?\d+\.\d+)/) { $energy = $1; $section = ""; next; }
-  if (/^forces:/)  { $section = "f"; next; }
-  if (/^stress/)   { $section = "s"; next; }
-  if ($section eq "f" && /^\s*([A-Za-z]{1,2})\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s*$/) {
-    push(@labels, scalar(@labels) + 1);
-    # A gradient is minus the force; Hartree/Bohr like the other codes.
-    foreach my $f ($2, $3, $4) {
-      my $g = -$f * BOHR * EV_TO_HARTREE;
-      push(@grad, sprintf("%.10f", $g == 0 ? 0 : $g));
-    }
-  } elsif ($section eq "s" && /^\s*(-?\d+\.\d+)\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s*$/) {
-    push(@stress, [$1, $2, $3]);
-  }
-}
-exit(0) if (!defined($energy));
-
-printf("key: TE\nsize:\n1\nvalues:\n%.10f\nunits:\nHartree\nEND\n",
-       $energy * EV_TO_HARTREE);
-
-my $natom = scalar(@labels);
-if ($natom > 0) {
-  print "key: EGRADVEC\nsize:\n$natom 3\nrowlabels:\n", join(" ", @labels),
-        "\ncolumnlabels:\nX Y Z\nvalues:\n";
-  for (my $i = 0; $i <= $#grad; $i++) {
-    print "$grad[$i] ";
-    print "\n" if (($i % 3) == 2);
-  }
-  print "units:\nHartree/Bohr\nEND\n";
-}
-
-if (scalar(@stress) == 3) {
-  print "key: STRESS\nsize:\n9\nrowlabels:\nXX XY XZ YX YY YZ ZX ZY ZZ\nvalues:\n";
-  print join(" ", @$_), "\n" foreach (@stress);
-  print "units:\nkbar\nEND\n";
-  my $p = ($stress[0][0] + $stress[1][1] + $stress[2][2]) / 3;
-  printf("key: PRESSURE\nsize:\n1\nvalues:\n%.8f\nunits:\nkbar\nEND\n", $p);
-}
-exit(0);
+configure_streams()
+EV_TO_HARTREE = 1.0 / 27.211386245988
+BOHR = 0.529177210903
+energy, grad, stress, section = None, [], [], ""
+for line in sys.stdin:
+    m = re.search(r"^energy:\s*(-?\d+\.\d+)", line, re.ASCII)
+    if m:
+        energy, section = m.group(1), ""
+        continue
+    if re.search(r"^forces:", line, re.ASCII):
+        section = "f"
+        continue
+    if re.search(r"^stress", line, re.ASCII):
+        section = "s"
+        continue
+    m = re.search(r"^\s*([A-Za-z]{1,2})\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s*$", line, re.ASCII)
+    s = re.search(r"^\s*(-?\d+\.\d+)\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s*$", line, re.ASCII)
+    if section == "f" and m:
+        # A gradient is minus the force; Hartree/Bohr like the other codes.
+        row = []
+        for force in m.groups()[1:]:
+            g = -number(force) * BOHR * EV_TO_HARTREE
+            row.append("%.10f" % (0 if g == 0 else g))
+        grad.append(row)
+    elif section == "s" and s:
+        stress.append(s.groups())
+if energy is None:
+    sys.exit(0)
+print("key: TE\nsize:\n1\nvalues:\n%.10f\nunits:\nHartree\nEND" % (number(energy) * EV_TO_HARTREE))
+if grad:
+    print("key: EGRADVEC\nsize:\n{} 3\nrowlabels:\n{}".format(len(grad), " ".join(str(i) for i in range(1, len(grad)+1))))
+    print("columnlabels:\nX Y Z\nvalues:")
+    for row in grad:
+        print(" ".join(row) + " ")
+    print("units:\nHartree/Bohr\nEND")
+if len(stress) == 3:
+    print("key: STRESS\nsize:\n9\nrowlabels:\nXX XY XZ YX YY YZ ZX ZY ZZ\nvalues:")
+    for row in stress:
+        print(" ".join(row))
+    print("units:\nkbar\nEND")
+    pressure = sum(number(stress[i][i]) for i in range(3)) / 3
+    print("key: PRESSURE\nsize:\n1\nvalues:\n%.8f\nunits:\nkbar\nEND" % pressure)
