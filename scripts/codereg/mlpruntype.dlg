@@ -1,0 +1,27 @@
+# Keep the settings in step with mlpruntype.py for the native oracle.
+
+dialog title="ECCE MLP (MACE) Editor: Runtype Details"
+
+list MD = Molecular Dynamics
+
+box label="Geometry Optimization" when="runtype==Geometry"
+combo name=ES.Runtype.GeomOpt.Optimizer label="Optimizer:" choices="FIRE|BFGS" default=FIRE export=1
+check name=ES.Runtype.GeomOpt.RelaxCell label=" Relax the cell as well as the atoms" default=0 export=1
+float name=ES.Runtype.GeomOpt.Pressure label="External pressure:" unit=GPa default=0.0 soft="[-10..100]" export=1
+float name=ES.Runtype.GeomOpt.Fmax label="Force limit:" unit=eV/A default=0.05 hard="(0..)" soft="[0.001..1]" export=1
+int name=ES.Runtype.GeomOpt.MaxSteps label="Maximum steps:" default=200 hard="[1..)" soft="[1..10000]" export=1
+float name=ES.Runtype.GeomOpt.TimeLimit label="Time limit (0 = none):" unit=minutes default=0.0 hard="[0..)" soft="[0..1440]" export=1
+note label="A run that reaches a limit keeps its last structure."
+
+box label="Vibrations" when="runtype==Vibration"
+float name=ES.Runtype.Vibration.Step label="Displacement:" unit=A default=0.01 hard="(0..0.1]" soft="[0.001..0.05]" export=1
+
+box label="Molecular Dynamics" when="runtype in @MD"
+combo name=ES.Runtype.MD.Ensemble label="Ensemble:" choices="NVT (Bussi thermostat)|NVE" default="NVT (Bussi thermostat)" export=1
+float name=ES.Runtype.MD.Temperature label="Temperature:" unit=K default=300.0 hard="[0..)" soft="[1..3000]" export=1
+float name=ES.Runtype.MD.TimeStep label="Time step:" unit=fs default=1.0 hard="(0..10]" soft="[0.2..2]" export=1
+int name=ES.Runtype.MD.Steps label="Steps:" default=1000 hard="[1..)" soft="[1..1000000]" export=1
+float name=ES.Runtype.MD.Tau label="Thermostat time constant:" unit=fs default=100.0 hard="(0..)" soft="[10..10000]" export=1
+int name=ES.Runtype.MD.Every label="Save a frame every (steps):" default=10 hard="[1..)" soft="[1..100000]" export=1
+int name=ES.Runtype.MD.Seed label="Random seed:" default=1 hard="[0..)" soft="[0..1000000]" export=1
+float name=ES.Runtype.MD.TimeLimit label="Time limit (0 = none):" unit=minutes default=0.0 hard="[0..)" soft="[0..1440]" export=1

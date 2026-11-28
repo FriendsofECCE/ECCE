@@ -3353,7 +3353,8 @@ if(PYTHON3_EXECUTABLE)
   # The G16 Runtype dialog has 349 contexts; --dedupe replays the restore
   # cases once per group of contexts with identical Python inventories.
   foreach(_d orcatheory orcaruntype ged16theory ged16runtype ecceqmruntype
-             xtbtheory xtbruntype mopactheory mopacruntype)
+             xtbtheory xtbruntype mopactheory mopacruntype
+             crestruntype mlpruntype)
     set(_extra "")
     # 7200, not the ~25 min an ORCA run takes on an idle machine: on a
     # release host orcaruntype reached 46 of its 49 contexts in 3600 s and
@@ -3363,6 +3364,8 @@ if(PYTHON3_EXECUTABLE)
       set(_extra --dedupe --jobs 4)   # half of an 8-core desk machine
     elseif(_d MATCHES "^mopac")
       set(_extra --dedupe --jobs 3)
+    elseif(_d MATCHES "^(crest|mlp)")
+      set(_extra --jobs 3)
     endif()
     add_test(NAME dialogs_native_${_d}
              COMMAND ${PYTHON3_EXECUTABLE}

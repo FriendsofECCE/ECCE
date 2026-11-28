@@ -465,6 +465,17 @@ geometry steps and gradient norm (kcal/mol/Å), and thermochemistry.
 Energy and Gradient have no run type settings. For separate Details windows,
 set `ECCE_NATIVE_DIALOGS=0` to use the Python versions.
 
+#### CREST and MLP (MACE) native Runtype Details
+
+CREST and MLP (MACE) **Runtype Details...** have native C++ versions in
+the Set-up tab's detail area in **Normal** layout. For separate Details
+windows, `ECCE_NATIVE_DIALOGS=1` selects these versions and
+`ECCE_NATIVE_DIALOGS=0` selects the Python versions. Both keep the Python
+settings, defaults and units: CREST's conformer search, solvation shell,
+protonation sites and tautomers; MLP's geometry optimization, vibrations
+and molecular dynamics. MLP Energy has no run type settings.
+Their **Theory Details...** continue to use Python.
+
 ### Gateway window
 
 Present only when the Gateway window is in use (`ECCE_GATEWAY_WINDOW=1`).

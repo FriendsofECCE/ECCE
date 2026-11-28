@@ -590,12 +590,15 @@ each tool's row (Builder / Viewer, Calculation Editor, Basis Set Tool, MD
 editors, MD Prepare) to Tab or Window, which makes the layout Custom. Under
 Normal the Calculation Editor's tab is the Set-up tab: a detail area right
 of the editor shows the Theory or Runtype Details (codes with a `.dlg`
-description: ECCE-QM, ORCA, xTB, Gaussian 16, MOPAC, Vina; others open the Python
-dialog's window) or, with no detail chosen, the input file (after an
-unsaved change, a dry run of the generator with the editor's settings,
+description: ECCE-QM, ORCA, xTB, Gaussian 16, MOPAC, Vina, CREST Runtype,
+MLP Runtype; others open the Python dialog's window) or, with no detail
+chosen, the input file (after an unsaved change, a dry run of the generator
+with the editor's settings,
 500 ms after the last change; the calculation is not written). MOPAC now has
-both `.dlg` descriptions for this area. In layouts with separate Details
-windows, `ECCE_NATIVE_DIALOGS=1` selects native MOPAC dialogs and
+both `.dlg` descriptions for this area. CREST and MLP (MACE) have native
+Runtype Details; their Theory Details still use Python. In layouts with
+separate Details windows, `ECCE_NATIVE_DIALOGS=1` selects available native
+dialogs and
 `ECCE_NATIVE_DIALOGS=0` selects the Python fallback. They use the same
 settings keys and units as the Python dialogs. The window
 is widened to 1100 px within the work area. Hook `setup info|theory|runtype|basis|launch|launch info|launch go|launch get WHAT|launch notify machreg|launch notify state STATE|results|results viewer|input|output|output editor|duplicate [geometry|orbitals]|rerun [yes|cancel]|terminate [yes|cancel]|fold|unfold|save|preview|text|width N|set KEY VALUE|find TEXT` on the

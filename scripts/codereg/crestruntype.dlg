@@ -1,0 +1,21 @@
+# Keep the settings in step with crestruntype.py for the native oracle.
+
+dialog title="ECCE CREST Editor: Runtype Details"
+
+list CONF = Conformer Search
+list QCG = Solvation Shell
+list SITES = Protonation Sites|Tautomers
+
+box label="Conformer Search" when="runtype in @CONF"
+float name=ES.Runtype.Conformers.EnergyWindow label="Energy window:" unit=kcal/mol default=6.0 hard="(0..)" soft="[1..30]" export=1
+check name=ES.Runtype.Conformers.NCI label=" Non-covalent complex (NCI mode)" default=0 export=1
+check name=ES.Runtype.Conformers.NoRefTopo label=" Skip the reference-topology check" default=0 export=1
+check name=ES.Runtype.Conformers.NoTopo label=" No topology check" default=0 export=1
+
+box label="Solvation Shell (QCG)" when="runtype in @QCG"
+combo name=ES.Runtype.QCG.Solvent label="Solvent molecule:" choices="water|methanol|acetonitrile" default=water export=1
+int name=ES.Runtype.QCG.Number label="Number of solvent molecules:" default=10 hard="[1..]" export=1
+check name=ES.Runtype.QCG.Ensemble label=" Ensemble of clusters" default=0 export=1
+
+box label="$runtype" when="runtype in @SITES"
+float name=ES.Runtype.Sites.EnergyWindow label="Energy window:" unit=kcal/mol default=30.0 hard="(0..)" soft="[5..100]" export=1
