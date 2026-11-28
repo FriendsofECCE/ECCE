@@ -55,6 +55,7 @@
   <InputGenerator>ai.vina</InputGenerator>
   <ParseSpecification>vina.desc</ParseSpecification>
   <LaunchPreprocessor>vina.launchpp</LaunchPreprocessor>
+  <Importer>vina.expt</Importer>
 </IntegrationFiles>
 
 </appdescriptor>

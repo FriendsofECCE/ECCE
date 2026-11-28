@@ -1,0 +1,128 @@
+#!/usr/bin/env python3
+###############################################################################
+# FILENAME:  vina.expt
+#
+# SYNTAX: vina.expt <outfile> [<sourcedir>]
+#
+# PURPOSE:
+#       Reads the output of an AutoDock Vina run made from ECCE and writes the
+#       ECCE .frag/.param pair, so it can be imported as a completed
+#       calculation.  The structure is the system of the best pose (the poses
+#       themselves are read by vina.desc, as for a run launched from ECCE).
+#
+#       Vina's own printout has no coordinates; the poses, with the whole
+#       receptor+ligand system, are the ECCE-DOCK-FRAME blocks gensub appends.
+#       An output without them (a run made outside ECCE) has no system to
+#       build and is refused.  The receptor/ligand atom ranges and whether the
+#       box was automatic are known only to the launching session and are not
+#       in the output, so they are not set here.
+#
+# EXIT: 0 written; 1 not importable (a message is printed).
+###############################################################################
+import os
+import re
+import sys
+
+
+def usage():
+    print("Usage: vina.expt <outfile> [<sourcedir>]")
+    print("Options:    -h        this help")
+    print("            -v        version")
+    sys.exit(0)
+
+
+def main(argv):
+    args = [a for a in argv[1:] if a not in ("-h", "-v")]
+    if "-h" in argv[1:]:
+        usage()
+    if "-v" in argv[1:]:
+        return 0
+    if len(args) not in (1, 2):
+        usage()
+
+    path = args[0]
+    try:
+        with open(path, encoding="utf-8", errors="replace") as f:
+            text = f.read()
+    except OSError:
+        print("Can't locate output file %s" % path)
+        return 1
+
+    if "AutoDock Vina" not in text:
+        print("%s is not an AutoDock Vina output" % path)
+        return 1
+
+    # First pose's system: the frame header gives the atom count.
+    atoms = []
+    inframe = False
+    skip = False
+    nposes = 0
+    for line in text.splitlines():
+        if line.startswith("ECCE-DOCK-FRAME"):
+            nposes += 1
+            if nposes > 1:
+                break
+            inframe, skip = True, True
+            continue
+        if line.startswith("ECCE-DOCK-ENDFRAME"):
+            inframe = False
+            continue
+        if not inframe:
+            continue
+        if skip:
+            skip = False  # the "score:" line
+            continue
+        m = re.match(r"\s*([A-Za-z]{1,2})\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)"
+                     r"\s+(-?\d+\.\d+)\s*$", line)
+        if m:
+            atoms.append(m.groups())
+    if not atoms:
+        print("No docked poses found in %s: only a Vina run made from ECCE "
+              "carries the system (ECCE-DOCK-FRAME blocks) that can be "
+              "imported" % path)
+        return 1
+
+    root = re.sub(r"\.[^./]*$", "", path)
+    title = os.path.basename(root)
+
+    def grab(pat):
+        m = re.search(pat, text, re.M)
+        return m.groups() if m else None
+
+    ver = grab(r"^AutoDock Vina v(\S+)")
+    scoring = grab(r"^Scoring function\s*:\s*(\S+)")
+    exh = grab(r"^Exhaustiveness\s*:\s*(\d+)")
+    seed = grab(r"random seed:\s*(-?\d+)")
+    ctr = grab(r"^Grid center:\s*X\s+(\S+)\s+Y\s+(\S+)\s+Z\s+(\S+)")
+    size = grab(r"^Grid size\s*:\s*X\s+(\S+)\s+Y\s+(\S+)\s+Z\s+(\S+)")
+    npose = len(re.findall(r"^ECCE-DOCK-FRAME\s", text, re.M))
+
+    with open(root + ".param", "w") as p:
+        p.write("title:\t%s\n" % title)
+        if ver:
+            p.write("version:\t%s\n" % ver[0])
+        p.write("Category:\tSE\nTheory:\tVina\nRunType:\tDocking (Vina)\n")
+        if scoring:
+            p.write("ES.Theory.Vina.Scoring:\t%s\n" % scoring[0])
+        if exh:
+            p.write("ES.Runtype.Vina.Exhaustiveness:\t%s\n" % exh[0])
+        p.write("ES.Runtype.Vina.NumPoses:\t%d\n" % npose)
+        if seed:
+            p.write("ES.Runtype.Vina.Seed:\t%s\n" % seed[0])
+        if ctr and size:
+            p.write("ES.Runtype.Vina.BoxAuto:\t0\n")
+            for ax, c, s in zip("XYZ", ctr, size):
+                p.write("ES.Runtype.Vina.BoxCenter%s:\t%s\n" % (ax, c))
+                p.write("ES.Runtype.Vina.BoxSize%s:\t%s\n" % (ax, s))
+
+    with open(root + ".frag", "w") as m:
+        m.write("title:\t%s\ntype:\tmolecule\n" % title)
+        m.write("num_atoms:\t%d\n" % len(atoms))
+        m.write("atom_info:\tsymbol cart\natom_list:\n")
+        for a in atoms:
+            m.write(" %s %s %s %s\n" % a)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv))

@@ -3256,6 +3256,12 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/parsers/xtb_import_test.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/parsers)
 
+  # A finished Vina run imports and reproduces the stored poses (#1341).
+  add_test(NAME parsers_vina_import
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/parsers/vina_import_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/parsers)
+
   # Numerical frequencies: NumFreq alone on the ORCA route line (#1058).
   add_test(NAME parsers_orca_numfreq_route
            COMMAND ${PYTHON3_EXECUTABLE}
