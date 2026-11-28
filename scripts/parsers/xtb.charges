@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+# xtb's `charges` file (appended by gensub between ECCE-XTB-CHARGES markers):
+# one atomic charge per line, in atom order.  GFN1/GFN2 write Mulliken-type
+# charges; GFN-FF writes its EEQ charges.  Both go to MULLIKEN, the key the
+# existing charges panel reads.
 import re
 import sys
 from xtb_parse import configure_streams, scalar

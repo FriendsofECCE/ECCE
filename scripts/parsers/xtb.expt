@@ -1,6 +1,14 @@
 #!/usr/bin/env python3
-# Import through a replacement copy: the original output and its companions
-# belong to the user, including when the staging file is a symlink.
+# xtb.expt <outfile> [<sourcedir>]: reads the output of an xtb run and writes
+# the ECCE .frag/.param pair, so it can be imported as a completed calculation.
+# xtb prints no coordinates and keeps orbitals, charges and normal modes in
+# files beside the output.  A run made by ECCE already has them appended
+# (ECCE-XTB-* blocks).  For an output from a run made elsewhere they are read
+# from the source directory -- passed as the second argument where the caller
+# knows it, else the output's own directory (xtbopt.log, the coordinate file
+# the run names, molden.input, charges, vibspectrum, g98.out) -- and appended
+# to a copy that replaces the import's link (never written through to the
+# user's file), so the parse is the same for both.
 import os
 import re
 import sys
@@ -91,6 +99,8 @@ elif g:
     model, solvent = "GBSA", g.group(1).lower()
     solvent = {b"h2o": b"water", b"n-hexane": b"hexane"}.get(solvent, solvent)
 dirname = "."
+# Resolve a link (Unix, chasing the chain to the real file); Windows copies
+# the file instead, and the caller passes the source directory.
 if os.path.islink(file):
     dirname = os.path.dirname(os.path.realpath(file))
 elif len(args) > 1 and args[1]:
@@ -99,6 +109,8 @@ if not search(r"^ECCE-XTB-FRAME\s", text, re.M):
     m = search(rb"^\s*coordinate file\s*:\s*(\S+)", combined, re.M)
     raw_coord = m.group(1) if m else b""
     coord = raw_coord.decode("utf-8", "replace")
+    # The coordinate file is only an optimization's starting structure, so it
+    # comes after xtbopt.log; for an energy or frequency run it is the structure.
     candidates = [dirname + "/xtbopt.log", dirname + "/xtbopt.xyz"] if opt else []
     if coord:
         candidates.append(dirname + "/" + coord)
@@ -140,6 +152,8 @@ if not search(r"^ECCE-XTB-FRAME\s", text, re.M):
         combined += b"\n"
     combined += frame_text
     molden = dirname + "/molden.input"
+    # Orbitals only with --molden and never for GFN-FF; a file left by an
+    # earlier run in the directory must have this molecule's atom count.
     if search(r"--molden", call) and theory != "GFN-FF" and nonempty(molden):
         s, raw = read(molden)
         m = search(r"\[Atoms\][^\n]*\n((?:\s*\S+\s+\d+\s+\d+\s+\S+\s+\S+\s+\S+\n)+)", s)

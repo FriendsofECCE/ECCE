@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+# The HOMO-LUMO gap, from the closing summary box:
+#   "          | HOMO-LUMO GAP              14.629673576893 eV   |"
+# Units class NA (data/client/config/properties): the stored string is what
+# the Energies panel shows.
 import re
 import sys
 from xtb_parse import configure_streams, scalar

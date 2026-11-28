@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# The final total energy, from the closing summary box:
+#   "          | TOTAL ENERGY               -5.070370761845 Eh   |"
+# xtb prints Hartree already.
 import re
 import sys
 from xtb_parse import configure_streams, scalar

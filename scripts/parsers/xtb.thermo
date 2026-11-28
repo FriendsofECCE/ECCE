@@ -1,4 +1,13 @@
 #!/usr/bin/env python3
+# Thermochemistry from xtb's output; the key is chosen by the line's own
+# text, as orca.thermo does.  All values are in Hartree and absolute except
+# the zero-point energy (a correction), like the other codes.  xtb prints no
+# internal energy, so ETHERM is left unset.
+#   ":: zero point energy           0.020120859968 Eh   ::"
+#   "| TOTAL ENTHALPY             -5.046642494144 Eh   |"
+#   "| TOTAL FREE ENERGY          -5.068041464440 Eh   |"
+#   "    298.15    0.378102E-02    0.239019E-01    0.213990E-01    0.250291E-02"
+#      (T/K, H(0)-H(T)+PV, H(T), T*S, G(T), all Eh)
 import re
 import sys
 from xtb_parse import configure_streams, scalar

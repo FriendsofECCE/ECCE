@@ -1,4 +1,9 @@
 #!/usr/bin/env python3
+# xtb's `vibspectrum` (appended by gensub between ECCE-XTB-VIBSPECTRUM
+# markers) lists all 3N modes, the 5 or 6 rigid ones first at 0.00, so
+# VIBFREQ and VIBIR come out the same length and row-aligned like ORCA's.
+# The symmetry column is blank when xtb found none, hence the optional word.
+#   "    7        a           1539.10       133.26444         YES"
 import re
 import sys
 from xtb_parse import configure_streams, scalar

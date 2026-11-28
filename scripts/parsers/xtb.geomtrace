@@ -1,4 +1,12 @@
 #!/usr/bin/env python3
+# One frame between the ECCE-XTB-FRAME markers that gensub appends to the
+# output (xtb prints no coordinates itself): an xyz comment line, then the
+# atoms.  The comment of an xtbopt.log frame carries that step's energy, so
+# GEOMTRACE and TEVEC come from the same frame and stay the same length
+# (TEVEC may never be longer than GEOMTRACE).  The comment may instead carry
+# a conformer-search "relative:" energy (kcal/mol; CONFREL, as for a CREST
+# ensemble, and then no TEVEC), a docking pose's "score:" (kcal/mol, see
+# dock.poses) or an MD frame's "time:" in ps, the plot's x axis.
 import re
 import sys
 from xtb_parse import configure_streams, scalar

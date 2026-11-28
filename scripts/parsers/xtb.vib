@@ -1,6 +1,12 @@
 #!/usr/bin/env python3
-# The source vectors are mass-weighted. Divide by sqrt(mass), renormalise,
-# and pad the rigid modes so VIB stays aligned with the full spectrum.
+# Normal modes from xtb's g98.out (appended by gensub between ECCE-XTB-G98
+# markers).  That file holds only the 3N-6 (3N-5) vibrations, and its
+# vectors are the unit mass-weighted eigenvectors (checked against an
+# eigendecomposition of xtb's own hessian), not Cartesian displacements.
+# VIB holds Cartesian displacements normalised to 1, like ORCA's, so each
+# vector is divided by sqrt(mass) and renormalised; the leading rigid-body
+# modes are padded with zeros to keep VIB row-aligned with VIBFREQ.  xtb
+# prints the vectors to two decimals, which limits the precision.
 import math
 import re
 import sys

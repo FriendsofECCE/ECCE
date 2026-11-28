@@ -1,6 +1,18 @@
 #!/usr/bin/env python3
-# Molden coefficients multiply unnormalised primitives. Reorder columns
-# stably by angular momentum within each atom, without rescaling.
+# Parses the Molden file xtb writes with --molden (gensub appends it to the
+# output between ECCE-XTB-MOLDEN / ECCE-XTB-ENDMOLDEN) into MO, ORBENG, ORBOCC
+# (and the *BETA keys for --uhf), MOAOORDER and GTOBASIS.
+# What the file is, checked against an independent overlap matrix built from
+# its own [GTO] block (tests/parsers/xtb_trace_ps_test.py):
+#   * the MO coefficients multiply UNNORMALISED primitives r^l exp(-a r^2),
+#     and the contracted functions come out unit-normalised;
+#   * the basis is NOT orthonormal (STO-nG expansions of xtb's Slater basis),
+#     which is why the MO diagram works for xtb and not for MOPAC;
+#   * s, p are x y z; d is CARTESIAN (6 functions, no [5D] flag) in the order
+#     xx yy zz xy xz yz, and xy/xz/yz are unit-normalised: Gaussian's
+#     convention, which xTB.edml selects with componentNormalized="true".
+# Columns are put in ECCE's canonical order (atoms in order, shells of one
+# atom stably sorted by l), with no value scaling, and MOAOORDER says so.
 import re
 import sys
 from xtb_parse import configure_streams, fields, number
