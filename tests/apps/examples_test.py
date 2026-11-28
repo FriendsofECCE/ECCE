@@ -155,10 +155,14 @@ WORKFLOWS.update({"ap_" + k: ["TE", "VIBFREQ", "MO", "ORBENG"]
 WORKFLOWS.update({"sn2_" + k: ["TE"] for k in
                   ("reactant", "scan", "product", "qst3")})
 WORKFLOWS["sn2_irc"] = ["GEOMTRACE"]
+# Docking: each Vina run stores its pose scores and the pose geometries.
+DOCKING = {c: ["GEOMTRACE", "POSESCORE"] for c in
+           ("mpro_nirmatrelvir", "hiv_protease_xk263", "ache_huprine")}
 NEW_SETS = {"Examples/Organic_Chemistry": ORGANIC,
             "Examples/Spectroscopy": SPECTROSCOPY,
             "Examples/General_Chemistry": GENCHEM,
-            "Examples/Workflows": WORKFLOWS}
+            "Examples/Workflows": WORKFLOWS,
+            "Examples/Docking": DOCKING}
 FIRST = "Examples/Getting_Started"
 COMP = "Examples/Computational"
 # The study has no thumbnail and no theory/run type of its own.
@@ -328,7 +332,7 @@ def run(display, data, work):
         handle.write("examples computational\nexamples computational\n"
                      "examples getting-started\nexamples organic\n"
                      "examples spectroscopy\nexamples genchem\nexamples organic\n"
-                     "examples workflows\n")
+                     "examples workflows\nexamples docking\n")
 
     box = {}
     projects = [COMP]
