@@ -40,10 +40,10 @@ Both detect, fpocket ranks higher (all 73): default 1bma(2<4) 1c5x(1<2) 1com(1<3
 expensive off 1a4g(1<2) 1bma(1<4) 1c5x(1<2) 1com(2<3) 2yhx(1<3).
 Both detect, ecce-pockets ranks higher: 26 complexes against the default, 13 against expensive off.
 The nine sites ecce-pockets leaves below rank 1 and still detects (1a4g 1ai5 1b9v 1bma 1c5x 1com
-1cx2 1hvr 2yhx, ranks 2-4) are found by fpocket too, at ranks 1-8 (1b9v 8/11, 1cx2 8/2).
+1cx2 1hvr 2yhx, ranks 2-4) are found by fpocket too, at ranks 1-11 (default/off: 1b9v 8/11, 1cx2 8/2).
 
 Reading: ecce-pockets' misrankings are ranking, not detection; fpocket finds a pocket at the
-ligand in the same complexes, and ranks it first in 4-5 of those nine. The two real detection
+ligand in the same complexes, and ranks it first in 3 (default) or 4 (off) of those nine. The two real detection
 misses are shared. The per-complex table (code, ligand, pocket counts, first-hit rank per tool,
 `none` = no hit) is `tests/dock/fpocket_oracle.csv`.
 
