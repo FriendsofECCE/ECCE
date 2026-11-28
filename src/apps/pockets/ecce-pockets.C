@@ -3,6 +3,7 @@
 //   ecce-pockets FILE.pdb [--spacing A] [--margin A] [--probe A] [--max-ray A]
 //        [--min-score N] [--min-volume A3] [--lining A] [--top N]
 //        [--keep-water] [--keep-ligands] [--threads N]
+//        [--rank volume|descriptors] [--w-apolar X] [--w-enclosure X] [--w-mouth X]
 #include <cstdio>
 #include <cstdlib>
 #include <fstream>
@@ -31,6 +32,15 @@ int main(int argc, char **argv)
     else if (a == "--lining" && more) o.liningDistance = atof(argv[++i]);
     else if (a == "--top" && more) top = atoi(argv[++i]);
     else if (a == "--threads" && more) o.threads = atoi(argv[++i]);
+    else if (a == "--rank" && more) {
+      string v = argv[++i];
+      if (v == "volume") o.ranking = PocketFinder::Ranking::ByVolume;
+      else if (v == "descriptors") o.ranking = PocketFinder::Ranking::ByDescriptors;
+      else { cerr << "--rank is volume or descriptors\n"; return 2; }
+    }
+    else if (a == "--w-apolar" && more) o.wApolar = atof(argv[++i]);
+    else if (a == "--w-enclosure" && more) o.wEnclosure = atof(argv[++i]);
+    else if (a == "--w-mouth" && more) o.wMouth = atof(argv[++i]);
     else if (a == "--keep-water") o.ignoreWater = false;
     else if (a == "--keep-ligands") o.ignoreLigands = false;
     else if (a[0] != '-' && file.empty()) file = a;
@@ -39,7 +49,8 @@ int main(int argc, char **argv)
   if (file.empty()) {
     cerr << "usage: ecce-pockets FILE.pdb [--spacing A] [--margin A] [--probe A] [--max-ray A]\n"
             "         [--min-score N] [--min-volume A3] [--lining A] [--top N]\n"
-            "         [--keep-water] [--keep-ligands] [--threads N]\n";
+            "         [--keep-water] [--keep-ligands] [--threads N]\n"
+            "         [--rank volume|descriptors] [--w-apolar X] [--w-enclosure X] [--w-mouth X]\n";
     return 2;
   }
   ifstream in(file);
@@ -60,8 +71,9 @@ int main(int argc, char **argv)
   printf("%d pockets\n", (int)r.pockets.size());
   for (int i = 0; i < (int)r.pockets.size() && i < top; i++) {
     const PocketFinder::Pocket& p = r.pockets[i];
-    printf("#%d score %.1f volume %.0f A3 enclosure %.2f centre %.2f %.2f %.2f "
-           "extent %.1f x %.1f x %.1f\n  lining:", i + 1, p.score, p.volume, p.meanEnclosure,
+    printf("#%d score %.1f volume %.0f A3 enclosure %.2f apolar %.3f mouth %.3f rank %.2f "
+           "centre %.2f %.2f %.2f extent %.1f x %.1f x %.1f\n  lining:", i + 1, p.score, p.volume, p.meanEnclosure,
+           p.apolarFraction, p.mouthFraction, p.rankScore,
            p.centre[0], p.centre[1], p.centre[2],
            p.hi[0]-p.lo[0], p.hi[1]-p.lo[1], p.hi[2]-p.lo[2]);
     for (const auto& l : p.lining) printf(" %s%d%c", l.name.c_str(), l.number, l.chain);

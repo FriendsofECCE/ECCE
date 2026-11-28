@@ -29,6 +29,11 @@ class Fragment;
 
 namespace PocketFinder {
 
+enum class Ranking {
+  ByVolume,       ///< enclosure-weighted volume (the default)
+  ByDescriptors   ///< that score times apolar fraction, enclosure and closedness, each to a weight
+};
+
 struct Options {
   double spacing = 1.0;       ///< grid step, Angstrom
   double margin = 4.0;        ///< grid padding around the atoms, Angstrom
@@ -44,6 +49,9 @@ struct Options {
   bool ignoreWater = true;    ///< waters do not close a pocket
   bool ignoreLigands = true;  ///< bound ligands are removed, so their site shows
   int threads = 0;            ///< 0 = hardware concurrency
+  Ranking ranking = Ranking::ByVolume;
+  // Exponents of the three descriptors in the alternative ranking; 0 drops one.
+  double wApolar = 1.0, wEnclosure = 1.0, wMouth = 1.0;
 };
 
 struct LiningResidue {
@@ -59,7 +67,10 @@ struct Pocket {
   int points = 0;
   double volume = 0;               ///< cubic Angstrom
   double meanEnclosure = 0;        ///< mean point score, 0..7
-  double score = 0;                ///< enclosure-weighted volume; the ranking key
+  double score = 0;                ///< enclosure-weighted volume; the default ranking key
+  double apolarFraction = 0;       ///< lining atoms that are C or S, 0..1
+  double mouthFraction = 0;        ///< pocket points open to free space on a face, 0..1; low = closed
+  double rankScore = 0;            ///< the key actually used for ordering under Options::ranking
   std::vector<std::array<double,3>> pointCoords;
   std::vector<LiningResidue> lining; ///< sorted by chain, number
 };

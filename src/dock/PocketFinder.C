@@ -228,6 +228,20 @@ Result findPockets(const Fragment& frag, const Options& opt)
         for (int k = 0; k < 3; k++) p.centre[k] /= pts.size();
         p.meanEnclosure = esum / pts.size();
         p.score = sum * h * h * h / 7.0;
+        // Mouth: points with a face neighbour that is open space and outside the
+        // pocket; a deep cleft has few, a surface groove many.
+        int mouth = 0;
+        for (size_t i : pts) {
+          int x = (int)(i % g.nx), y = (int)((i / g.nx) % g.ny), z = (int)(i / ((size_t)g.nx * g.ny));
+          static const int F[6][3] = {{1,0,0},{-1,0,0},{0,1,0},{0,-1,0},{0,0,1},{0,0,-1}};
+          for (const auto& f : F) {
+            int a = x+f[0], b = y+f[1], c = z+f[2];
+            if (a < 0 || b < 0 || c < 0 || a >= g.nx || b >= g.ny || c >= g.nz) continue;
+            size_t j = g.idx(a, b, c);
+            if (prot[j] == 0 && score[j] < opt.minScore) { mouth++; break; }
+          }
+        }
+        p.mouthFraction = (double)mouth / pts.size();
         double best = 1e300;
         for (const auto& c : p.pointCoords) {
           double d = 0;
@@ -236,6 +250,7 @@ Result findPockets(const Fragment& frag, const Options& opt)
         }
         found.push_back(std::move(p));
       }
+  for (Pocket& p : found) p.rankScore = p.score;
   std::sort(found.begin(), found.end(),
             [](const Pocket& a, const Pocket& b) { return a.score > b.score; });
 
@@ -245,12 +260,18 @@ Result findPockets(const Fragment& frag, const Options& opt)
     double d2 = opt.liningDistance * opt.liningDistance;
     for (Pocket& p : found) {
       std::set<const Residue*> seenRes;
+      std::set<int> seenAtom;
+      int apolar = 0;
       vector<const Residue*> order;
       for (const auto& c : p.pointCoords)
         lin.near(c.data(), [&](int a) {
           const double *q = lin.atoms[a]->coordinates();
           double dx = c[0]-q[0], dy = c[1]-q[1], dz = c[2]-q[2];
           if (dx*dx + dy*dy + dz*dz > d2) return;
+          if (seenAtom.insert(a).second) {
+            int z = lin.atoms[a]->atomicNumber();
+            if (z == 6 || z == 16) apolar++;
+          }
           const Residue *r = lin.atoms[a]->getResidue();
           if (r && seenRes.insert(r).second) order.push_back(r);
         });
@@ -261,10 +282,19 @@ Result findPockets(const Fragment& frag, const Options& opt)
         l.number = r->number(); l.chain = r->chain();
         p.lining.push_back(l);
       }
+      p.apolarFraction = seenAtom.empty() ? 0.0 : (double)apolar / seenAtom.size();
       std::sort(p.lining.begin(), p.lining.end(),
                 [](const LiningResidue& a, const LiningResidue& b) {
                   return a.chain != b.chain ? a.chain < b.chain : a.number < b.number; });
     }
+  }
+  if (opt.ranking == Ranking::ByDescriptors) {
+    for (Pocket& p : found)
+      p.rankScore = p.score * std::pow(std::max(p.apolarFraction, 1e-3), opt.wApolar)
+                  * std::pow(std::max(p.meanEnclosure / 7.0, 1e-3), opt.wEnclosure)
+                  * std::pow(std::max(1.0 - p.mouthFraction, 1e-3), opt.wMouth);
+    std::stable_sort(found.begin(), found.end(),
+                     [](const Pocket& a, const Pocket& b) { return a.rankScore > b.rankScore; });
   }
   res.pockets = std::move(found);
   return res;
