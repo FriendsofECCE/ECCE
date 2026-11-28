@@ -12,7 +12,7 @@ list CONF = Conformer search (simple)
 box label="Geometry Optimization" when="runtype in @OPT"
 combo name=ES.Runtype.GeomOpt.Level label="Level:" choices="crude|sloppy|loose|normal|tight|verytight|extreme" default=normal export=1
 
-# An empty ligand means the smallest molecule in the system (docking.pl).
+# An empty ligand means the smallest molecule in the system (ecce-docksplit).
 box label="Docking" when="runtype in @DOCK"
 text name=ES.Runtype.Docking.LigandAtoms label="Ligand atoms (empty: chosen automatically):" default="" export=1
 int name=ES.Runtype.Docking.LigandCharge label="Ligand charge:" default=0 hard="[-10..10]" export=1

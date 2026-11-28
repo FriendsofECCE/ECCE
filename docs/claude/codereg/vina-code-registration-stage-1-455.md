@@ -24,7 +24,7 @@ registered per machine like any other.
   Until 2026-11 the whole structure rode in the config as `#|` lines; a
   protein's receptor list was then a 10 kB line, which Launch's old 255-byte
   line copy cut off (`launch-copies-stored-files-line-by-line.md`).
-- **Split is `docking.pl`**, as for xtb: `ES.Runtype.Docking.LigandAtoms` and
+- **Split is `DockSplit` (`ecce-docksplit`)**, as for xtb: `ES.Runtype.Docking.LigandAtoms` and
   `LigandCharge`. The box (`BoxAuto`, default on) is computed in `ai.vina`
   from the ligand atoms: bounding box + 5 A each side, at least 16 A.
 - **Frames are rebuilt in gensub.** `poses.pdbqt` holds only the ligand with

@@ -708,6 +708,9 @@ target_link_libraries(lineprofile PRIVATE
 ecce_library(eccedock src/dock)
 add_executable(ecce-pdbqt src/apps/pdbqt/ecce-pdbqt.C)
 target_link_libraries(ecce-pdbqt PRIVATE eccedock)
+# The receptor/ligand split for docking, shared by every caller (#1335).
+add_executable(ecce-docksplit src/apps/docksplit/ecce-docksplit.C)
+target_link_libraries(ecce-docksplit PRIVATE eccedock)
 
 # Binding-pocket detection (#1320): LIGSITE-style grid enclosure, wx-free.
 add_executable(ecce-pockets src/apps/pockets/ecce-pockets.C)
@@ -1375,7 +1378,7 @@ set(ECCE_GUI_APPS
   mddynamics mdenergy mdoptimize mdprepare gmxprepare msgdialog metadyn organizer
   passdialog hostkeydialog pertable solvate builder vizthumbnail)
 set(ECCE_CLI_APPS
-  load_tgbs ecmd eccejobmaster eccejobstore ecce-localdata ecce-launch ecce-rerun ecce-terminate ecce-annotate ecce-move ecce-rename ecce-copy ecce-mkdir ecce-workflow ecce-series ecce-batch-smiles ecce-site-screen ecce-reconnect ecce-reparse ecce-fetch ecce-site-admin mocomp ecce-thermo ecce-force-compare ecce-density-field ecce-pdbqt
+  load_tgbs ecmd eccejobmaster eccejobstore ecce-localdata ecce-launch ecce-rerun ecce-terminate ecce-annotate ecce-move ecce-rename ecce-copy ecce-mkdir ecce-workflow ecce-series ecce-batch-smiles ecce-site-screen ecce-reconnect ecce-reparse ecce-fetch ecce-site-admin mocomp ecce-thermo ecce-force-compare ecce-density-field ecce-pdbqt ecce-docksplit
   autosym autosym_cpp getfrag getfrag_cpp genmol genmol_cpp genmollat genmollat_cpp
   cleansym cleansym_cpp symops symops_cpp mdanalysis)
 if(LIBSSH_FOUND)
@@ -1484,6 +1487,13 @@ if(PYTHON3_EXECUTABLE)
   add_test(NAME tools_offload_ctest_empty
            COMMAND ${PYTHON3_EXECUTABLE}
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/tools/offload_ctest_empty_test.py)
+endif()
+
+# gbsDAVConverter against its captured Perl run (#868).
+if(PYTHON3_EXECUTABLE)
+  add_test(NAME tools_gbsdav_converter
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/tools/gbsdav_converter_test.py)
 endif()
 
 # ecce-contacts (#693, #708): coordination shells, H-bonds, ensemble patterns.
@@ -2612,6 +2622,12 @@ add_test(NAME custom_solvent COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/custom_so
 # BasisFlatten and the ORCA MO table against real ORCA output, incl. HF/cc-pVQZ
 # with a g shell: every MO c^T S c = 1, trace(PS) = N (#861).
 add_test(NAME basisflatten COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/basisflatten/run_tests.py)
+# std2Gaussian-98 in Python against cases captured from its Perl (#868).
+add_test(NAME basislegacy COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/basislegacy/run_tests.py)
+# std2molcas in Python against cases captured from its Perl (#868).
+add_test(NAME basis_molcas_port COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/basis/molpro_molcas_port_test.py)
+# std2GAMESS-UK in Python against cases captured from its Perl (#868).
+add_test(NAME basis_gamessuk_port COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/basis/gamess_python_port_test.py)
 set_tests_properties(basisflatten PROPERTIES ENVIRONMENT ECCE_TEST_BUILD=${CMAKE_BINARY_DIR})
 # ORCA Geometry/GeoVib on one atom: no Opt, Freq kept; runs ORCA when installed (#623).
 add_test(NAME orca_one_atom COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/orca_one_atom/run_tests.py)
@@ -2654,6 +2670,13 @@ target_link_libraries(solvate_cli PRIVATE eccetdat ecceutil)
 add_test(NAME solvate COMMAND solvate_test ${CMAKE_SOURCE_DIR})
 set_tests_properties(solvate PROPERTIES
   ENVIRONMENT "ECCE_HOME=${CMAKE_SOURCE_DIR};ECCE_REALUSER=solvate;ECCE_REALUSERHOME=${CMAKE_BINARY_DIR}/solvate-home")
+
+# tests/dock (#1335): receptor/ligand split against the golden corpus, wx-free.
+add_executable(dock_split_test tests/dock/dock_split_test.C)
+target_link_libraries(dock_split_test PRIVATE eccedock)
+add_test(NAME dock_split COMMAND dock_split_test ${CMAKE_SOURCE_DIR})
+set_tests_properties(dock_split PROPERTIES SKIP_RETURN_CODE 77
+  ENVIRONMENT "ECCE_HOME=${CMAKE_SOURCE_DIR};ECCE_REALUSER=docksplit;ECCE_REALUSERHOME=${CMAKE_BINARY_DIR}/docksplit-home")
 
 # tests/metal_bonds (#325): Metal bonds need no nubs.
 add_executable(metal_bond_test tests/metal_bonds/metal_bond_test.C)
@@ -3243,6 +3266,12 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/parsers/xtb_import_test.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/parsers)
 
+  # A finished Vina run imports and reproduces the stored poses (#1341).
+  add_test(NAME parsers_vina_import
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/parsers/vina_import_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/parsers)
+
   # Numerical frequencies: NumFreq alone on the ORCA route line (#1058).
   add_test(NAME parsers_orca_numfreq_route
            COMMAND ${PYTHON3_EXECUTABLE}
@@ -3340,7 +3369,8 @@ if(PYTHON3_EXECUTABLE)
   # The G16 Runtype dialog has 349 contexts; --dedupe replays the restore
   # cases once per group of contexts with identical Python inventories.
   foreach(_d orcatheory orcaruntype ged16theory ged16runtype ecceqmruntype
-             xtbtheory xtbruntype mopactheory mopacruntype)
+             xtbtheory xtbruntype mopactheory mopacruntype
+             vinatheory vinaruntype)
     set(_extra "")
     # 7200, not the ~25 min an ORCA run takes on an idle machine: on a
     # release host orcaruntype reached 46 of its 49 contexts in 3600 s and
@@ -6131,6 +6161,7 @@ set(ECCE_COMMAND_WRAPPERS
   ecce-localdata=bin/ecce-localdata
   ecce-thermo=bin/ecce-thermo
   ecce-pdbqt=bin/ecce-pdbqt
+  ecce-docksplit=bin/ecce-docksplit
   ecce-force-compare=bin/ecce-force-compare
   ecce-check-props=bin/ecce-check-props
   ecce-contacts=bin/ecce-contacts
@@ -6205,10 +6236,11 @@ add_test(NAME pdbqt_redock_1iep COMMAND ${PYTHON3_EXECUTABLE}
   ${CMAKE_SOURCE_DIR}/tests/dock/fixtures/1iep.pdb
   ${CMAKE_BINARY_DIR}/pdbqt_redock)
 set_tests_properties(pdbqt_redock_1iep PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 1800)
-# Automatic ligand choice in ai.vina/docking.pl and the atom-list checks of
+# Automatic ligand choice in ai.vina and ecce-docksplit and the atom-list checks of
 # verifyinput (#962, #963); scripts only, needs perl.
 add_test(NAME vina_autoligand COMMAND ${PYTHON3_EXECUTABLE}
-  ${CMAKE_SOURCE_DIR}/tests/dock/vina_autoligand_test.py ${CMAKE_SOURCE_DIR})
+  ${CMAKE_SOURCE_DIR}/tests/dock/vina_autoligand_test.py ${CMAKE_SOURCE_DIR}
+  $<TARGET_FILE:ecce-docksplit>)
 
 add_executable(smiles_test tests/tdat/smiles_test.C)
 target_link_libraries(smiles_test PRIVATE eccetdat ecceutil)

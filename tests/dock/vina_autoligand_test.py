@@ -4,12 +4,13 @@
 A fake complex: two identical 2-residue protein chains, one 5-atom ligand
 (LIG), four crystal waters and a sodium ion, with the waters first so that the
 old "smallest molecule" rule picks atom 1, a water oxygen.
-Usage: vina_autoligand_test.py <source dir>
+Usage: vina_autoligand_test.py <source dir> <ecce-docksplit>
 """
 import os, re, shutil, subprocess, sys, tempfile
 
 SRC = os.path.abspath(sys.argv[1] if len(sys.argv) > 1 else ".")
 PARSERS = os.path.join(SRC, "scripts", "parsers")
+DOCKSPLIT = os.path.abspath(sys.argv[2]) if len(sys.argv) > 2 else ""
 
 atoms = []  # (symbol, x, y, z, atomname, resname, resnum, chain)
 for k in range(4):
@@ -46,7 +47,7 @@ def check(ok, what):
 def run_ai(d, with_pdb, extra=""):
     open(os.path.join(d, "t.frag"), "w").write(frag(with_pdb))
     open(os.path.join(d, "t.param"), "w").write(PARAM + extra)
-    env = dict(os.environ, ECCE_HOME=SRC)
+    env = dict(os.environ, ECCE_HOME=SRC, ECCE_DOCKSPLIT=DOCKSPLIT)
     # ai.vina writes the deck over its -t file, as DeckWriter expects of its
     # vina.vinain.orig copy; given the source template it overwrote that, and
     # the GUI tests, whose ECCE_HOME links this tree's scripts, then ran on it.

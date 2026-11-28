@@ -56,7 +56,7 @@ sites and the protonation ensembles, so the Vina changes are conditional:
   the rest hidden (`CSStyleCmd` on a selection, then `DisplayAtomsCmd`).
   Without it a 2300-atom receptor hides the pose completely. The ligand comes
   from `ES.Runtype.Docking.LigandAtoms`, or, when that is empty, from the
-  smallest connected component, which is what `docking.pl` splits on.
+  smallest connected component, which is what `DockSplit` splits on.
 - The plot under the RMSD table has a 220 px minimum height: in a short pane
   the two tables above squeezed it until the axis labels were clipped.
 
