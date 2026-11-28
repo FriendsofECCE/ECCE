@@ -48,6 +48,16 @@ cannot be reproduced: that harness no longer exists. tests/dock/pocket_rank_benc
 is the only reproducible measurement, and its numbers, not the old ones, are the
 baseline from here.
 
+**Result, 2026-11-28** (73 single-chain complexes that survived download and
+filtering; one chain and its largest ligand kept; success = a pocket centre within
+8 A of a ligand atom; tuned on even-indexed codes, reported on odd-indexed).
+Test half (36): current top-1 80.6 %, top-5 97.2 %; descriptors with weights tuned
+on the other half (apolar^2 only) top-1 77.8 %, top-5 94.4 %; untuned 1,1,1 top-1
+80.6 %, top-5 94.4 %. The descriptor ranking did not improve it. All 73: 84.9 % vs
+84.9 % top-1. The set is easy (one chain, generous criterion), so the absolute
+rates are far above the old multi-chain figures; only the comparison between
+rankings means anything, and its resolution is a few percentage points.
+
 **Reading for ECCE.** The published geometric-only finders reach top-1 of about
 60-70 % on the 48-pair set and 52-56 % on COACH420; ours is not
 comparable to those figures (different set and criterion). Buriedness, apolar

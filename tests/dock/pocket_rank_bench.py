@@ -7,7 +7,7 @@ ligand.  Weights are tuned on the even-indexed complexes (sorted by PDB code)
 and reported on the odd-indexed ones; the untuned all-ones weights are
 reported on both halves.
 
-  pocket_rank_bench.py --pockets BUILD/ecce-pockets --work DIR
+  ECCE_HOME=<source tree> pocket_rank_bench.py --pockets BUILD/ecce-pockets --work DIR
 """
 import argparse, itertools, math, os, re, subprocess, sys, urllib.request
 
