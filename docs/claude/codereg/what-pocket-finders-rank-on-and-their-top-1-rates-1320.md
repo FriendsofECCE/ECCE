@@ -43,9 +43,14 @@ paper says fpocket "finds most of the known binding sites, but they are not
 always ranked at the top", and that re-scoring them (PRANK) raised COACH420
 Top-n from 56.4 to 63.6 %.
 
+**Baseline.** The earlier internal figures (35 complexes, top-5 86 %, top-1 40 %)
+cannot be reproduced: that harness no longer exists. tests/dock/pocket_rank_bench.py
+is the only reproducible measurement, and its numbers, not the old ones, are the
+baseline from here.
+
 **Reading for ECCE.** The published geometric-only finders reach top-1 of about
-60-70 % on the 48-pair set and 52-56 % on COACH420; ours measured about 40 % on
-a harder own set, so the gap is mostly the benchmark. Buriedness, apolar
+60-70 % on the 48-pair set and 52-56 % on COACH420; ours is not
+comparable to those figures (different set and criterion). Buriedness, apolar
 (hydrophobic) fraction and size all appear among the published ranking
 descriptors; pocket-mouth size does not appear in any of the four. Benchmark sets
 to use if a larger one is wanted: the 48 pairs (Chen/PASS), Astex Diverse (85),
