@@ -29,7 +29,7 @@ class XtbRunTypePanel(EccePanel):
 
         if EcceGlobals.RunType == "Docking (aISS)":
             dockSizer = EcceBoxSizer(self, label="Docking", cols=1)
-            # Empty means the smallest molecule in the system (docking.pl).
+            # Empty means the smallest molecule in the system (ecce-docksplit).
             self.ligand = EcceTextInput(self,
                                         name="ES.Runtype.Docking.LigandAtoms",
                                         size=(160, -1),

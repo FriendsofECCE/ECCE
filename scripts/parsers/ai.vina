@@ -7,7 +7,7 @@
 # PURPOSE:
 #       Take the ECCE dictionary (.param) and fragment (.frag) and produce the
 #       AutoDock Vina configuration (vina.vinain).  The receptor and ligand
-#       are the two atom lists of docking.pl.  The PDBQT files are made in
+#       are the two atom lists of ecce-docksplit.  The PDBQT files are made in
 #       the run directory by scripts/gensub: the structure goes there as the
 #       auxiliary input vina.vinafrag (the .frag, verbatim), and the two atom
 #       lists ride in the config as "#|" comment lines of ranges, which
@@ -20,7 +20,6 @@ use vars qw($opt_h $opt_help $opt_v $opt_n $opt_p $opt_f $opt_b $opt_c $opt_t
 
 push(@INC,"$ENV{ECCE_HOME}/scripts/parsers");
 require "pertab.pl";
-require "docking.pl";
 &loadPT;
 
 $| = 1;
@@ -231,8 +230,40 @@ sub modifyInputFile {
 # Code-specific tag resolvers
 ################################################################################
 
+# The receptor/ligand split is ecce-docksplit's (#1335); it reads the same
+# .frag this script does and prints the receptor's, then the ligand's, atom
+# ranges.  $withResidues is 0 where the residue rules must not apply.
+sub dockSplit {
+  my ($dict, $withResidues) = @_;
+  my $spec = $dict->{"ES.Runtype.Docking.LigandAtoms"} // "";
+  my $prog = $0;
+  $prog =~ s{.*/}{};
+  my $exe = $ENV{ECCE_DOCKSPLIT} || "$ENV{ECCE_HOME}/bin/ecce-docksplit";
+  # Checked before the open so the message names the binary; Windows
+  # installs it with an .exe the configured path leaves off.
+  $exe .= ".exe" if $^O eq "MSWin32" && !-e $exe;
+  die "$prog error: $exe is missing or not executable\n" unless -x $exe;
+  open(my $split, "-|", $exe, "--frag", $FragFILE, "--atoms", $spec,
+       "--print", "both", "--prog", $prog, ($withResidues ? () : ("--no-residues")))
+      || die "$prog error: cannot run $exe\n";
+  my @lines = <$split>;
+  my $where = @lines ? " (see above)" : "";
+  close($split) || die "$prog error: the receptor/ligand split failed$where\n";
+  my @lists;
+  foreach my $line (@lines) {
+    chomp($line);
+    my @atoms;
+    foreach my $part (split(/,/, $line)) {
+      my ($lo, $hi) = split(/-/, $part);
+      push(@atoms, map { $_ - 1 } ($lo .. ($hi // $lo)));
+    }
+    push(@lists, \@atoms);
+  }
+  return @lists;
+}
+
 sub VinaDeck {
-  my ($rec, $lig) = &dockSplit(\%AbiDict, $chemsys_atoms, \%tags, \%coords, \%resinfo);
+  my ($rec, $lig) = &dockSplit(\%AbiDict, 1);
   die "ai.vina error: Vina has no dummy atom\n"
       if (grep { $tags{$_} eq "X" } (@$rec, @$lig));
   my @out;
@@ -395,18 +426,6 @@ sub readChemSys {
       chomp($chemsys_name);
     } elsif (/^atom_info:/) {
       $symbols = /symbol/;
-    } elsif (/^pdb_list:/) {
-      # Fixed columns as Fragment::dumpMVM writes them: atom name 2-5,
-      # residue name 7-10, number 11-16, chain 25.
-      for (my $index = 0; $index < $chemsys_atoms; $index++) {
-        $_ = <CHEMSYS>;
-        last if (!defined($_));
-        chomp;
-        my $name = substr($_, 7, 4); $name =~ s/^\s+|\s+$//g;
-        my $num = substr($_, 11, 6); $num =~ s/\s//g;
-        my $chain = length($_) > 25 ? substr($_, 25, 1) : " ";
-        $resinfo{$index} = {name => $name, num => $num, chain => $chain};
-      }
     } elsif (/^atom_list:/) {
       for (my $index = 0; $index < $chemsys_atoms; $index++) {
         $_ = <CHEMSYS>;

@@ -770,7 +770,9 @@ class Builder: public BuilderGUI,
       string vinaScriptCommand(const vector<string>& w);
    protected:
       TaskJob *vinaJob() const;
-      VinaBox vinaBoxFromDetails(const std::map<string, string>& d);
+      /// `error` gets why the ligand split failed, when it did.
+      VinaBox vinaBoxFromDetails(const std::map<string, string>& d,
+                                 string *error = 0);
       void drawVinaBox(const VinaBox& box);
       bool vinaBoxFromDeck(ICalculation *ic, VinaBox& box,
                            vector<int> *ligand = 0);

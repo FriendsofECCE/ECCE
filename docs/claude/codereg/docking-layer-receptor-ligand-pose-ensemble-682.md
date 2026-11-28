@@ -3,7 +3,7 @@ type: map
 title: "The shared docking layer (#682, #455): receptor/ligand split in the .param, a pose ensemble as GEOMTRACE + POSESCORE, best-N through ScanPoint"
 area: codereg
 section: "Getting a calculation set up (the \"code registration\" system)"
-paths: ["scripts/parsers/docking.pl", "scripts/parsers/dock.poses", "scripts/parsers/ai.xtb", "scripts/gensub", "scripts/parsers/xtb.desc", "data/client/config/properties", "src/dsm/edsiimpl/ScanPoint.C", "src/apps/organizer/WorkflowSteps.C", "tests/launch/dock_test.py"]
+paths: ["src/dock/DockSplit.C", "scripts/parsers/dock.poses", "scripts/parsers/ai.xtb", "scripts/gensub", "scripts/parsers/xtb.desc", "data/client/config/properties", "src/dsm/edsiimpl/ScanPoint.C", "src/apps/organizer/WorkflowSteps.C", "tests/launch/dock_test.py"]
 issues: [682, 455]
 ---
 What a second docking code (AutoDock Vina, #455) reuses; xtb is the first user.
@@ -11,8 +11,8 @@ What a second docking code (AutoDock Vina, #455) reuses; xtb is the first user.
 - **Receptor/ligand split** lives in the `.param` of the calculation, so any
   `ai.<code>` reads it: `ES.Runtype.Docking.LigandAtoms` (1-based atoms in the
   Builder's order, `1-5,9`; empty = the smallest connected molecule) and
-  `ES.Runtype.Docking.LigandCharge`. `scripts/parsers/docking.pl` `dockSplit()`
-  turns that into two index lists; `require "docking.pl"` in the ai script.
+  `ES.Runtype.Docking.LigandCharge`. `DockSplit::split` (`src/dock/DockSplit.C`, CLI `ecce-docksplit`)
+  turns that into two index lists; the ai script runs `ecce-docksplit --frag` (`ECCE_DOCKSPLIT`, else `$ECCE_HOME/bin`).
   Alkali and alkaline-earth ions use ionic radii in the bond test, else a K+
   inside a crown ether counts as bonded to it. There is no atom-pick UI yet:
   the Runtype Details dialog takes the numbers as text.

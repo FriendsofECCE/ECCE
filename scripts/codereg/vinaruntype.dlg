@@ -4,7 +4,7 @@
 
 dialog title="ECCE Vina Editor: Runtype Details"
 
-# The split keys are the shared docking layer's (docking.pl), as xTB's.
+# The split keys are the shared docking layer's (ecce-docksplit), as xTB's.
 # The editor writes the structure's ligand candidates to <out>.molecules and,
 # while Ligand atoms is empty, what the generator chose to <out>.note.
 box label="Receptor and Ligand"

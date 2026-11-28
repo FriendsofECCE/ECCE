@@ -233,6 +233,7 @@ def main():
     ap.add_argument("--keep", action="store_true")
     args = ap.parse_args()
     build = os.path.abspath(args.build)
+    os.environ.setdefault("ECCE_DOCKSPLIT", os.path.join(build, "ecce-docksplit"))
 
     deckChecks()
     boxCheck()

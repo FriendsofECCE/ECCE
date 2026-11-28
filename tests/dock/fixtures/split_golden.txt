@@ -1,0 +1,61 @@
+## 1hvr auto	1hvr-complex.pdb	
+atoms	1872
+ligand_n	46
+ligand_res	XK2263A
+ligand_atoms	1827-1872
+receptor_n	1826
+warn	the ligand was chosen automatically: residue XK2, 46 atoms (atoms 1827-1872). If that is not the molecule to dock, give the Ligand atoms in the Runtype Details.
+warn	the receptor holds identical chains (A, B); the ligand may be docked against any of them. Delete the extra chains in the Builder if one site is wanted.
+## 1e66 auto	1e66-complex.pdb	
+atoms	4293
+ligand_n	21
+ligand_res	HUX803A
+ligand_atoms	4273-4293
+receptor_n	4272
+warn	the ligand was chosen automatically: residue HUX, 21 atoms (atoms 4273-4293). If that is not the molecule to dock, give the Ligand atoms in the Runtype Details.
+## 1ke5 auto	1ke5-complex.pdb	
+atoms	2269
+ligand_n	23
+ligand_res	LS1299A
+ligand_atoms	2247-2269
+receptor_n	2246
+warn	the ligand was chosen automatically: residue LS1, 23 atoms (atoms 2247-2269). If that is not the molecule to dock, give the Ligand atoms in the Runtype Details.
+## 1err auto	1err-complex.pdb	
+atoms	3574
+ligand_n	34
+ligand_res	RAL600A
+ligand_atoms	3541-3574
+receptor_n	3540
+warn	the ligand was chosen automatically: residue RAL, 34 atoms (atoms 3541-3574). If that is not the molecule to dock, give the Ligand atoms in the Runtype Details.
+## 6lu7 auto	6lu7-complex.pdb	
+ERROR	docking error: the system is one molecule; give the ligand atoms in the Runtype Details
+## 6w63 auto	6w63-complex.pdb	
+atoms	4714
+ligand_n	66
+ligand_res	X77401A
+ligand_atoms	4649-4714
+receptor_n	4648
+warn	the ligand was chosen automatically: residue X77, 66 atoms (atoms 4649-4714). If that is not the molecule to dock, give the Ligand atoms in the Runtype Details.
+## 7rfw auto	7rfw-complex.pdb	
+ERROR	docking error: the system is one molecule; give the ligand atoms in the Runtype Details
+## 6m0k auto	6m0k-complex.pdb	
+ERROR	docking error: the system is one molecule; give the ligand atoms in the Runtype Details
+## 1hvr explicit 1827-1872	1hvr-complex.pdb	1827-1872
+atoms	1872
+ligand_n	46
+ligand_res	XK2263A
+ligand_atoms	1827-1872
+receptor_n	1826
+warn	the receptor holds identical chains (A, B); the ligand may be docked against any of them. Delete the extra chains in the Builder if one site is wanted.
+## 1hvr bad range	1hvr-complex.pdb	78792
+ERROR	docking error: ligand atom 78792 is not in the system (1872 atoms)
+## 1hvr not a number	1hvr-complex.pdb	1-5,x
+ERROR	docking error: ligand atoms '1-5,x': 'x' is not a number or a range
+## receptor only (no ligand)	1hvr-receptor.pdb	
+atoms	1826
+ligand_n	283
+ligand_res	GLY68A,HIS69A,LYS70A,ALA71A,ILE72A,GLY73A,THR74A,VAL75A,LEU76A,VAL77A,GLY78A,PRO79A,THR80A,PRO81A,VAL82A,ASN83A,ILE84A,ILE85A,GLY86A,ARG87A,ASN88A,LEU89A,LEU90A,THR91A,GLN92A,ILE93A,GLY94A,ALA95A,THR96A,LEU97A,ASN98A,PHE99A
+ligand_atoms	631-913
+receptor_n	1543
+warn	the ligand was chosen automatically: residue ALA/ARG/ASN/GLN/GLY/HIS/ILE/LEU/LYS/PHE/PRO/THR/VAL, 283 atoms (atoms 631-913). If that is not the molecule to dock, give the Ligand atoms in the Runtype Details.
+warn	the automatically chosen ligand is made of standard amino-acid or nucleotide residues, so the system may hold no ligand at all. Check the Ligand atoms in the Runtype Details.

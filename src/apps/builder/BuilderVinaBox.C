@@ -4,6 +4,7 @@
 //  details (ES.Runtype.Vina.*), which ai.vina turns into the config.
 #include "tdat/LigandSelect.H"
 #include "tdat/Residue.H"
+#include "dock/DockSplit.H"
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
@@ -88,7 +89,8 @@ TaskJob *Builder::vinaJob() const
 }
 
 
-Builder::VinaBox Builder::vinaBoxFromDetails(const std::map<string, string>& d)
+Builder::VinaBox Builder::vinaBoxFromDetails(const std::map<string, string>& d,
+                                             string *error)
 {
   auto get = [&](const string& k, const string& dflt) {
     auto it = d.find(k);
@@ -111,29 +113,25 @@ Builder::VinaBox Builder::vinaBoxFromDetails(const std::map<string, string>& d)
   // two.
   SGFragment *frag = getSG() ? getSG()->getFragment() : 0;
   const int n = frag ? frag->numAtoms() : 0;
+  // The split is DockSplit's, as ai.vina's (via ecce-docksplit), so the box
+  // follows the same ligand the job script will dock.
   vector<int> lig;
-  string spec = get("ES.Runtype.Docking.LigandAtoms", "");
-  for (char& c : spec) if (c == ',') c = ' ';
-  std::istringstream in(spec);
-  for (string part; in >> part; ) {
-    int x = 0, y = 0;
-    if (sscanf(part.c_str(), "%d-%d", &x, &y) == 2)
-      for (int i = x; i <= y; i++) lig.push_back(i - 1);
-    else if (sscanf(part.c_str(), "%d", &x) == 1) lig.push_back(x - 1);
-  }
-  if (lig.empty() && n) {
-    // docking.pl's default: the smallest molecule.
-    vector<int> root(n);
-    for (int i = 0; i < n; i++) root[i] = i;
-    std::function<int(int)> find = [&](int i) { return root[i] == i ? i : root[i] = find(root[i]); };
-    std::unique_ptr<vector<TBond*> > bonds(frag->bonds());
-    for (TBond *b : *bonds)
-      root[find(b->atom1()->index())] = find(b->atom2()->index());
-    std::map<int, vector<int> > parts;
-    for (int i = 0; i < n; i++) parts[find(i)].push_back(i);
-    if (parts.size() > 1)
-      for (const auto& p : parts)
-        if (lig.empty() || p.second.size() < lig.size()) lig = p.second;
+  if (n) {
+    vector<DockSplitAtom> atoms(n);
+    for (int i = 0; i < n; i++) {
+      TAtm *at = frag->atomRef(i);
+      DockSplitAtom& a = atoms[i];
+      a.element = at->atomicSymbol();
+      a.x = at->coordinates()[0]; a.y = at->coordinates()[1]; a.z = at->coordinates()[2];
+      if (Residue *r = at->getResidue()) {
+        a.resName = r->name();
+        a.resNum = std::to_string(at->residueNumber());
+        a.chain = string(1, r->chain());
+      }
+    }
+    DockSplitResult r = DockSplit::split(atoms, get("ES.Runtype.Docking.LigandAtoms", ""));
+    if (r.ok) lig = r.ligand;
+    else if (error) *error = r.error;
   }
   double lo[3] = {1e30, 1e30, 1e30}, hi[3] = {-1e30, -1e30, -1e30};
   int used = 0;
@@ -250,7 +248,8 @@ void Builder::updateVinaBox()
     for (const auto& kv : *g) d[kv.first] = kv.second->getValueAsString();
     delete g;
   }
-  VinaBox box = vinaBoxFromDetails(d);
+  string why;
+  VinaBox box = vinaBoxFromDetails(d, &why);
   VinaBox used;
   if (job->getState() > ResourceDescriptor::STATE_READY &&
       vinaBoxFromDeck(ic, used)) {
@@ -259,6 +258,8 @@ void Builder::updateVinaBox()
     box = used;
   }
   drawVinaBox(box);
+  // Without a box the user needs the reason, or the box just vanishes.
+  if (!box.valid && !why.empty()) showMessage(why, true);
 }
 
 
@@ -266,7 +267,10 @@ void Builder::vinaDetailsChanged(const string& url, const std::map<string, strin
 {
   if (!vinaJob() || p_calculation->getURL().toString() != url) return;
   if (live) {
-    drawVinaBox(vinaBoxFromDetails(*live));
+    string why;
+    VinaBox box = vinaBoxFromDetails(*live, &why);
+    drawVinaBox(box);
+    if (!box.valid && !why.empty()) showMessage(why, true);
   } else {
     EDSIFactory::changePoolResource(url);
     updateVinaBox();
