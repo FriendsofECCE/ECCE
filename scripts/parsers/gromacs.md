@@ -1,4 +1,4 @@
-#!/usr/bin/env perl
+#!/usr/bin/env python3
 ################################################################################
 # Purpose:
 # The speed distributions and mean-square displacements of a GROMACS run, as
@@ -10,16 +10,22 @@
 # which decode them with include/util/MdAnalysis.H and src/util/mdanalysis.
 ################################################################################
 
-$| = 1;
-my (@speed, @msd);
-while (<STDIN>) {
-  push(@speed, $1) if (/^ECCE-MDSPEED\s+(\S+)\s*$/);
-  push(@msd, $1) if (/^ECCE-MDMSD\s+(\S+)\s*$/);
-}
-foreach my $v (["MDSPEED", \@speed], ["MDMSD", \@msd]) {
-  my $n = scalar(@{$v->[1]});
-  next if ($n == 0);
-  print "key: $v->[0]\nsize:\n$n\nrowlabels:\n", join(" ", 1 .. $n),
-        "\nvalues:\n", join(" ", @{$v->[1]}), "\nEND\n";
-}
-exit(0);
+import re
+import sys
+from xtb_parse import configure_streams
+
+configure_streams()
+
+speed, msd = [], []
+for raw in sys.stdin.buffer:
+    line = raw.decode("utf-8", "replace")
+    for pattern, values in ((r"^ECCE-MDSPEED\s+(\S+)\s*$", speed),
+                            (r"^ECCE-MDMSD\s+(\S+)\s*$", msd)):
+        if re.search(pattern, line, re.ASCII):
+            values.append(re.search(pattern.encode("ascii"), raw, re.ASCII).group(1))
+for key, values in (("MDSPEED", speed), ("MDMSD", msd)):
+    if values:
+        n = len(values)
+        header = "key: {}\nsize:\n{}\nrowlabels:\n{}\nvalues:\n".format(
+            key, n, " ".join(str(i) for i in range(1, n + 1)))
+        sys.stdout.buffer.write(header.encode("ascii") + b" ".join(values) + b"\nEND\n")

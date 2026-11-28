@@ -1,4 +1,4 @@
-#!/usr/bin/env perl
+#!/usr/bin/env python3
 ################################################################################
 #
 # Purpose:
@@ -20,49 +20,66 @@
 #
 ################################################################################
 
-$| = 1;
+import math
+import re
+import sys
+from xtb_parse import configure_streams, number
 
-my (@coords, $labels, $i, @box);
-use constant DEG => 3.14159265358979 / 180.0;
-sub flush {
-  return unless @coords;
-  print "key: GEOMTRACE\n";
-  print "size:\n1 " . scalar(@coords) . " 3\n";
-  print "rowlabels:\n$labels\n";
-  print "columnlabels:\nX Y Z\n";
-  print "values:\n";
-  print " $_\n" for @coords;
-  print "units:\nAngstrom\n";
-  print "END\n";
-  if (@box == 6) {
-    # a along x, b in the xy plane: the PDB convention, which is GROMACS's.
-    my ($a, $b, $c) = @box[0..2];
-    my ($ca, $cb, $cg) = map { cos($_ * DEG) } @box[3..5];
-    my $sg = sin($box[5] * DEG);
-    my $cy = ($ca - $cb * $cg) / $sg;
-    my $cz = 1 - $cb * $cb - $cy * $cy;
-    my @v = ($a, 0, 0, $b * $cg, $b * $sg, 0,
-             $c * $cb, $c * $cy, $c * sqrt($cz > 0 ? $cz : 0));
-    print "key: LATTICEVEC\nsize:\n1 3 3\nrowlabels:\n0 1 2\ncolumnlabels:\nX Y Z\nvalues:\n";
-    for (my $k = 0; $k < 9; $k += 3) {
-      printf(" %.6f %.6f %.6f\n", map { abs($_) < 5e-7 ? 0 : $_ } @v[$k..$k+2]);
-    }
-    print "units:\nAngstrom\nEND\n";
-  }
-  @coords = (); $labels = ""; $i = 0; @box = ();
-}
+configure_streams()
+DEG = 3.14159265358979 / 180.0
+coords, labels, box = [], [], []
 
-while (<STDIN>) {
-  if (/^ECCE-TRAJ end/) {
-    flush();
-  } elsif (/^ECCE-TRAJ box\s+(.*?)\s*$/) {
-    @box = split(/\s+/, $1);
-    @box = () unless (@box == 6);
-  } elsif (/^\s*([A-Za-z]{1,2})\s+(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)\s*$/) {
-    push(@coords, "$2 $3 $4");
-    $i++;
-    $labels .= " $i-$1";
-  }
-}
-flush();
-exit(0);
+
+def flush():
+    if not coords:
+        return
+    print("key: GEOMTRACE\nsize:\n1 {} 3\nrowlabels:\n{}".format(len(coords), "".join(labels)))
+    print("columnlabels:\nX Y Z\nvalues:")
+    for coord in coords:
+        print(" " + coord)
+    print("units:\nAngstrom\nEND")
+    if len(box) == 6:
+        # a along x, b in the xy plane: the PDB convention, which is GROMACS's.
+        a, b, c, alpha, beta, gamma = [number(value) for value in box]
+        ca, cb, cg = [math.cos(value * DEG) for value in (alpha, beta, gamma)]
+        sg = math.sin(gamma * DEG)
+        if sg == 0:
+            # Preserve the legacy diagnostic location and status for a degenerate
+            # gamma angle so callers receive the same failure record.
+            sys.stdout.flush()
+            sys.stderr.write("Illegal division by zero at {} line 42, <STDIN> line {}.\n".format(sys.argv[0], line_number))
+            sys.exit(255)
+        cy = (ca - cb * cg) / sg
+        cz = 1 - cb * cb - cy * cy
+        vectors = (a, 0, 0, b * cg, b * sg, 0,
+                   c * cb, c * cy, c * math.sqrt(cz if cz > 0 else 0))
+        print("key: LATTICEVEC\nsize:\n1 3 3\nrowlabels:\n0 1 2\ncolumnlabels:\nX Y Z\nvalues:")
+        for k in range(0, 9, 3):
+            print(" %.6f %.6f %.6f" % tuple(0 if abs(value) < 5e-7 else value
+                                             for value in vectors[k:k + 3]))
+        print("units:\nAngstrom\nEND")
+    coords.clear()
+    labels.clear()
+    box.clear()
+
+
+line_number = 0
+for raw in sys.stdin.buffer:
+    line_number += 1
+    line = raw.decode("utf-8", "replace")
+    end = re.search(r"^ECCE-TRAJ end", line, re.ASCII)
+    cell = re.search(r"^ECCE-TRAJ box\s+(.*?)\s*$", line, re.ASCII)
+    atom = re.search(r"^\s*([A-Za-z]{1,2})\s+(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)\s*$", line, re.ASCII)
+    if end:
+        flush()
+    elif cell:
+        # split(/\s+/) retains a leading empty item, unlike split(' ').
+        box[:] = re.split(r"\s+", cell.group(1), flags=re.ASCII)
+        while box and box[-1] == "":
+            box.pop()
+        if len(box) != 6:
+            box.clear()
+    elif atom:
+        coords.append(" ".join(atom.groups()[1:]))
+        labels.append(" {}-{}".format(len(coords), atom.group(1)))
+flush()

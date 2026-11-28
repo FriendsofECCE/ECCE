@@ -1,4 +1,4 @@
-#!/usr/bin/env perl
+#!/usr/bin/env python3
 ################################################################################
 #
 # Purpose:
@@ -9,15 +9,15 @@
 #
 ################################################################################
 
-$| = 1;
+import re
+import sys
+from xtb_parse import configure_streams
 
-while (<STDIN>) {
-  if (/^\s*\d+\s+(-?\d+\.\d+)\s*$/) {
-    print "key: TIMEVEC\n";
-    print "size:\n1\n";
-    print "values:\n $1\n";
-    print "units:\nps\n";
-    print "END\n";
-    last;
-  }
-}
+configure_streams()
+
+for raw in sys.stdin.buffer:
+    line = raw.decode("utf-8", "replace")
+    match = re.search(r"^\s*\d+\s+(-?\d+\.\d+)\s*$", line, re.ASCII)
+    if match:
+        print("key: TIMEVEC\nsize:\n1\nvalues:\n {}\nunits:\nps\nEND".format(match.group(1)))
+        break

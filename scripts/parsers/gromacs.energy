@@ -1,15 +1,9 @@
-#!/usr/bin/env perl
+#!/usr/bin/env python3
 ################################################################################
 #
 # Purpose:
 # Extracts energies from a GROMACS mdrun .log block into ECCE's TE and
 # TEVEC properties.
-#
-# SPIKE / PROOF OF CONCEPT. This exists to establish that GROMACS output
-# can be monitored through ECCE's existing eccejobmonitor mechanism at
-# all, as groundwork for docs/GROMACS_ROADMAP.md. It is NOT reachable
-# from the GUI: there is no GROMACS.edml, so no calculation can be
-# created for it. See the roadmap for what a real integration needs.
 #
 # Input is one block of a real mdrun log (verified against GROMACS
 # 2025.2):
@@ -40,154 +34,92 @@
 # published as they are.
 #
 ################################################################################
+import re
+import sys
+from xtb_parse import WS, configure_streams, fields
 
-$| = 1;
+configure_streams()
 
-($key, $runtype, $ucCategory, $theory) = @ARGV;
-
-use constant FIELD_WIDTH => 15;
-
-my %term;
-my $sawEnergies = 0;
-my $done = 0;
-
-#  Fed a block that starts at the "Step  Time" header, because that is
-#  what distinguishes a REAL STEP from the run-summary block GROMACS
-#  prints at the end:
-#
+terms = {}
+saw_energies = False
+closed = False
+# A real step has a Step Time header; the run summary instead starts:
 #     <====  A V E R A G E S  ====>
 #     Statistics over 501 steps using 6 frames
 #        Energies (kJ/mol)
-#        ...
-#
-#  That trailing block has the identical "Energies (kJ/mol)" marker and
-#  no Step header. Anchoring on the energies alone would parse it as one
-#  more step, putting a final point on every energy-vs-step plot whose
-#  value is an AVERAGE OVER THE RUN -- plausible-looking and wrong. The
-#  500-step fixture has 6 step markers and 7 energy blocks, which is how
-#  this was noticed.
-#
-#  The block is fed with a generous fixed line count (see gromacs.desc),
-#  so this may over-read into whatever follows. Stopping as soon as one
-#  complete energies section has been closed by a blank line is what
-#  makes that safe: without it, an over-read would pick up the NEXT
-#  step's numbers and silently report them for this one.
-while (<STDIN>) {
-  chomp;
-  last if ($done);
+# The summary repeats the energies marker but has no Step header. The
+# six-step 500-step fixture has seven energy blocks, including that average.
+# gromacs.desc lets gromacs.mdavg consume the summary through Total Virial,
+# so its repeated marker cannot fire this parser. Real-step sections start
+# at Energies and end at the closing blank line.
+rows = iter(sys.stdin.buffer)
+for raw in rows:
+    raw = raw[:-1] if raw.endswith(b"\n") else raw
+    line = raw.decode("utf-8", "replace")
+    if re.search(r"^\s*Step\s+Time\s*$", line, re.ASCII):
+        continue
+    if re.search(r"^\s*Energies\s*\(", line, re.ASCII):
+        saw_energies = True
+        continue
+    if not saw_energies:
+        continue
+    if re.search(r"^\s*$", line, re.ASCII):
+        closed = True
+        break
+    if not re.search(r"[A-Za-z]", line, re.ASCII):
+        continue
+    # A block is a sequence of header/value pairs: GROMACS wraps at five
+    # terms, so a minimisation prints one pair and dynamics prints two:
+    #        LJ (SR)   Coulomb (SR)   Coul. recip.      Potential    Kinetic En.
+    #    1.37191e+03   -1.02702e+04    1.01441e+02   -8.79686e+03    1.45954e+03
+    #   Total Energy  Conserved En.    Temperature Pressure (bar)
+    #   -7.33732e+03   -8.13312e+03    3.01028e+02   -8.59611e+02
+    # Stopping after the first pair would report Potential for dynamics while
+    # missing the preferred Total Energy on the second pair. Header widths
+    # count bytes; decoding first would move non-ASCII columns.
+    names = [raw[i:i + 15].strip(WS.encode("ascii")) for i in range(0, len(raw), 15)]
+    names = [name for name in names if name]
+    if not names:
+        continue
+    values = next(rows, None)
+    if values is None:
+        break
+    # Match the permissive text view, but retain each original value's bytes.
+    decoded = fields(values.decode("utf-8", "replace"))
+    raw_values = re.findall(rb"[^ \t\n\r\f\v]+", values, re.ASCII)
+    if len(decoded) == len(names):
+        terms.update(zip(names, raw_values))
 
-  next if (/^\s*Step\s+Time\s*$/);   # not normally fed; see gromacs.desc
-  if (/^\s*Energies\s*\(/) { $sawEnergies = 1; next; }
 
-  if (!$sawEnergies) {
-    next;                                   # step number, blanks
-  }
+def emit(key, value, units, leading=True):
+    header = "key: {}\nsize:\n1\nvalues:\n".format(key).encode("ascii")
+    sys.stdout.buffer.write(header + (b" " if leading else b"") + value +
+                            "\nunits:\n{}\nEND\n".format(units).encode("ascii"))
 
-  if (/^\s*$/) {
-    $done = 1;                              # blank closes the section
-    last;
-  }
-
-  #  A block is a SEQUENCE of header/value row pairs, not one pair.
-  #  GROMACS wraps at five terms, so a minimisation prints one pair and
-  #  a dynamics run prints two:
-  #
-  #        LJ (SR)   Coulomb (SR)   Coul. recip.      Potential    Kinetic En.
-  #    1.37191e+03   -1.02702e+04    1.01441e+02   -8.79686e+03    1.45954e+03
-  #   Total Energy  Conserved En.    Temperature Pressure (bar)
-  #   -7.33732e+03   -8.13312e+03    3.01028e+02   -8.59611e+02
-  #
-  #  An earlier version stopped after the first value row. It still found
-  #  "Potential", so it still produced a plausible energy for a dynamics
-  #  run, while never seeing "Total Energy" -- the value it says it
-  #  prefers. Silently returning the wrong quantity, which is this
-  #  codebase's most repeated failure shape. Found by running an actual
-  #  NVT job rather than reasoning about the format.
-  if (/[A-Za-z]/) {
-    #  Fixed-width, not whitespace-delimited: "LJ (SR)" and
-    #  "Coul. recip." both contain spaces.
-    my $line = $_;
-    my @names = ();
-    while (length($line) > 0) {
-      my $field = substr($line, 0, FIELD_WIDTH);
-      $line = (length($line) > FIELD_WIDTH)
-            ? substr($line, FIELD_WIDTH) : "";
-      $field =~ s/^\s+//;
-      $field =~ s/\s+$//;
-      push(@names, $field) if ($field ne "");
-    }
-    next if (scalar(@names) == 0);
-
-    my $values = <STDIN>;
-    last if (!defined($values));
-    chomp($values);
-    my @values = split(' ', $values);
-    next if (scalar(@values) != scalar(@names));
-
-    for (my $i = 0; $i < scalar(@names); $i++) {
-      $term{$names[$i]} = $values[$i];
-    }
-  }
-}
-
-#  Only the energies section is required. gromacs.desc anchors on the
-#  "Step Time" header and then skips past it, so this script is handed
-#  the energies and nothing else -- it cannot distinguish a real step
-#  from the end-of-run AVERAGES block by their text, and excluding the
-#  latter is the Begin anchor's job. Said explicitly because it is the
-#  kind of division of responsibility that is easy to break later by
-#  "simplifying" the anchor onto the energies marker.
-#  REQUIRE the energies section to have been CLOSED by a blank line
-#  within the text we were given. A truncated block is the dangerous
-#  case, not the empty one: GROMACS wraps its terms at five per row, so
-#  a dynamics block cut short after the first header/value pair still
-#  contains "Potential" and would happily report it -- while "Total
-#  Energy", on the second pair, never arrives. That is a silently WRONG
-#  quantity rather than a missing one.
-#
-#  It is reachable in practice. gromacs.desc frames blocks with a line
-#  count (see there for why an End pattern cannot work), and GROMACS
-#  interleaves messages into the block:
-#
+# Only the energies section is required; excluding the summary is the
+# .desc averages entry's job. Require the section to close with a blank line:
+# a block truncated after the first pair still has Potential but may lack
+# Total Energy, so emitting it would publish a plausible wrong quantity.
+# GROMACS can interleave messages after the time row, for example:
 #      Step           Time
 #        500        1.00000
-#
 #      Writing checkpoint, step 500 at Tue Sep 22 18:15:48 2026
-#
-#
 #      Energies (kJ/mol)
-#
-#  which pushes the second pair past the end of the fed range. Refusing
-#  the block loses that step; reporting it would have published the
-#  potential energy as if it were the total. Losing a data point is
-#  recoverable, publishing a wrong one is not.
-exit(0) if (!$sawEnergies || !$done);
-
+# These extra lines make a fixed line-count boundary unsafe.
+if not saw_energies or not closed:
+    sys.exit(0)
 #  "Total Energy" is present for a dynamics run; a minimisation prints
 #  only "Potential". Prefer the total when it exists, because that is what
 #  the user means by the energy of an MD frame.
-my $energy;
-foreach my $wanted ("Total Energy", "Potential") {
-  if (defined($term{$wanted})) {
-    $energy = $term{$wanted};
-    last;
-  }
-}
-exit(0) if (!defined($energy));
-
-#  Both keys on every invocation, which is the pattern CLAUDE.md
-#  recommends: the plain overwriting TE ends up holding the last value,
+energy = terms.get(b"Total Energy", terms.get(b"Potential"))
+if energy is None:
+    sys.exit(0)
+#  Both keys on every invocation: the plain overwriting TE holds the last value,
 #  while the step-vector TEVEC accumulates the whole trace from the same
 #  calls. That avoids two .desc entries fighting over one Begin line.
-foreach my $k ("TE", "TEVEC") {
-  print "key: $k\n";
-  print "size:\n1\n";
-  print "values:\n $energy\n";
-  print "units:\nkJoule/Mole\n";
-  print "END\n";
-}
-
-#  Pressure comes out of the SAME block, already parsed into %term above,
+for key in ("TE", "TEVEC"):
+    emit(key, energy, "kJoule/Mole")
+#  Pressure comes out of the SAME block, already parsed into terms,
 #  and is emitted from this one entry rather than a second .desc entry --
 #  the marker line is identical, and two entries sharing a Begin would
 #  leave one of them permanently starved (PDMatchBegin returns only the
@@ -203,42 +135,23 @@ foreach my $k ("TE", "TEVEC") {
 #  those against GEOMTRACE.  MD tasks have one (gromacs.geomtrace, thinned
 #  to at most 100 frames), so the plot point of a step with no frame goes to
 #  the nearest frame (GTStepCmd); a minimisation has none.  A minimisation
-#  run prints no pressure at all, hence the defined() guard.
-if (defined($term{"Pressure (bar)"})) {
-  print "key: PRESSURE\n";
-  print "size:\n1\n";
-  print "values:\n" . $term{"Pressure (bar)"} . "\n";
-  print "units:\nBar\n";
-  print "END\n";
-
-  #  And the per-step trace, so a run's pressure can be plotted against
-  #  step.  It is shown by "Geometry Step Plots", which plots any step
-  #  vector on its own.
-  print "key: PRESSVEC\n";
-  print "size:\n1\n";
-  print "values:\n" . $term{"Pressure (bar)"} . "\n";
-  print "units:\nBar\n";
-  print "END\n";
-}
-
+#  run prints no pressure at all, hence the membership guard.
+if b"Pressure (bar)" in terms:
+    #  And the per-step trace, so a run's pressure can be plotted against
+    #  step.  It is shown by "Geometry Step Plots", which plots any step
+    #  vector on its own.
+    for key in ("PRESSURE", "PRESSVEC"):
+        emit(key, terms[b"Pressure (bar)"], "Bar", False)
 #  Temperature, likewise a trace.  Only dynamics prints it.
-if (defined($term{"Temperature"})) {
-  print "key: TEMPVEC\n";
-  print "size:\n1\n";
-  print "values:\n" . $term{"Temperature"} . "\n";
-  print "units:\nKelvin\n";
-  print "END\n";
-}
+if b"Temperature" in terms:
+    emit("TEMPVEC", terms[b"Temperature"], "Kelvin", False)
 #  The MD Summary panel's per-step series (#334).  Potential and kinetic
 #  energy have their own keys because TEVEC holds the total, and PEVEC/KEVEC
 #  are other codes'.  Volume and density only exist in a pressure-coupled run.
-my %series = ("Potential" => ["MDPEVEC", "kJoule/Mole"],
-              "Kinetic En." => ["MDKEVEC", "kJoule/Mole"],
-              "Volume" => ["MDVOLVEC", "nm^3"],
-              "Density" => ["MDDENSVEC", "kg/m^3"]);
-foreach my $term (sort keys %series) {
-  next if (!defined($term{$term}));
-  print "key: $series{$term}[0]\nsize:\n1\nvalues:\n $term{$term}\n";
-  print "units:\n$series{$term}[1]\nEND\n";
-}
-exit(0);
+series = {b"Potential": ("MDPEVEC", "kJoule/Mole"),
+          b"Kinetic En.": ("MDKEVEC", "kJoule/Mole"),
+          b"Volume": ("MDVOLVEC", "nm^3"), b"Density": ("MDDENSVEC", "kg/m^3")}
+for term in sorted(series):
+    if term in terms:
+        key, units = series[term]
+        emit(key, terms[term], units)

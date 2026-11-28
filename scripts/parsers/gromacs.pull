@@ -1,4 +1,4 @@
-#!/usr/bin/env perl
+#!/usr/bin/env python3
 ################################################################################
 # Purpose:
 # The pull code's output of a GROMACS run: gensub joins pullx.xvg (the pull
@@ -8,17 +8,24 @@
 # PULLFORCE of the Pull Force panel.
 ################################################################################
 
-$| = 1;
-my (@t, @x, @f);
-while (<STDIN>) {
-  next if (!/^ECCE-PULL\s+(\S+)\s+(\S+)\s+(\S+)\s*$/);
-  push(@t, $1); push(@x, $2); push(@f, $3);
-}
-exit(0) if (@t < 2);
-my $n = scalar(@t);
-foreach my $v (["PULLTIME", "ps", \@t], ["PULLDIST", "nm", \@x],
-               ["PULLFORCE", "kJ/mol/nm", \@f]) {
-  print "key: $v->[0]\nsize:\n$n\nvalues:\n", join("\n", map { " $_" } @{$v->[2]}),
-        "\nunits:\n$v->[1]\nEND\n";
-}
-exit(0);
+import re
+import sys
+from xtb_parse import configure_streams
+
+configure_streams()
+
+times, coords, forces = [], [], []
+pattern = r"^ECCE-PULL\s+(\S+)\s+(\S+)\s+(\S+)\s*$"
+for raw in sys.stdin.buffer:
+    line = raw.decode("utf-8", "replace")
+    if re.search(pattern, line, re.ASCII):
+        match = re.search(pattern.encode("ascii"), raw, re.ASCII)
+        for values, value in zip((times, coords, forces), match.groups()):
+            values.append(value)
+if len(times) >= 2:
+    for key, units, values in (("PULLTIME", "ps", times), ("PULLDIST", "nm", coords),
+                               ("PULLFORCE", "kJ/mol/nm", forces)):
+        header = "key: {}\nsize:\n{}\nvalues:\n".format(key, len(times))
+        sys.stdout.buffer.write(header.encode("ascii") +
+                                b"\n".join(b" " + value for value in values) +
+                                ("\nunits:\n{}\nEND\n".format(units)).encode("ascii"))

@@ -167,7 +167,7 @@ def main():
             if not os.path.exists(t):
                 return None, ""
             return open(t).read().count("ECCE-TRAJ frame"), subprocess.run(
-                ["perl", os.path.join(ROOT, "scripts", "parsers", "gromacs.geomtrace")],
+                [sys.executable, os.path.join(ROOT, "scripts", "parsers", "gromacs.geomtrace")],
                 stdin=open(t), capture_output=True, text=True).stdout.count("key: GEOMTRACE")
         xtc = open(os.path.join(work, "md.xtc"), "rb").read()
         full, parsed = frames_after(xtc)

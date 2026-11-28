@@ -742,3 +742,20 @@ status zero. This bypasses the replayer's newline normalization so that a
 stream reader cannot turn the malformed record into two valid charges.
 It also checks the importer's missing-geometry failure with a stray byte in
 the coordinate filename: the diagnostic must preserve that byte, as Perl did.
+
+## GROMACS parser byte fixtures (#868)
+
+`gromacs/water_em_bytes.log` copies the existing real `water_em.log` and
+appends a time-row decoy led by UTF-8 U+00A0 plus a comment containing byte
+FF. Its per-script output must equal the clean sibling byte for byte. The
+original Perl captures are the anchor for `expected/gromacs-bytes.json`.
+
+`gromacs/pull.txt` is the complete 41-row `ecce-parse-pull.txt` produced by
+the existing `tests/gromacs_md/pull_test.py` on 2026-11-28. That test prepares
+two copies of the 1L2Y fixture, minimises them and pulls their centres of
+mass for 4 ps at 0.03 nm/ps with a 5000 kJ/mol/nm² spring. The real gensub
+pipeline joins `pullx.xvg` and `pullf.xvg`; these 1362 bytes are unedited.
+The run's slope assertion failed (0.0489 versus 0.030 nm/ps), but this
+fixture retains the actual output for parser compatibility, which does
+not depend on the slope assertion. Regenerate with the existing pull test
+and preserve the joined file before its temporary directory is removed.

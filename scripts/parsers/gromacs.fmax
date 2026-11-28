@@ -1,4 +1,4 @@
-#!/usr/bin/env perl
+#!/usr/bin/env python3
 ################################################################################
 # Purpose:
 # The maximum force a GROMACS minimisation ends with (#334), from the line
@@ -6,10 +6,16 @@
 # mdrun prints it once, at the end, so there is no per-step series.
 ################################################################################
 
-$| = 1;
-while (<STDIN>) {
-  next if (!/^Maximum force\s*=\s*(\S+)/);
-  print "key: FMAX\nsize:\n1\nvalues:\n $1\nunits:\nkJ/mol/nm\nEND\n";
-  last;
-}
-exit(0);
+import re
+import sys
+from xtb_parse import configure_streams
+
+configure_streams()
+
+for raw in sys.stdin.buffer:
+    line = raw.decode("utf-8", "replace")
+    if re.search(r"^Maximum force\s*=\s*(\S+)", line, re.ASCII):
+        value = re.search(rb"^Maximum force\s*=\s*(\S+)", raw, re.ASCII).group(1)
+        sys.stdout.buffer.write(b"key: FMAX\nsize:\n1\nvalues:\n " + value +
+                                b"\nunits:\nkJ/mol/nm\nEND\n")
+        break

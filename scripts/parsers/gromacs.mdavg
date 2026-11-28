@@ -1,4 +1,4 @@
-#!/usr/bin/env perl
+#!/usr/bin/env python3
 ################################################################################
 # Purpose:
 # Reads the end-of-run "A V E R A G E S" block of a GROMACS .log (#334): the
@@ -11,42 +11,53 @@
 # of names is followed by a row of values.
 ################################################################################
 
-$| = 1;
-use constant FIELD_WIDTH => 15;
+import re
+import sys
+from xtb_parse import WS, configure_streams, fields
 
-my %term;
-my $in = 0;
-while (<STDIN>) {
-  chomp;
-  if (/^\s*Energies\s*\(/) { $in = 1; next; }
-  next if (!$in);
-  last if (/^\s*$/ || /Total Virial/);
-  next if (!/[A-Za-z]/);
-  my @names;
-  my $line = $_;
-  while (length($line) > 0) {
-    my $f = substr($line, 0, FIELD_WIDTH);
-    $line = length($line) > FIELD_WIDTH ? substr($line, FIELD_WIDTH) : "";
-    $f =~ s/^\s+|\s+$//g;
-    push(@names, $f) if ($f ne "");
-  }
-  my $values = <STDIN>;
-  last if (!defined($values));
-  my @v = split(' ', $values);
-  next if (@v != @names);
-  @term{@names} = @v;
-}
+configure_streams()
 
-my %out = ("Potential" => ["MDPEAVG", "kJoule/Mole"],
-           "Kinetic En." => ["MDKEAVG", "kJoule/Mole"],
-           "Total Energy" => ["MDTEAVG", "kJoule/Mole"],
-           "Temperature" => ["MDTEMPAVG", "Kelvin"],
-           "Pressure (bar)" => ["MDPRESAVG", "Bar"],
-           "Volume" => ["MDVOLAVG", "nm^3"],
-           "Density" => ["MDDENSAVG", "kg/m^3"]);
-foreach my $t (sort keys %out) {
-  next if (!defined($term{$t}));
-  print "key: $out{$t}[0]\nsize:\n1\nvalues:\n $term{$t}\n";
-  print "units:\n$out{$t}[1]\nEND\n";
-}
-exit(0);
+terms = {}
+saw_energies = False
+rows = iter(sys.stdin.buffer)
+for raw in rows:
+    raw = raw[:-1] if raw.endswith(b"\n") else raw
+    line = raw.decode("utf-8", "replace")
+    if re.search(r"^\s*Energies\s*\(", line, re.ASCII):
+        saw_energies = True
+        continue
+    if not saw_energies:
+        continue
+    if re.search(r"^\s*$", line, re.ASCII) or re.search(r"Total Virial", line, re.ASCII):
+        break
+    if not re.search(r"[A-Za-z]", line, re.ASCII):
+        continue
+    # Header widths count bytes; decoding first would move non-ASCII columns.
+    names = [raw[i:i + 15].strip(WS.encode("ascii")) for i in range(0, len(raw), 15)]
+    names = [name for name in names if name]
+
+    values = next(rows, None)
+    if values is None:
+        break
+    # Match the permissive text view, but retain each original value's bytes.
+    decoded = fields(values.decode("utf-8", "replace"))
+    raw_values = re.findall(rb"[^ \t\n\r\f\v]+", values, re.ASCII)
+    if len(decoded) == len(names):
+        terms.update(zip(names, raw_values))
+
+
+def emit(key, value, units, leading=True):
+    header = "key: {}\nsize:\n1\nvalues:\n".format(key).encode("ascii")
+    sys.stdout.buffer.write(header + (b" " if leading else b"") + value +
+                            "\nunits:\n{}\nEND\n".format(units).encode("ascii"))
+
+outputs = {b"Potential": ("MDPEAVG", "kJoule/Mole"),
+           b"Kinetic En.": ("MDKEAVG", "kJoule/Mole"),
+           b"Total Energy": ("MDTEAVG", "kJoule/Mole"),
+           b"Temperature": ("MDTEMPAVG", "Kelvin"),
+           b"Pressure (bar)": ("MDPRESAVG", "Bar"),
+           b"Volume": ("MDVOLAVG", "nm^3"), b"Density": ("MDDENSAVG", "kg/m^3")}
+for term in sorted(outputs):
+    if term in terms:
+        key, units = outputs[term]
+        emit(key, terms[term], units)
