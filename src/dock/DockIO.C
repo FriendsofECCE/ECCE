@@ -37,6 +37,10 @@ bool DockReader::readSdf(const std::string& path, DockMol& mol, std::string& err
   std::getline(is, l1); std::getline(is, l2); std::getline(is, l3);
   std::getline(is, counts);
   if (counts.size() < 6) { err = "short counts line in " + path; return false; }
+  if (counts.find("V3000") != std::string::npos) {
+    err = "V3000 molfiles need Open Babel (obabel), which was not found";
+    return false;
+  }
   int na = atoi(counts.substr(0,3).c_str());
   int nb = atoi(counts.substr(3,3).c_str());
   if (na <= 0) { err = "no atoms in " + path; return false; }
@@ -80,6 +84,135 @@ bool DockReader::readSdf(const std::string& path, DockMol& mol, std::string& err
     if (line.compare(0, 6, "M  END") == 0) break;
   }
   mol.perceive(false);
+  return true;
+}
+
+// ----------------------------------------------------------------- MOL2 ---
+
+namespace {
+
+// Element for a SYBYL type ("C.ar", "Cl", "N.am") or, for the dummy types,
+// from the atom name; 0 means the atom is not a real one and is skipped.
+int mol2Element(const std::string& type, const std::string& name)
+{
+  std::string el = type.substr(0, type.find('.'));
+  if (el == "LP") return 0;
+  if (el == "Du" || el == "Any" || el == "Hal" || el == "Het" || el == "Hev") {
+    if (el != "Du") return 0;
+    // "Fe", "FE1" -> Fe, "C12", "CD1" -> C: a two-letter reading counts only
+    // when it is spelt as a symbol or names a metal, so carbon names stay C.
+    if (name.size() >= 2 && isalpha((unsigned char)name[1])) {
+      int z = DockMol::elementFromSymbol(name.substr(0, 2));
+      if (z && (islower((unsigned char)name[1]) || DockMol::isMetal(z)))
+        return z;
+    }
+    return name.empty() ? 0 :
+      DockMol::elementFromSymbol(std::string(1, name[0]));
+  }
+  return DockMol::elementFromSymbol(el);
+}
+
+}
+
+bool DockReader::readMol2(const std::string& path, DockMol& mol,
+                          std::string& err)
+{
+  std::ifstream is(path.c_str());
+  if (!is) { err = "cannot open " + path; return false; }
+  mol.atoms.clear(); mol.bonds.clear();
+  std::map<int,int> byId;
+  std::string line, section;
+  int nmol = 0;
+  while (std::getline(is, line)) {
+    std::string t = trim(line);
+    if (t.empty() || t[0] == '#') continue;
+    if (t.compare(0, 9, "@<TRIPOS>") == 0) {
+      section = t.substr(9);
+      if (section == "MOLECULE" && ++nmol > 1) break;   // first molecule only
+      continue;
+    }
+    std::istringstream ss(t);
+    if (section == "ATOM") {
+      int id; std::string name, type; DockAtom a;
+      if (!(ss >> id >> name >> a.x >> a.y >> a.zc >> type)) continue;
+      a.z = mol2Element(type, name);
+      if (a.z == 0) continue;
+      a.name = name;
+      int subst; std::string sname; double q;
+      if (ss >> subst >> sname) {
+        a.resSeq = subst; a.resName = sname.substr(0, 3);
+        if (ss >> q) a.charge = q;
+      }
+      byId[id] = (int)mol.atoms.size();
+      mol.atoms.push_back(a);
+    } else if (section == "BOND") {
+      int id, a1, a2; std::string ty;
+      if (!(ss >> id >> a1 >> a2 >> ty)) continue;
+      std::map<int,int>::const_iterator i1 = byId.find(a1), i2 = byId.find(a2);
+      if (i1 == byId.end() || i2 == byId.end()) continue;
+      int o = 1;
+      if (ty == "2") o = 2;
+      else if (ty == "3") o = 3;
+      else if (ty == "ar") o = 4;
+      else if (ty == "nc") continue;
+      mol.addBond(i1->second, i2->second, o);
+    }
+  }
+  if (mol.atoms.empty()) { err = "no atoms in " + path; return false; }
+  mol.perceive(false);
+  return true;
+}
+
+// ---------------------------------------------------------------- PDBQT ---
+
+namespace {
+
+// AutoDock atom type -> element; 0 for the G0-G3 macrocycle dummies.
+int pdbqtElement(const std::string& adtype)
+{
+  std::string t;
+  for (size_t i = 0; i < adtype.size(); i++)
+    t += (char)toupper((unsigned char)adtype[i]);
+  if (t.size() == 2 && t[0] == 'G' && isdigit((unsigned char)t[1])) return 0;
+  if (t == "A" || t == "C" || (t.size() == 3 && t.compare(0, 2, "CG") == 0))
+    return 6;
+  if (t == "NA" || t == "NS") return 7;     // not sodium
+  if (t == "OA" || t == "OS") return 8;
+  if (t == "SA") return 16;
+  if (t == "HD" || t == "HS") return 1;
+  return DockMol::elementFromSymbol(t);
+}
+
+}
+
+bool DockReader::readPdbqt(const std::string& path, DockMol& mol,
+                           std::string& err)
+{
+  std::ifstream is(path.c_str());
+  if (!is) { err = "cannot open " + path; return false; }
+  mol.atoms.clear(); mol.bonds.clear();
+  std::string line;
+  while (std::getline(is, line)) {
+    if (line.compare(0, 6, "ENDMDL") == 0) break;     // first model only
+    if (line.compare(0, 4, "ATOM") != 0 && line.compare(0, 6, "HETATM") != 0)
+      continue;
+    if (line.size() < 54) continue;
+    DockAtom a;
+    a.name    = col(line, 12, 4);
+    a.resName = col(line, 17, 3);
+    a.chain   = col(line, 21, 1);
+    a.resSeq  = atoi(col(line, 22, 4).c_str());
+    a.x  = atof(line.substr(30, 8).c_str());
+    a.y  = atof(line.substr(38, 8).c_str());
+    a.zc = atof(line.substr(46, 8).c_str());
+    if (line.size() >= 76) a.charge = atof(col(line, 70, 6).c_str());
+    a.adType = col(line, 76, 4);
+    a.z = pdbqtElement(a.adType);
+    if (a.z == 0) continue;
+    mol.atoms.push_back(a);
+  }
+  if (mol.atoms.empty()) { err = "no atoms in " + path; return false; }
+  mol.perceive(true);
   return true;
 }
 

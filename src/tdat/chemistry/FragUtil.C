@@ -6,6 +6,7 @@
 //
 ///////////////////////////////////////////////////////////////////////////////
 
+#include "tdat/DockFragmentIO.H"
 #include <fstream>
 #include <iostream>
   using namespace std;
@@ -1252,6 +1253,8 @@ bool FragUtil::load( istream& is,
 
       ret = frag->restorePDB(is,mult,genBOs,selectMdl,selectAlt,groupFlg,
             readBonds, selectChain);
+   } else if (DockFragmentIO::canRead(type)) {
+      ret = DockFragmentIO::read(*frag, is, type);
    }
    return ret;
 

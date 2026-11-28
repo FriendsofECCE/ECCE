@@ -72,6 +72,24 @@ class DockPdbqtWriter
     static void mergeNonpolarHydrogens(DockMol& mol);
 };
 
+/**
+ * Bridge to an external Open Babel (obabel), run as a subprocess so that no
+ * Open Babel code is linked into ECCE (GPL-2.0).
+ */
+class DockObabel
+{
+  public:
+    /** Path of obabel: $ECCE_OBABEL, else PATH; empty if none. */
+    static std::string find();
+    /** Lower-case format ids obabel reads; cached, empty without obabel. */
+    static const std::vector<std::string>& readFormats();
+    static bool canRead(const std::string& ext);
+    /** Convert the first record of @p in to a V2000 SDF at @p outSdf. */
+    static bool convertToSdf(const std::string& in, const std::string& type,
+                             const std::string& outSdf, bool gen3d,
+                             std::string& err);
+};
+
 /** Readers for the formats the preparation accepts. */
 class DockReader
 {
@@ -87,6 +105,21 @@ class DockReader
                          std::string& err);
     static bool readPdb(const std::string& path, DockMol& mol,
                         const std::string& hetSelect, std::string& err);
+    /** Tripos MOL2, first molecule; LP atoms are skipped, Du takes its
+     *  element from the atom name.  Bond type ar becomes order 4. */
+    static bool readMol2(const std::string& path, DockMol& mol,
+                         std::string& err);
+    /** PDBQT as a structure: first MODEL, element from the AutoDock type,
+     *  bonds perceived, charges kept in DockAtom::charge. */
+    static bool readPdbqt(const std::string& path, DockMol& mol,
+                          std::string& err);
+    /**
+     * Any structure file by @p type (SDF, MOL, MOL2, PDBQT or a format only
+     * Open Babel reads), the first record.  V3000 and the Open Babel
+     * formats go through DockObabel when it is available.
+     */
+    static bool readStructure(const std::string& path, const std::string& type,
+                              DockMol& mol, std::string& err);
     /** Read a PDBQT back in; used to turn Vina poses into coordinates. */
     static bool readPdbqtModels(const std::string& path,
                                 std::vector< std::vector<double> >& coords,

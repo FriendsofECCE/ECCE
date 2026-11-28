@@ -706,6 +706,8 @@ target_link_libraries(lineprofile PRIVATE
 # PDBQT preparation for docking (#455).  wx-free and self-contained so the
 # command, the job script and the editor cannot drift apart.
 ecce_library(eccedock src/dock)
+# Structure files read by the docking library open as a Fragment (#1343).
+target_link_libraries(eccetdat PUBLIC eccedock)
 add_executable(ecce-pdbqt src/apps/pdbqt/ecce-pdbqt.C)
 target_link_libraries(ecce-pdbqt PRIVATE eccedock)
 # The receptor/ligand split for docking, shared by every caller (#1335).
@@ -2667,6 +2669,24 @@ target_link_libraries(dock_split_test PRIVATE eccedock)
 add_test(NAME dock_split COMMAND dock_split_test ${CMAKE_SOURCE_DIR})
 set_tests_properties(dock_split PROPERTIES SKIP_RETURN_CODE 77
   ENVIRONMENT "ECCE_HOME=${CMAKE_SOURCE_DIR};ECCE_REALUSER=docksplit;ECCE_REALUSERHOME=${CMAKE_BINARY_DIR}/docksplit-home")
+
+# Structure-file readers and the Open Babel bridge (#1343).  The oracle and
+# bridge tests skip (77) where obabel is absent; the native one never does.
+add_executable(dockread_dump tests/dock/dockread_dump.C)
+target_link_libraries(dockread_dump PRIVATE eccedock)
+foreach(_m native oracle bridge)
+  add_test(NAME structure_formats_${_m} COMMAND ${PYTHON3_EXECUTABLE}
+    ${CMAKE_SOURCE_DIR}/tests/dock/structure_formats.py ${_m}
+    $<TARGET_FILE:dockread_dump> ${CMAKE_SOURCE_DIR}/tests/dock/formats)
+endforeach()
+add_executable(structure_fragment_test tests/dock/structure_fragment_test.C)
+target_link_libraries(structure_fragment_test PRIVATE eccetdat ecceutil)
+add_test(NAME structure_fragment COMMAND structure_fragment_test
+  ${CMAKE_SOURCE_DIR}/tests/dock/formats)
+set_tests_properties(structure_fragment PROPERTIES
+  ENVIRONMENT "ECCE_HOME=${CMAKE_SOURCE_DIR}")
+set_tests_properties(structure_formats_oracle structure_formats_bridge
+  PROPERTIES SKIP_RETURN_CODE 77)
 
 # tests/metal_bonds (#325): Metal bonds need no nubs.
 add_executable(metal_bond_test tests/metal_bonds/metal_bond_test.C)

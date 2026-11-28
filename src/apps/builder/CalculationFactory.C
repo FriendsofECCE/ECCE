@@ -28,6 +28,7 @@ wxFORCE_LINK_MODULE(CubeCalculation)
 wxFORCE_LINK_MODULE(PdbCalculation)
 wxFORCE_LINK_MODULE(MvmCalculation)
 wxFORCE_LINK_MODULE(XyzCalculation)
+wxFORCE_LINK_MODULE(StructFileCalculation)
 
 
 PropCalcInfoMap *CalculationInfo::s_info(NULL);
@@ -122,7 +123,10 @@ string CalculationFactory::openMask()
   info = infoMap.begin();
   info_end = infoMap.end();
   while (info != info_end) {
-    if (info->second->GetOpenMask() != "") {
+    // The Open Babel formats are a file-dialog entry of their own, not 140
+    // patterns in "All Supported Types".
+    if (info->second->GetName() != "ObabelCalculation" &&
+        info->second->GetOpenMask() != "") {
       ret += info->second->GetOpenMask() + ";";
     }
     ++info;

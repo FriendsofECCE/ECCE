@@ -20,6 +20,27 @@ The Builder reads structure files in these formats:
 | Biosym/Accelrys CAR | `.car` |
 | Crystallographic Information File (CIF) | `.cif` |
 | ECCE MVM (ECCE's own format) | `.mvm` |
+| MDL molfile / SDF (V2000) | `.sdf`, `.mol`, `.sd` |
+| Tripos MOL2 | `.mol2` |
+| AutoDock PDBQT | `.pdbqt` |
+
+SDF, MOL2 and PDBQT are read by ECCE itself, on every platform. A file
+with several structures (a multi-record SDF, a MOL2 with several molecules,
+a PDBQT with several MODEL records such as Vina's poses) opens its first
+structure. A MOL2 or PDBQT atom's partial charge is kept. PDBQT carries no
+bonds, so ECCE finds them from the distances. A molfile in the V3000
+dialect needs Open Babel (below).
+
+### Other formats, with Open Babel
+
+If [Open Babel](https://openbabel.org) is installed (its `obabel` program is
+on the `PATH`, or the environment variable `ECCE_OBABEL` names it), ECCE can
+also open the other formats it reads, such as `.cml` and `.smi`, and molfiles in the
+V3000 dialect. The file window then has an extra entry,
+"Other formats (Open Babel)". ECCE runs `obabel` as a separate program and
+reads the first structure it returns; a SMILES string, which has no
+coordinates, is given a 3D geometry with hydrogens by Open Babel. Without
+Open Babel, those formats are not offered.
 
 ### Start the Builder without a calculation
 
