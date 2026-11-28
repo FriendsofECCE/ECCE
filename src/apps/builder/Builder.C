@@ -6209,6 +6209,7 @@ bool Builder::readFragmentFromFile(SFile *file, wxString type, wxString ext)
 
   string units = "angstroms";
 
+  const int atomsBefore = getSG()->getFragment() ? getSG()->getFragment()->numAtoms() : 0;
   AddFragmentCmd *cmd = new AddFragmentCmd("Add Fragment", getSG());
   cmd->getParameter("streamType")->setString(ext.ToStdString());
   cmd->getParameter("fileName")->setString(file->path());
@@ -6246,6 +6247,9 @@ bool Builder::readFragmentFromFile(SFile *file, wxString type, wxString ext)
        cmd->getParameter("z")->setDouble(0.0);
 
        execute(cmd);
+
+       //  Only a Vina calculation: the added molecule is its ligand.
+       if (atomsBefore > 0 && vinaJob()) vinaPlaceAddedLigand(atomsBefore);
 
        if (ext.IsSameAs("CIF",false)) {
          vector<string> notes = CifIO::takeWarnings();

@@ -2677,7 +2677,8 @@ void Builder::runBuilderScript(const std::string& file)
         fprintf(stderr, "BUILDER: surface %s count=%d\n", w[1].c_str(),
                 sa.getPaths().getLength());
       } else if (w[0] == "vinabox" || w[0] == "vinaboxinfo" ||
-                 w[0] == "selectatoms" || w[0] == "poses") {
+                 w[0] == "selectatoms" || w[0] == "poses" ||
+                 w[0] == "vinaligandinfo") {
         outcome = vinaScriptCommand(w);
       } else if (w[0].compare(0, 4, "gten") == 0 && w[0] != "gtenkind") {
         outcome = ensembleCommand(w);

@@ -983,6 +983,16 @@ ai.vina writes `scoring = vinardo` only for vinardo; on a Vina without
 `--scoring` (before 1.2) the job script drops that line and writes an
 `ECCE warning:` line to the output, so the run scores with vina.
 
+**Add Structure to a Vina calculation (#1297).** File > Add Structure from
+File (and the Builder script's `import FILE`, `ECCE_TEST_IMPORT`) on a
+calculation whose code is Vina and which already holds atoms moves the added
+atoms just past the receptor's +x face (5 A gap, centred on it in y and z),
+sets `ES.Runtype.Docking.LigandAtoms` to them, leaves them selected and frames
+the view, as one undoable Translate. Any other code is unchanged. The Builder
+script's `vinaligandinfo` prints `ligandatoms=<stored|-> selected=<ranges|->
+natoms=N receptor <lo xyz hi xyz> ligand <lo xyz hi xyz>` (the "ligand" box is
+the selected atoms); test: `tests/apps/vina_add_ligand_test.py`.
+
 **Vina box warning (#1296).** With `ES.Runtype.Vina.BoxAuto` on, the search
 box is built around the ligand's own coordinates, so a ligand drawn in the
 Builder or added with File > Add Structure from File gets a box away from the

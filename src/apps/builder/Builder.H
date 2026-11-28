@@ -762,6 +762,8 @@ class Builder: public BuilderGUI,
       /// The box from Builder selection; "" or why not.  margin < 0: the
       /// calculation's ES.Runtype.Vina.BoxMargin.
       string vinaBoxFromSelection(double margin);
+      /// A structure was added at atoms [first, n) of a Vina calculation.
+      void vinaPlaceAddedLigand(int first);
       /// Redraw for `url`: from the stored details, or from the editor's
       /// unsaved ones when `live` is given.
       void vinaDetailsChanged(const string& url,

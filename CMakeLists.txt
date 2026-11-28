@@ -6283,6 +6283,15 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_vina_viewer PROPERTIES TIMEOUT 3600 SKIP_RETURN_CODE 77)
 
+  # #1297: a structure added to a Vina calculation is placed clear of the
+  # receptor and becomes the ligand; another code's Add Structure is unchanged.
+  add_test(NAME apps_vina_add_ligand
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/vina_add_ligand_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_vina_add_ligand PROPERTIES TIMEOUT 600 SKIP_RETURN_CODE 77)
+
   # #1244: the Runtype Details list of ligand candidates.
   add_test(NAME apps_vina_molecules
            COMMAND ${PYTHON3_EXECUTABLE}

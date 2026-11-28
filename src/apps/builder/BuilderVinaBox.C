@@ -3,9 +3,11 @@
 //  numbers change.  The box values live in the calculation's run type
 //  details (ES.Runtype.Vina.*), which ai.vina turns into the config.
 #include "tdat/LigandSelect.H"
+#include "viz/TranslateCmd.H"
 #include "tdat/Residue.H"
 #include "dock/DockSplit.H"
 #include <algorithm>
+#include <set>
 #include <cmath>
 #include <cstdio>
 #include <cstring>
@@ -278,6 +280,59 @@ void Builder::vinaDetailsChanged(const string& url, const std::map<string, strin
 }
 
 
+//  Atoms [first, numAtoms) were just added to a Vina calculation: move them
+//  clear of the receptor, make them the ligand and leave them selected.
+//  Clear = just past the receptor's +x face (5 A gap), centred on it in y and
+//  z, so the pair stays in one view and the box tool has a ligand outside the
+//  pocket to be re-aimed.  Anything but a Vina calculation is left alone.
+void Builder::vinaPlaceAddedLigand(int first)
+{
+  TaskJob *job = vinaJob();
+  ICalculation *ic = dynamic_cast<ICalculation*>(job);
+  SGFragment *frag = getSG() ? getSG()->getFragment() : 0;
+  if (!ic || !frag || first <= 0 || first >= frag->numAtoms()) return;
+  const int n = frag->numAtoms();
+  double rlo[3] = {1e30, 1e30, 1e30}, rhi[3] = {-1e30, -1e30, -1e30};
+  double llo[3] = {1e30, 1e30, 1e30}, lhi[3] = {-1e30, -1e30, -1e30};
+  for (int i = 0; i < n; i++) {
+    const double *p = frag->atomRef(i)->coordinates();
+    double *lo = i < first ? rlo : llo, *hi = i < first ? rhi : lhi;
+    for (int k = 0; k < 3; k++) { lo[k] = std::min(lo[k], p[k]); hi[k] = std::max(hi[k], p[k]); }
+  }
+  const double GAP = 5.0;
+  frag->m_atomHighLight.clear();
+  for (int i = first; i < n; i++) frag->m_atomHighLight.push_back(i);
+  Command *cmd = new TranslateCmd("Translate", getSG());
+  cmd->getParameter("apply")->setString("selected");
+  cmd->getParameter("x")->setDouble(rhi[0] + GAP - llo[0]);
+  cmd->getParameter("y")->setDouble((rlo[1] + rhi[1]) / 2 - (llo[1] + lhi[1]) / 2);
+  cmd->getParameter("z")->setDouble((rlo[2] + rhi[2]) / 2 - (llo[2] + lhi[2]) / 2);
+  execute(cmd);
+  // execute() may leave the selection as the command found it; set it again.
+  frag->m_atomHighLight.clear();
+  for (int i = first; i < n; i++) frag->m_atomHighLight.push_back(i);
+
+  if (!isReadOnly()) {
+    GUIValues *g = ic->guiparams();
+    if (!g) g = new GUIValues;
+    store(g, "ES.Runtype.Docking.LigandAtoms",
+          LigandSelect::atomRangeString(vector<int>(frag->m_atomHighLight.begin(),
+                                                    frag->m_atomHighLight.end())),
+          "text_input", "");
+    ic->guiparams(g);
+    delete g;
+    if (job->getState() > ResourceDescriptor::STATE_CREATED)
+      job->setState(ResourceDescriptor::STATE_CREATED);
+    JMSMessage *msg = newMessage();
+    msg->addProperty("url", getContext());
+    publish("ecce_url_details", *msg);
+    delete msg;
+  }
+  getViewer().viewAll();
+  getViewer().refreshRenderArea();
+}
+
+
 string Builder::vinaBoxFromSelection(double margin)
 {
   TaskJob *job = vinaJob();
@@ -391,6 +446,33 @@ string Builder::vinaScriptCommand(const vector<string>& w)
     }
     getViewer().refreshRenderArea();
     snprintf(buf, sizeof buf, "selected %d", (int)frag->m_atomHighLight.size());
+    return buf;
+  }
+  if (w[0] == "vinaligandinfo") {
+    //  The stored Ligand atoms, the selection, and the ligand's box against
+    //  the rest of the structure's.
+    string stored;
+    if (ICalculation *ic = dynamic_cast<ICalculation*>(vinaJob()))
+      if (GUIValues *g = ic->guiparams()) {
+        stored = value(g, "ES.Runtype.Docking.LigandAtoms", "");
+        delete g;
+      }
+    vector<int> sel(frag->m_atomHighLight.begin(), frag->m_atomHighLight.end());
+    std::sort(sel.begin(), sel.end());
+    std::set<int> in(sel.begin(), sel.end());
+    double rlo[3] = {1e30, 1e30, 1e30}, rhi[3] = {-1e30, -1e30, -1e30};
+    double llo[3] = {1e30, 1e30, 1e30}, lhi[3] = {-1e30, -1e30, -1e30};
+    for (int i = 0; i < frag->numAtoms(); i++) {
+      const double *p = frag->atomRef(i)->coordinates();
+      double *lo = in.count(i) ? llo : rlo, *hi = in.count(i) ? lhi : rhi;
+      for (int k = 0; k < 3; k++) { lo[k] = std::min(lo[k], p[k]); hi[k] = std::max(hi[k], p[k]); }
+    }
+    snprintf(buf, sizeof buf, "ligandatoms=%s selected=%s natoms=%d "
+             "receptor %.1f %.1f %.1f %.1f %.1f %.1f ligand %.1f %.1f %.1f %.1f %.1f %.1f",
+             stored.empty() ? "-" : stored.c_str(),
+             sel.empty() ? "-" : LigandSelect::atomRangeString(sel).c_str(),
+             frag->numAtoms(), rlo[0], rlo[1], rlo[2], rhi[0], rhi[1], rhi[2],
+             llo[0], llo[1], llo[2], lhi[0], lhi[1], lhi[2]);
     return buf;
   }
   if (w[0] == "vinabox") {
